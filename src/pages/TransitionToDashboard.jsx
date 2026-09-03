@@ -1,9 +1,17 @@
+import { LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 
 export default function TransitionToDashboard() {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const { divisions } = useData()
+
+  const handleExit = () => {
+    logout()
+    navigate('/', { replace: true })
+  }
 
   const selectDivision = (divisionId) => {
     sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
@@ -83,6 +91,15 @@ export default function TransitionToDashboard() {
       </div>
 
       <div className="relative z-10 min-h-screen px-6 py-10 sm:px-8 lg:px-12">
+        <button
+          type="button"
+          onClick={handleExit}
+          className="absolute right-6 top-6 z-20 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all hover:border-white/30 hover:bg-white/10 sm:right-8 lg:right-12"
+        >
+          <LogOut className="h-4 w-4" />
+          Keluar
+        </button>
+
         <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-between gap-10">
           <div className="pt-4 text-center">
             <p className="text-[11px] uppercase tracking-[0.45em] text-slate-300/75">

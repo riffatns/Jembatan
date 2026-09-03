@@ -6,6 +6,32 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 const AuthContext = createContext(null)
 const STORAGE_KEY = 'bpk-dashboard-auth'
 const USERS_KEY = 'bpk-dashboard-users'
+const LAST_LOGIN_KEY = 'bpk-dashboard-last-login'
+
+export function getRememberedLogin() {
+  if (typeof window === 'undefined') return { username: '', password: '' }
+  try {
+    const raw = localStorage.getItem(LAST_LOGIN_KEY)
+    if (!raw) return { username: '', password: '' }
+    const parsed = JSON.parse(raw)
+    return {
+      username: typeof parsed.username === 'string' ? parsed.username : '',
+      password: typeof parsed.password === 'string' ? parsed.password : ''
+    }
+  } catch {
+    return { username: '', password: '' }
+  }
+}
+
+function rememberLogin(username, password) {
+  localStorage.setItem(
+    LAST_LOGIN_KEY,
+    JSON.stringify({
+      username: username.trim(),
+      password
+    })
+  )
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -66,6 +92,7 @@ export function AuthProvider({ children }) {
         if (error || !data.user) return { success: false, message: error?.message || 'Login gagal.' }
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
         const safeUser = profile ? { ...profile, division: profile.division_id, email: data.user.email } : { id: data.user.id, email: data.user.email }
+        rememberLogin(username, password)
         setUser(safeUser)
         return { success: true }
       }
@@ -77,6 +104,7 @@ export function AuthProvider({ children }) {
         return { success: false, message: 'Invalid username or password.' }
       }
       const { password: _pw, ...safeUser } = found
+      rememberLogin(username, password)
       setUser(safeUser)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(safeUser))
       return { success: true }

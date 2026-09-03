@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import {
-  ArrowRight,
   ArrowUpRight,
   Eye,
   EyeOff,
@@ -9,11 +8,9 @@ import {
   Sparkles,
   User,
   Wallet,
-  Activity,
-  ShieldCheck,
-  Building2
+  ShieldCheck
 } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
+import { getRememberedLogin, useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -55,24 +52,24 @@ function BudgetGauge({ label, subtitle, icon: Icon, percentage, accent, primaryV
         </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-5 xl:flex-row xl:items-center">
-        <div className="flex items-center justify-center xl:w-56">
+      <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-center">
+        <div className="flex shrink-0 items-center justify-center lg:w-48">
           <div
-            className="relative flex h-44 w-44 items-center justify-center rounded-full"
+            className="relative flex h-40 w-40 items-center justify-center rounded-full"
             style={{
               background: `conic-gradient(${accent} ${clamped}%, rgba(148, 163, 184, 0.15) ${clamped}% 100%)`
             }}
           >
             <div className="absolute inset-4 rounded-full border border-sky-300/20 bg-[#05101f] shadow-[inset_0_0_28px_rgba(9,132,255,0.18)]" />
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-sky-300/15 bg-[#071429] text-sky-200 shadow-[0_0_20px_rgba(0,168,255,0.2)]">
-              <Icon className="h-10 w-10" />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-sky-300/15 bg-[#071429] text-sky-200 shadow-[0_0_20px_rgba(0,168,255,0.2)]">
+              <Icon className="h-9 w-9" />
             </div>
           </div>
         </div>
 
         <div className="flex-1">
           <div className="flex items-baseline gap-1">
-            <span className="text-6xl font-semibold tracking-tight text-white sm:text-7xl">{Math.round(clamped)}</span>
+            <span className="text-5xl font-semibold tracking-tight text-white sm:text-6xl">{Math.round(clamped)}</span>
             <span className="text-3xl font-medium text-sky-300">%</span>
           </div>
 
@@ -83,14 +80,18 @@ function BudgetGauge({ label, subtitle, icon: Icon, percentage, accent, primaryV
             />
           </div>
 
-          <div className="mt-4 space-y-2 text-sm text-slate-200 sm:text-base">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="w-28 text-slate-400">{secondaryLabel}</span>
-              <span className="font-medium text-white">{formatCurrency(secondaryValue)}</span>
+          <div className="mt-4 space-y-3 text-sm text-slate-200">
+            <div>
+              <p className="text-[13px] text-slate-400">{secondaryLabel}</p>
+              <p className="mt-0.5 whitespace-nowrap text-base font-medium tabular-nums tracking-tight text-white sm:text-lg">
+                {formatCurrency(secondaryValue)}
+              </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="w-28 text-slate-400">Pagu</span>
-              <span className="font-medium text-white">{formatCurrency(primaryValue)}</span>
+            <div>
+              <p className="text-[13px] text-slate-400">Pagu</p>
+              <p className="mt-0.5 whitespace-nowrap text-base font-medium tabular-nums tracking-tight text-white sm:text-lg">
+                {formatCurrency(primaryValue)}
+              </p>
             </div>
           </div>
         </div>
@@ -196,8 +197,9 @@ export default function Landing() {
   const { login, isAuthenticated } = useAuth()
   const { stats } = useData()
   const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const rememberedLogin = getRememberedLogin()
+  const [username, setUsername] = useState(rememberedLogin.username)
+  const [password, setPassword] = useState(rememberedLogin.password)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -259,36 +261,8 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="inline-flex items-center gap-3 self-start rounded-full border border-sky-400/20 bg-white/5 px-4 py-2 backdrop-blur-xl">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-400/15 text-sky-200 shadow-[0_0_20px_rgba(59,130,246,0.25)]">
-              <Building2 className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-sky-300/80">Portal Internal</p>
-              <p className="text-sm text-white/85">BPK Dashboard Jembatan</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-sky-100/80">
-            <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-[#061429]/70 px-3 py-1.5 backdrop-blur-xl">
-              <Activity className="h-3.5 w-3.5 text-sky-300" />
-              Data real-time dari local storage
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/')}
-              className="hidden rounded-full border-sky-300/25 bg-white/5 px-4 text-white hover:bg-sky-300/10 hover:text-white sm:inline-flex"
-            >
-              Buka Login
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_360px] lg:items-start">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col justify-center gap-5 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_340px] xl:items-start">
           <BudgetGauge
             label="Realisasi Anggaran"
             subtitle="Persentase Realisasi Anggaran"
