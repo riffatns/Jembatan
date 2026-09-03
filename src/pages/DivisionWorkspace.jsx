@@ -49,7 +49,7 @@ function parseDateInputValue(value) {
 export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const { divisionId: routeDivisionId } = useParams()
   const { getDocumentDivision, getDocumentCategories, documents, addDocument, updateDocument, deleteDocument, stats } = useData()
-  const { user, canUploadDocuments, canManageDocument, canAccessDivision } = useAuth()
+  const { user, canUploadToDivision, canManageDocument, canAccessDivision } = useAuth()
   const navigate = useNavigate()
 
   const divisionId = propDivisionId || routeDivisionId || sessionStorage.getItem('bpk-dashboard-selected-division') || 'finance'
@@ -212,7 +212,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         actionLabel="Upload Dokumen"
         actionIcon={Plus}
         onAction={handleOpenUpload}
-        actionDisabled={!canUploadDocuments()}
+        showAction={canUploadToDivision(divisionId)}
         onBrandClick={() => navigate('/dashboard')}
       />
       {/*

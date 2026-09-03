@@ -12,7 +12,8 @@ export function DashboardHeader({
   actionIcon: ActionIcon,
   onAction,
   actionDisabled = false,
-  onBrandClick
+  onBrandClick,
+  showAction = true
 }) {
   return (
     <div className="flex flex-col gap-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] lg:flex-row lg:items-center lg:justify-between">
@@ -33,10 +34,12 @@ export function DashboardHeader({
           <input id={dateInputId} type="date" value={selectedDate} onChange={(event) => onDateChange(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Filter tanggal dashboard" />
         </label>
         <UserAccountMenu />
-        <Button variant="teal" onClick={onAction} disabled={actionDisabled} className="rounded-full px-5 shadow-[0_14px_30px_rgba(31,99,211,0.26)]">
-          <ActionIcon className="h-4 w-4" />
-          {actionLabel}
-        </Button>
+        {showAction && (
+          <Button variant="teal" onClick={onAction} disabled={actionDisabled} className="rounded-full px-5 shadow-[0_14px_30px_rgba(31,99,211,0.26)]">
+            <ActionIcon className="h-4 w-4" />
+            {actionLabel}
+          </Button>
+        )}
       </div>
     </div>
   )

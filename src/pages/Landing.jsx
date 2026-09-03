@@ -213,8 +213,8 @@ export default function Landing() {
     setSubmitting(true)
     setError('')
 
-    setTimeout(() => {
-      const result = login(username, password)
+    setTimeout(async () => {
+      const result = await login(username, password)
       if (result.success) {
         navigate('/transition', { replace: true })
       } else {

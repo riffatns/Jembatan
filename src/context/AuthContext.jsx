@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { USERS } from '../data/seed'
 import { getRoleInfo } from '../data/accessControl'
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 const STORAGE_KEY = 'bpk-dashboard-auth'
@@ -12,6 +13,31 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isSupabaseConfigured) {
+      let active = true
+      const loadSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          if (active) setUser(profile ? { ...profile, division: profile.division_id, email: session.user.email } : { id: session.user.id, email: session.user.email })
+        }
+        if (active) setLoading(false)
+      }
+      loadSession()
+      const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (!session?.user) {
+          if (active) setUser(null)
+          return
+        }
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+        if (active) setUser(profile ? { ...profile, division: profile.division_id, email: session.user.email } : { id: session.user.id, email: session.user.email })
+      })
+      return () => {
+        active = false
+        listener.subscription.unsubscribe()
+      }
+    }
+
     const savedUsers = localStorage.getItem(USERS_KEY)
     setUsers(savedUsers ? JSON.parse(savedUsers) : USERS)
 
@@ -33,7 +59,17 @@ export function AuthProvider({ children }) {
   }, [users])
 
   const login = useCallback(
-    (username, password) => {
+    async (username, password) => {
+      if (isSupabaseConfigured) {
+        const email = username.includes('@') ? username.trim() : `${username.trim()}@jembatan.local`
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error || !data.user) return { success: false, message: error?.message || 'Login gagal.' }
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
+        const safeUser = profile ? { ...profile, division: profile.division_id, email: data.user.email } : { id: data.user.id, email: data.user.email }
+        setUser(safeUser)
+        return { success: true }
+      }
+
       const found = users.find(
         (u) => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password
       )
@@ -49,13 +85,25 @@ export function AuthProvider({ children }) {
   )
 
   const logout = useCallback(() => {
+    if (isSupabaseConfigured) {
+      supabase.auth.signOut()
+      setUser(null)
+      return
+    }
     setUser(null)
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
   const updateProfile = useCallback(
-    (updates) => {
+    async (updates) => {
       if (!user) return
+      if (isSupabaseConfigured) {
+        const { data: updatedProfile, error } = await supabase.from('profiles').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', user.id).select('*').single()
+        if (error) throw error
+        const updated = { ...updatedProfile, division: updatedProfile.division_id }
+        setUser(updated)
+        return updated
+      }
       const updated = { ...user, ...updates }
       setUser(updated)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
