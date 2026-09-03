@@ -170,6 +170,7 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
           </Button>
         </form>
 
+        {/* 
         <div className="mt-6 rounded-2xl border border-sky-400/15 bg-[#04101d]/70 p-4">
           <p className="text-center text-[11px] font-semibold uppercase tracking-[0.35em] text-sky-200/70">
             Quick Demo Access
@@ -187,7 +188,7 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
             ))}
           </div>
           <p className="mt-3 text-center text-xs text-slate-400">Pilih role untuk autofill, lalu login.</p>
-        </div>
+        </div>*/}
       </div>
     </NeonPanel>
   )
