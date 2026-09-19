@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Check, X as XIcon, Filter, Eye } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { Card, CardContent } from '../components/ui/card'
@@ -15,16 +16,13 @@ import { useAuth } from '../context/AuthContext'
 export default function Approvals() {
   const { documents, divisions, approveDocument, rejectDocument, getDocumentCategory } = useData()
   const { canReviewDocuments } = useAuth()
+  const navigate = useNavigate()
   const [divisionFilter, setDivisionFilter] = useState('all')
   const [reasonOpen, setReasonOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [selectedForReject, setSelectedForReject] = useState(null)
   const [selectedDocument, setSelectedDocument] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
-
-  if (!canReviewDocuments()) {
-    return null
-  }
 
   const pendingItems = useMemo(() => {
     return documents
@@ -39,6 +37,10 @@ export default function Approvals() {
       .sort((a, b) => new Date(b.uploadedAt || b.documentDate) - new Date(a.uploadedAt || a.documentDate))
       .slice(0, 8)
   }, [documents])
+
+  if (!canReviewDocuments()) {
+    return null
+  }
 
   const handleRejectClick = (document) => {
     setSelectedForReject(document)
