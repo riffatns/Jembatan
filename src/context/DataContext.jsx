@@ -2,6 +2,14 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo } 
 import { DIVISIONS, INITIAL_CONTENT, BUDGET_SUMMARY, DOCUMENT_STRUCTURE } from '../data/seed'
 import { buildUploadedDocument, loadStoredDocuments, saveStoredDocuments } from '../lib/documentStorage'
 import { loadBudgetData } from '../lib/budgetStorage'
+import {
+  canViewAgendaEvent,
+  loadStoredAgenda,
+  mapRemoteAgendaEvent,
+  normalizeAgendaInput,
+  saveStoredAgenda,
+  toRemoteAgendaPayload
+} from '../lib/agendaStorage'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
 
@@ -26,6 +34,7 @@ function mapRemoteDocument(document) {
     fileSize: document.file_size,
     documentNumber: document.document_number,
     documentDate: document.document_date,
+    archiveStatus: document.archive_status || null,
     uploadedAt: document.created_at,
     uploadedBy: document.uploaded_by || ''
   }
@@ -43,6 +52,8 @@ export function DataProvider({ children }) {
   const [budgetData, setBudgetData] = useState(BUDGET_SUMMARY)
   const [remoteDivisions, setRemoteDivisions] = useState(null)
   const [remoteCategories, setRemoteCategories] = useState(null)
+  const [allAgendaEvents, setAgendaEvents] = useState(loadStoredAgenda)
+  const [isAgendaRemote, setIsAgendaRemote] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -54,12 +65,13 @@ export function DataProvider({ children }) {
     if (!isSupabaseConfigured || !user) return undefined
     let active = true
     const loadRemoteData = async () => {
-      const [divisionResult, categoryResult, documentResult, contentResult, budgetResult] = await Promise.all([
+      const [divisionResult, categoryResult, documentResult, contentResult, budgetResult, agendaResult] = await Promise.all([
         supabase.from('divisions').select('*').order('name'),
         supabase.from('document_categories').select('*').order('name'),
         supabase.from('documents').select('*').order('created_at', { ascending: false }),
         supabase.from('content').select('*').order('created_at', { ascending: false }),
-        supabase.from('budget_snapshots').select('*').order('fiscal_year', { ascending: false }).limit(1)
+        supabase.from('budget_snapshots').select('*').order('fiscal_year', { ascending: false }).limit(1),
+        supabase.from('agenda_events').select('*').order('event_date', { ascending: true })
       ])
       if (!active) return
       if (!divisionResult.error && divisionResult.data?.length) setRemoteDivisions(divisionResult.data.map((division) => ({ ...division, shortName: division.short_name })))
@@ -71,6 +83,13 @@ export function DataProvider({ children }) {
           return result
         }, {})
         setRemoteCategories(Object.values(grouped))
+      }
+      // Tabel agenda_events opsional: kalau supabase/agenda.sql belum dijalankan, tetap pakai localStorage.
+      if (agendaResult.error) {
+        setIsAgendaRemote(false)
+      } else {
+        setIsAgendaRemote(true)
+        setAgendaEvents((agendaResult.data || []).map(mapRemoteAgendaEvent))
       }
       if (!documentResult.error) setDocuments((documentResult.data || []).map(mapRemoteDocument))
       if (!contentResult.error) setContent(contentResult.data || [])
@@ -95,6 +114,11 @@ export function DataProvider({ children }) {
         if (event.eventType === 'UPDATE') setDocuments((prev) => prev.map((document) => document.id === event.new.id ? mapRemoteDocument(event.new) : document))
         if (event.eventType === 'DELETE') setDocuments((prev) => prev.filter((document) => document.id !== event.old.id))
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_events' }, (event) => {
+        if (event.eventType === 'INSERT') setAgendaEvents((prev) => prev.some((item) => item.id === event.new.id) ? prev : [mapRemoteAgendaEvent(event.new), ...prev])
+        if (event.eventType === 'UPDATE') setAgendaEvents((prev) => prev.map((item) => item.id === event.new.id ? mapRemoteAgendaEvent(event.new) : item))
+        if (event.eventType === 'DELETE') setAgendaEvents((prev) => prev.filter((item) => item.id !== event.old.id))
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'content' }, (event) => {
         if (event.eventType === 'INSERT') setContent((prev) => prev.some((item) => item.id === event.new.id) ? prev : [event.new, ...prev])
         if (event.eventType === 'UPDATE') setContent((prev) => prev.map((item) => item.id === event.new.id ? event.new : item))
@@ -109,6 +133,14 @@ export function DataProvider({ children }) {
 
   useEffect(() => { localStorage.setItem(CONTENT_KEY, JSON.stringify(content)) }, [content])
   useEffect(() => { saveStoredDocuments(documents) }, [documents])
+  useEffect(() => { saveStoredAgenda(allAgendaEvents) }, [allAgendaEvents])
+
+  // Disaring sekali di sini supaya tidak ada halaman yang lupa menerapkan
+  // aturan visibility. Yang keluar dari context sudah aman ditampilkan.
+  const agendaEvents = useMemo(
+    () => allAgendaEvents.filter((event) => canViewAgendaEvent(event, user)),
+    [allAgendaEvents, user]
+  )
 
   const addContent = useCallback((item) => {
     const newItem = { id: `c-${Date.now()}-${Math.floor(Math.random() * 1000)}`, status: 'pending', date: new Date().toISOString().slice(0, 10), ...item }
@@ -165,6 +197,7 @@ export function DataProvider({ children }) {
         document_number: item.documentNumber || null,
         document_date: item.documentDate || null,
         year: item.year || null,
+        archive_status: item.archiveStatus || null,
         status: uploadStatus,
         uploaded_by: user.id
       }).select().single()
@@ -187,6 +220,7 @@ export function DataProvider({ children }) {
         document_number: updates.documentNumber || null,
         document_date: updates.documentDate || null,
         year: updates.year || null,
+        archive_status: updates.archiveStatus || null,
         updated_at: new Date().toISOString()
       }
       const { data, error } = await supabase.from('documents').update(payload).eq('id', id).select().single()
@@ -233,6 +267,61 @@ export function DataProvider({ children }) {
     }
     setDocuments((prev) => prev.map((document) => document.id === id ? { ...document, status: 'rejected', rejectionReason: reason, reviewedAt: new Date().toISOString() } : document))
   }, [user])
+  const addAgendaEvent = useCallback(async (input) => {
+    const base = normalizeAgendaInput(input)
+    if (isSupabaseConfigured && isAgendaRemote && user?.id) {
+      const { data, error } = await supabase
+        .from('agenda_events')
+        .insert({ ...toRemoteAgendaPayload(base), created_by: user.id, created_by_name: user.name || null })
+        .select()
+        .single()
+      if (error) throw error
+      const created = mapRemoteAgendaEvent(data)
+      setAgendaEvents((prev) => prev.some((item) => item.id === created.id) ? prev : [created, ...prev])
+      return created
+    }
+    const created = {
+      ...base,
+      id: `agenda-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      createdBy: user?.id || null,
+      createdByName: user?.name || '',
+      createdAt: new Date().toISOString()
+    }
+    setAgendaEvents((prev) => [created, ...prev])
+    return created
+  }, [user, isAgendaRemote])
+
+  const updateAgendaEvent = useCallback(async (id, updates) => {
+    const base = normalizeAgendaInput(updates)
+    if (isSupabaseConfigured && isAgendaRemote && user?.id) {
+      const { data, error } = await supabase
+        .from('agenda_events')
+        .update({ ...toRemoteAgendaPayload(base), updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      const updated = mapRemoteAgendaEvent(data)
+      setAgendaEvents((prev) => prev.map((item) => item.id === id ? updated : item))
+      return updated
+    }
+    let updated = null
+    setAgendaEvents((prev) => prev.map((item) => {
+      if (item.id !== id) return item
+      updated = { ...item, ...base, updatedAt: new Date().toISOString() }
+      return updated
+    }))
+    return updated
+  }, [user, isAgendaRemote])
+
+  const deleteAgendaEvent = useCallback(async (id) => {
+    if (isSupabaseConfigured && isAgendaRemote && user?.id) {
+      const { error } = await supabase.from('agenda_events').delete().eq('id', id)
+      if (error) throw error
+    }
+    setAgendaEvents((prev) => prev.filter((item) => item.id !== id))
+  }, [user, isAgendaRemote])
+
   const getDivision = useCallback((id) => activeDivisions.find((division) => division.id === id), [activeDivisions])
 
   const stats = useMemo(() => {
@@ -261,7 +350,7 @@ export function DataProvider({ children }) {
     return { total, pending, approved, rejected, perDivision, statusDistribution: [{ name: 'Approved', value: approved, color: '#00A99D' }, { name: 'Pending', value: pending, color: '#F5A623' }, { name: 'Rejected', value: rejected, color: '#E15554' }], totalDivisions: activeDivisions.length, budget, documentTotal: total, documentPending: pending, documentApproved: approved, documentRejected: rejected, documentsByDivision, documentsByCategory, latestDocuments, recentActivity }
   }, [activeDivisions, activeDocumentStructure, budgetData, content, documents])
 
-  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, stats }
+  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 

@@ -1,6 +1,18 @@
 import { ArrowRight } from 'lucide-react'
 
-export function ServiceCard({ title, value, subtitle, icon: Icon, color, onClick, active = false }) {
+export function ServiceCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color,
+  onClick,
+  active = false,
+  ratio = 0.75,
+  actionLabel = 'Lihat Data'
+}) {
+  const barWidth = `${Math.round(Math.max(0, Math.min(1, ratio)) * 100)}%`
+
   return (
     <button
       type="button"
@@ -23,11 +35,11 @@ export function ServiceCard({ title, value, subtitle, icon: Icon, color, onClick
         <div>
           <p className="text-4xl font-semibold tracking-tight text-[#233b84]">{value}</p>
           <div className="mt-1 h-1.5 w-28 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-3/4 rounded-full" style={{ backgroundColor: color }} />
+            <div className="h-full rounded-full transition-all" style={{ width: barWidth, backgroundColor: color }} />
           </div>
         </div>
         <span className="inline-flex items-center gap-1 text-sm font-medium text-[#233b84]">
-          Lihat Data <ArrowRight className="h-4 w-4" />
+          {actionLabel} <ArrowRight className="h-4 w-4" />
         </span>
       </div>
     </button>

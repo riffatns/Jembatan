@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Building2,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react'
+import { Building2, Info } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { ServiceCard } from '../components/ServiceCard'
 import { SERVICE_META } from '../data/serviceMeta'
 import { DashboardHeader } from '../components/layout/DashboardHeader'
+import { AgendaCalendar } from '../components/agenda/AgendaCalendar'
+import { AgendaListItem } from '../components/agenda/AgendaListItem'
+import { AgendaEventDetail } from '../components/agenda/AgendaEventDetail'
+import { OtherDivisionsToggle } from '../components/agenda/OtherDivisionsToggle'
+import { AGENDA_CATEGORY_ID, parseDateKey, sortAgendaEvents, toDateKey } from '../lib/agendaStorage'
+
+const OTHER_DIVISIONS_KEY = 'bpk-dashboard-agenda-show-others'
 
 function toDateInputValue(date) {
   const year = date.getFullYear()
@@ -23,9 +26,14 @@ function parseDateInputValue(value) {
 }
 
 export default function Dashboard() {
-  const { documents, getDocumentCategory, getDocumentDivision, getDocumentCategories } = useData()
+  const { documents, agendaEvents, divisions, getDocumentDivision, getDocumentCategories } = useData()
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState(() => toDateInputValue(new Date()))
+  const [detailEvent, setDetailEvent] = useState(null)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [showOtherDivisions, setShowOtherDivisions] = useState(
+    () => sessionStorage.getItem(OTHER_DIVISIONS_KEY) !== 'false'
+  )
 
   const selectedDivisionId = sessionStorage.getItem('bpk-dashboard-selected-division') || 'finance'
   const division = getDocumentDivision(selectedDivisionId) || getDocumentDivision('finance')
@@ -36,10 +44,36 @@ export default function Dashboard() {
     [documents, selectedDivisionId]
   )
 
+  const divisionAgenda = useMemo(
+    () => agendaEvents.filter((event) => event.divisionId === selectedDivisionId),
+    [agendaEvents, selectedDivisionId]
+  )
+  const otherDivisionAgenda = useMemo(
+    () => agendaEvents.filter((event) => event.divisionId !== selectedDivisionId),
+    [agendaEvents, selectedDivisionId]
+  )
+  const calendarAgenda = showOtherDivisions ? agendaEvents : divisionAgenda
+  const divisionLabels = useMemo(
+    () => Object.fromEntries(divisions.map((division) => [division.id, division.name])),
+    [divisions]
+  )
+
   const selectedDateObject = useMemo(() => parseDateInputValue(selectedDate), [selectedDate])
-  const selectedDateDocuments = useMemo(
-    () => divisionDocuments.filter((document) => new Date(document.documentDate || document.uploadedAt).toDateString() === selectedDateObject.toDateString()),
-    [divisionDocuments, selectedDateObject]
+  const calendarCursor = useMemo(
+    () => new Date(selectedDateObject.getFullYear(), selectedDateObject.getMonth(), 1),
+    [selectedDateObject]
+  )
+  const monthAgenda = useMemo(
+    () =>
+      calendarAgenda.filter((event) => {
+        const date = parseDateKey(event.eventDate)
+        return date.getFullYear() === calendarCursor.getFullYear() && date.getMonth() === calendarCursor.getMonth()
+      }),
+    [calendarAgenda, calendarCursor]
+  )
+  const selectedDayAgenda = useMemo(
+    () => sortAgendaEvents(calendarAgenda.filter((event) => event.eventDate === toDateKey(selectedDateObject))),
+    [calendarAgenda, selectedDateObject]
   )
 
   const overviewCards = useMemo(
@@ -53,47 +87,39 @@ export default function Dashboard() {
           subtitle: meta.subtitle,
           color: meta.color,
           icon: meta.icon,
-          value: divisionDocuments.filter((document) => document.categoryId === category.id).length
+          value: category.id === AGENDA_CATEGORY_ID
+            ? divisionAgenda.filter((event) => event.categoryId === category.id).length
+            : divisionDocuments.filter((document) => document.categoryId === category.id).length
         }
       }),
-    [categories, divisionDocuments]
+    [categories, divisionDocuments, divisionAgenda]
   )
 
-  const monthCalendar = useMemo(() => {
-    const base = selectedDateObject
-    const first = new Date(base.getFullYear(), base.getMonth(), 1)
-    const startDay = (first.getDay() + 6) % 7
-    const cells = []
-
-    for (let i = 0; i < startDay; i += 1) cells.push(null)
-    for (let day = 1; day <= new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate(); day += 1) {
-      cells.push(new Date(base.getFullYear(), base.getMonth(), day))
-    }
-    while (cells.length % 7 !== 0) cells.push(null)
-
-    return Array.from({ length: cells.length / 7 }, (_, index) => cells.slice(index * 7, index * 7 + 7))
-  }, [selectedDateObject])
-
-  const agendaItems = useMemo(
-    () =>
-      selectedDateDocuments.slice(0, 3).map((document, index) => ({
-        id: document.id,
-        time: ['09.00', '11.00', '14.00'][index] || '16.00',
-        title: document.title,
-        room: getDocumentCategory(document.divisionId, document.categoryId)?.name || division?.name || 'Divisi',
-        color: ['#2563eb', '#16a34a', '#f97316'][index] || '#2563eb'
-      })),
-    [division?.name, selectedDateDocuments, getDocumentCategory]
-  )
 
   const goToDivision = () => {
     sessionStorage.setItem('bpk-dashboard-selected-division', selectedDivisionId)
     navigate(`/dashboard/division/${selectedDivisionId}`)
   }
 
+  const goToAgenda = () => {
+    sessionStorage.setItem('bpk-dashboard-selected-division', selectedDivisionId)
+    sessionStorage.setItem(`bpk-dashboard-active-category-${selectedDivisionId}`, AGENDA_CATEGORY_ID)
+    navigate(`/dashboard/division/${selectedDivisionId}`)
+  }
+
   const setCalendarMonth = (offset) => {
     const nextMonth = new Date(selectedDateObject.getFullYear(), selectedDateObject.getMonth() + offset, 1)
     setSelectedDate(toDateInputValue(nextMonth))
+  }
+
+  const toggleOtherDivisions = (next) => {
+    setShowOtherDivisions(next)
+    sessionStorage.setItem(OTHER_DIVISIONS_KEY, String(next))
+  }
+
+  const openDetail = (event) => {
+    setDetailEvent(event)
+    setDetailOpen(true)
   }
 
   const goToToday = () => setSelectedDate(toDateInputValue(new Date()))
@@ -151,98 +177,78 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-[#233b84]">Kalender Kegiatan {division?.shortName || 'Divisi'}</h2>
-              <p className="text-sm text-slate-500">{selectedDateObject.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setCalendarMonth(-1)} className="cursor-pointer rounded-full border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-50 active:scale-[0.95]" aria-label="Bulan sebelumnya">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button type="button" onClick={goToToday} className="cursor-pointer rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 active:scale-[0.98]">
-                Hari Ini
-              </button>
-              <button type="button" onClick={() => setCalendarMonth(1)} className="cursor-pointer rounded-full border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-50 active:scale-[0.95]" aria-label="Bulan berikutnya">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-[20px] border border-slate-200 bg-white p-3">
-            <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-500">
-              {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day) => (
-                <div key={day} className="py-2">{day}</div>
-              ))}
-            </div>
-
-            <div className="mt-2 space-y-2">
-              {monthCalendar.map((week, index) => (
-                <div key={index} className="grid grid-cols-7 gap-2">
-                  {week.map((date, dayIndex) => {
-                            const isToday = date && date.toDateString() === selectedDateObject.toDateString()
-                    const docs = date
-                      ? divisionDocuments.filter((document) => new Date(document.documentDate || document.uploadedAt).toDateString() === date.toDateString())
-                      : []
-
-                    return (
-                      <div key={`${index}-${dayIndex}`} className={`min-h-[112px] rounded-2xl border p-2 ${date ? 'border-slate-200 bg-white' : 'border-transparent bg-transparent'} ${isToday ? 'border-blue-300 bg-[#eff5ff]' : ''}`}>
-                        {date && (
-                          <>
-                            <div className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${isToday ? 'bg-[#1f63d3] text-white' : 'text-[#233b84]'}`}>
-                              {date.getDate()}
-                            </div>
-                            <div className="mt-2 space-y-1">
-                              {docs.slice(0, 2).map((document) => (
-                                <button key={document.id} type="button" onClick={goToDivision} className="block w-full cursor-pointer rounded-lg bg-[#eff5ff] px-2 py-1 text-left text-[11px] font-medium text-[#1f3f89] transition-colors hover:bg-[#dceaff] active:scale-[0.99]">
-                                  {document.title}
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-[#233b84]">Kalender Kegiatan</h2>
+          <p className="text-sm text-slate-500">
+            Agenda {division?.name || 'bidang ini'}
+            {showOtherDivisions ? ', beserta agenda bidang lain sebagai pembanding jadwal' : ''}
+          </p>
         </div>
+        <OtherDivisionsToggle
+          checked={showOtherDivisions}
+          onChange={toggleOtherDivisions}
+          count={otherDivisionAgenda.length}
+        />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
+        <AgendaCalendar
+          title={`Kalender Kegiatan ${division?.shortName || 'Divisi'}`}
+          cursor={calendarCursor}
+          events={monthAgenda}
+          selectedKey={toDateKey(selectedDateObject)}
+          showDivisionTag={showOtherDivisions}
+          showLegend={showOtherDivisions}
+          homeDivisionId={selectedDivisionId}
+          divisionLabels={divisionLabels}
+          onChangeMonth={setCalendarMonth}
+          onToday={goToToday}
+          onSelectDay={setSelectedDate}
+          onSelectEvent={openDetail}
+        />
 
         <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-[#233b84]">Agenda Terdekat</h2>
-              <p className="text-sm text-slate-500">Dokumen dan layanan terbaru</p>
+              <p className="text-sm text-slate-500">Kegiatan pada tanggal terpilih</p>
             </div>
-            <button type="button" onClick={goToDivision} className="cursor-pointer rounded-md px-2 py-1 text-sm font-medium text-[#1f63d3] transition-colors hover:bg-[#eff5ff] active:scale-[0.98]">
+            <button type="button" onClick={() => navigate('/dashboard/kalender')} className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-sm font-medium text-[#1f63d3] transition-colors hover:bg-[#eff5ff] active:scale-[0.98]">
               Lihat Semua
             </button>
           </div>
 
           <div className="mt-4 space-y-1">
-            {agendaItems.length === 0 && <p className="rounded-2xl px-3 py-6 text-sm text-slate-500">Tidak ada agenda pada tanggal terpilih.</p>}
-            {agendaItems.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 rounded-2xl px-3 py-3 transition-colors hover:bg-slate-50">
-                <div className="w-14 text-sm font-semibold text-[#2d62d7]">{item.time}</div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: item.color }}>
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#233b84]">{item.title}</p>
-                  <p className="truncate text-xs text-slate-500">{item.room}</p>
-                </div>
-                <span className="rounded-full border border-green-200 bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700">
-                  Hari Ini
-                </span>
+            {selectedDayAgenda.length === 0 ? (
+              <div className="flex items-start gap-2 rounded-2xl bg-slate-50 px-3 py-6 text-sm text-slate-500">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                Tidak ada kegiatan pada tanggal ini.
               </div>
-            ))}
+            ) : (
+              selectedDayAgenda.map((event) => (
+                <AgendaListItem
+                  key={event.id}
+                  event={event}
+                  onSelect={openDetail}
+                  isGuest={event.divisionId !== selectedDivisionId}
+                  divisionName={event.divisionId !== selectedDivisionId ? divisionLabels[event.divisionId] : ''}
+                />
+              ))
+            )}
           </div>
         </div>
       </div>
+
+      <AgendaEventDetail
+        event={detailEvent}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onEdit={goToAgenda}
+        onDelete={goToAgenda}
+        canManage={false}
+        divisionName={division?.name || ''}
+      />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { Textarea } from '../ui/textarea'
 import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { ACCEPTED_DOCUMENT_EXTENSIONS, getAcceptedDocumentFileHint, isDocumentFileAllowed } from '../../lib/documentStorage'
+import { ARCHIVE_STATUSES, DEFAULT_ARCHIVE_STATUS, getArchiveStatusMeta, isArchiveCategory } from '../../data/archiveStatus'
 
 const emptyForm = {
   title: '',
@@ -17,6 +18,7 @@ const emptyForm = {
   documentNumber: '',
   documentDate: '',
   year: new Date().getFullYear().toString(),
+  archiveStatus: DEFAULT_ARCHIVE_STATUS,
   file: null
 }
 
@@ -50,6 +52,7 @@ export function DocumentUploadModal({
         documentNumber: initialDocument.documentNumber || '',
         documentDate: initialDocument.documentDate || '',
         year: String(initialDocument.year || new Date().getFullYear()),
+        archiveStatus: initialDocument.archiveStatus || DEFAULT_ARCHIVE_STATUS,
         file: null
       })
     } else {
@@ -112,6 +115,7 @@ export function DocumentUploadModal({
         documentNumber: form.documentNumber.trim(),
         documentDate: form.documentDate,
         year: Number(form.year),
+        archiveStatus: isArchiveCategory(form.categoryId) ? form.archiveStatus : null,
         file: form.file || undefined,
         uploadedBy: initialDocument?.uploadedBy || user?.name,
         status: initialDocument?.status || 'pending',
@@ -190,6 +194,18 @@ export function DocumentUploadModal({
               <Input type="number" value={form.year} onChange={handleChange('year')} min="2000" max="2100" />
             </div>
           </div>
+
+          {isArchiveCategory(form.categoryId) && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Status Arsip</label>
+              <Select value={form.archiveStatus} onChange={handleChange('archiveStatus')}>
+                {ARCHIVE_STATUSES.map((item) => (
+                  <option key={item.id} value={item.id}>{item.label}</option>
+                ))}
+              </Select>
+              <p className="mt-1.5 text-xs text-slate-500">{getArchiveStatusMeta(form.archiveStatus).description}</p>
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>

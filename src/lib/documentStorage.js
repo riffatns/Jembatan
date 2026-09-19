@@ -40,13 +40,30 @@ export function getAcceptedDocumentFileHint() {
   return '.pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .jpg, .jpeg, .png'
 }
 
+// Kategori yang tidak lagi menampung dokumen, beserta tujuan pindahnya.
+// Tanpa ini dokumen lama jadi tidak terlihat di UI mana pun.
+const CATEGORY_MIGRATIONS = {
+  'agenda-kalan': 'tata-usaha-kalan'
+}
+
+function migrateDocumentCategories(documents) {
+  let changed = false
+  const migrated = documents.map((document) => {
+    const target = CATEGORY_MIGRATIONS[document.categoryId]
+    if (!target) return document
+    changed = true
+    return { ...document, categoryId: target }
+  })
+  return changed ? migrated : documents
+}
+
 export function loadStoredDocuments() {
   const saved = localStorage.getItem(DOCUMENTS_KEY)
   if (!saved) return INITIAL_DOCUMENTS
 
   try {
     const parsed = JSON.parse(saved)
-    return Array.isArray(parsed) ? parsed : INITIAL_DOCUMENTS
+    return Array.isArray(parsed) ? migrateDocumentCategories(parsed) : INITIAL_DOCUMENTS
   } catch {
     return INITIAL_DOCUMENTS
   }

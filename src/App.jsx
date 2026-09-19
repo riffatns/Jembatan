@@ -10,6 +10,7 @@ const DivisionWorkspace = lazy(() => import('./pages/DivisionWorkspace'))
 const Approvals = lazy(() => import('./pages/Approvals'))
 const Profile = lazy(() => import('./pages/Profile'))
 const KondisiPegawaiPage = lazy(() => import('./pages/KondisiPegawaiPage'))
+const SharedCalendar = lazy(() => import('./pages/SharedCalendar'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function LegacyDivisionRedirect() {
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/dashboard/division/:divisionId" element={<DivisionWorkspace />} />
           <Route path="/dashboard/division/:divisionId/bezetting/:documentId" element={<KondisiPegawaiPage />} />
           <Route path="/division/:divisionId" element={<LegacyDivisionRedirect />} />
+          <Route path="/dashboard/kalender" element={<SharedCalendar />} />
           <Route path="/profile" element={<Profile />} />
           <Route
             path="/approvals"

@@ -30,7 +30,7 @@ values
   ('hr', 'manajemen-pengetahuan', 'Manajemen Pengetahuan', 'Dokumen knowledge sharing dan basis pengetahuan.'),
   ('hr', 'klinik', 'Klinik', 'Dokumen layanan klinik pegawai dan kesehatan kerja.'),
   ('hr', 'mcu', 'MCU', 'Dokumen medical check up dan pemantauan kesehatan.'),
-  ('pr', 'agenda-kalan', 'Agenda Kalan', 'Dokumen agenda pimpinan dan jadwal kegiatan Kalan.'),
+  ('pr', 'agenda-kalan', 'Agenda Kalan', 'Jadwal kegiatan dan agenda pimpinan Kalan.'),
   ('pr', 'tata-usaha-kalan', 'Tata Usaha Kalan', 'Dokumen tata usaha, disposisi, dan administrasi pimpinan.'),
   ('pr', 'publikasi-pemberitaan', 'Publikasi dan Pemberitaan', 'Dokumen publikasi resmi dan pemberitaan internal.'),
   ('pr', 'dokumentasi-kegiatan', 'Dokumentasi Kegiatan', 'Dokumen foto, video, dan laporan kegiatan.'),
@@ -57,7 +57,7 @@ values
   ('10000000-0000-4000-8000-000000000002', 'finance', 'belanja-barang', 'Rekap Belanja Barang Bulanan', 'Rekapitulasi belanja barang untuk kebutuhan operasional.', 'rekap-belanja-barang-2026.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 882340, 'BB/VI/2026/07', '2026-08-28', 2026, 'pending'),
   ('10000000-0000-4000-8000-000000000003', 'hr', 'diklat', 'Rencana Diklat Pegawai 2026', 'Agenda pelatihan dan pengembangan kompetensi pegawai.', 'rencana-diklat-2026.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 420512, 'HR-DIK/2026/03', '2026-08-16', 2026, 'approved'),
   ('10000000-0000-4000-8000-000000000004', 'hr', 'mcu', 'Jadwal MCU Pegawai Semester I', 'Jadwal medical check up dan daftar peserta.', 'jadwal-mcu-sem1-2026.pdf', 'application/pdf', 1024421, 'HR-MCU/2026/02', '2026-08-27', 2026, 'rejected'),
-  ('10000000-0000-4000-8000-000000000005', 'pr', 'agenda-kalan', 'Agenda Kalan Mingguan', 'Susunan agenda pimpinan untuk minggu berjalan.', 'agenda-kalan-mingguan-2026.pdf', 'application/pdf', 550221, 'PR-AK/2026/08', '2026-09-02', 2026, 'pending')
+  ('10000000-0000-4000-8000-000000000005', 'pr', 'tata-usaha-kalan', 'Agenda Kalan Mingguan', 'Susunan agenda pimpinan untuk minggu berjalan.', 'agenda-kalan-mingguan-2026.pdf', 'application/pdf', 550221, 'PR-AK/2026/08', '2026-09-02', 2026, 'pending')
 on conflict (id) do update set
   title = excluded.title,
   description = excluded.description,

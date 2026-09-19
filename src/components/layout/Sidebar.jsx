@@ -25,6 +25,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { cn } from '../../lib/utils'
+import { AGENDA_CATEGORY_ID } from '../../lib/agendaStorage'
 
 const LEGACY_ICONS = {
   Users,
@@ -96,7 +97,7 @@ function DivisionItemIcon({ divisionId, categoryId, className }) {
 
 function DivisionSidebar({ divisionId, onCloseMobile }) {
   const { user } = useAuth()
-  const { getDocumentDivision, getDocumentCategories, stats, documents } = useData()
+  const { getDocumentDivision, getDocumentCategories, stats, documents, agendaEvents } = useData()
   const navigate = useNavigate()
   const location = useLocation()
   const isDashboardRoute = location.pathname === '/dashboard'
@@ -139,10 +140,12 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
     return Object.fromEntries(
       categories.map((category) => [
         category.id,
-        documents.filter((document) => document.divisionId === divisionId && document.categoryId === category.id).length
+        category.id === AGENDA_CATEGORY_ID
+          ? agendaEvents.filter((event) => event.divisionId === divisionId && event.categoryId === category.id).length
+          : documents.filter((document) => document.divisionId === divisionId && document.categoryId === category.id).length
       ])
     )
-  }, [categories, documents, divisionId])
+  }, [categories, documents, agendaEvents, divisionId])
 
   if (!division) return null
 
@@ -213,6 +216,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Monitoring</p>
           <div className="mt-3 space-y-1.5">
             {[
+              { label: 'Kalender Bersama', icon: CalendarDays, action: () => navigate('/dashboard/kalender') },
               {
                 label: 'Monitoring Layanan',
                 icon: LineChart,
@@ -443,9 +447,10 @@ export function Sidebar({ mobileOpen, onCloseMobile }) {
   const divisionMatch = matchPath('/dashboard/division/:divisionId/*', location.pathname) || matchPath('/division/:divisionId/*', location.pathname)
   const isDashboardRoute = location.pathname === '/dashboard'
   const isProfileRoute = location.pathname === '/profile'
+  const isSharedCalendarRoute = location.pathname === '/dashboard/kalender'
   const selectedDivisionId = sessionStorage.getItem('bpk-dashboard-selected-division') || user?.division || 'finance'
 
-  if (divisionMatch || isDashboardRoute || isProfileRoute) {
+  if (divisionMatch || isDashboardRoute || isProfileRoute || isSharedCalendarRoute) {
     const activeDivisionId = divisionMatch?.params?.divisionId || selectedDivisionId
     if (!activeDivisionId) {
       return <LegacySidebar mobileOpen={mobileOpen} onCloseMobile={onCloseMobile} />

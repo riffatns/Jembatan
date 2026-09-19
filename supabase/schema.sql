@@ -43,6 +43,7 @@ create table public.documents (
   document_number text,
   document_date date,
   year integer,
+  archive_status text check (archive_status is null or archive_status in ('aktif', 'inaktif', 'musnah')),
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   uploaded_by uuid references public.profiles(id) on delete set null,
   rejection_reason text,

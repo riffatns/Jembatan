@@ -9,11 +9,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  CalendarPlus,
   CalendarRange,
   Clock3,
   UserCircle2,
   ArrowRight,
-  FileText,
   LayoutGrid,
   FolderOpen,
   Building2,
@@ -30,9 +30,15 @@ import { DocumentTable } from '../components/documents/DocumentTable'
 import { DocumentUploadModal } from '../components/documents/DocumentUploadModal'
 import { DocumentDetail } from '../components/documents/DocumentDetail'
 import { createDownloadUrl } from '../lib/documentStorage'
-import { ServiceCard } from '../components/ServiceCard'
-import { SERVICE_META } from '../data/serviceMeta'
 import { DashboardHeader } from '../components/layout/DashboardHeader'
+import { AgendaWorkspace } from '../components/agenda/AgendaWorkspace'
+import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
+import { ServiceCard } from '../components/ServiceCard'
+import {
+  ARCHIVE_STATUSES,
+  DEFAULT_ARCHIVE_STATUS,
+  isArchiveCategory
+} from '../data/archiveStatus'
 
 function toDateInputValue(date) {
   const year = date.getFullYear()
@@ -67,6 +73,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const [detailOpen, setDetailOpen] = useState(false)
   const [editingDocument, setEditingDocument] = useState(null)
   const [selectedDocument, setSelectedDocument] = useState(null)
+  const [agendaCreateTick, setAgendaCreateTick] = useState(0)
+  const archiveStorageKey = `bpk-dashboard-archive-status-${divisionId}`
+  const [archiveFilter, setArchiveFilter] = useState(() => sessionStorage.getItem(archiveStorageKey) || 'all')
   const selectedDateObject = useMemo(() => selectedDate ? parseDateInputValue(selectedDate) : new Date(), [selectedDate])
 
   useEffect(() => {
@@ -103,11 +112,15 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
       const matchesStatus = status === 'all' || document.status === status
       const matchesYear = year === 'all' || String(document.year) === String(year)
       const matchesCategory = activeCategoryId === 'all' || document.categoryId === activeCategoryId
+      const matchesArchive =
+        !isArchiveCategory(document.categoryId) ||
+        archiveFilter === 'all' ||
+        (document.archiveStatus || DEFAULT_ARCHIVE_STATUS) === archiveFilter
       const documentDate = new Date(document.documentDate || document.uploadedAt)
       const matchesMonth = !selectedDate || (documentDate.getFullYear() === selectedDateObject.getFullYear() && documentDate.getMonth() === selectedDateObject.getMonth())
-      return matchesSearch && matchesStatus && matchesYear && matchesCategory && matchesMonth
+      return matchesSearch && matchesStatus && matchesYear && matchesCategory && matchesMonth && matchesArchive
     })
-  }, [divisionDocuments, search, status, year, activeCategoryId, selectedDateObject])
+  }, [divisionDocuments, search, status, year, activeCategoryId, selectedDateObject, archiveFilter])
 
   const dateFilteredDocuments = useMemo(
     () => divisionDocuments.filter((document) => {
@@ -117,32 +130,38 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
     [divisionDocuments, selectedDateObject]
   )
 
-  const overviewCards = useMemo(() => {
-    return categories.map((category) => {
-      const meta = SERVICE_META[category.id] || {
-        title: category.name,
-        icon: FileText,
-        color: '#2563eb',
-        subtitle: category.description || 'Dokumen layanan'
-      }
+  const isAgendaMode = activeCategoryId === AGENDA_CATEGORY_ID
+  const isArchiveMode = isArchiveCategory(activeCategoryId)
 
-      return {
-        id: category.id,
-        title: meta.title,
-        subtitle: meta.subtitle,
-        icon: meta.icon,
-        color: meta.color,
-        value: dateFilteredDocuments.filter((document) => document.categoryId === category.id).length
-      }
-    })
-  }, [categories, dateFilteredDocuments])
+  // Arsip lama boleh tidak punya status; perlakukan sebagai aktif supaya tidak
+  // ada berkas yang menghilang dari ketiga sub bagian.
+  const archiveStatusOf = (document) => document.archiveStatus || DEFAULT_ARCHIVE_STATUS
+
+  const archiveDocuments = useMemo(
+    () => dateFilteredDocuments.filter((document) => isArchiveCategory(document.categoryId)),
+    [dateFilteredDocuments]
+  )
+
+  const archiveCards = useMemo(
+    () =>
+      ARCHIVE_STATUSES.map((meta) => {
+        const total = archiveDocuments.filter((document) => archiveStatusOf(document) === meta.id).length
+        return {
+          ...meta,
+          total,
+          ratio: archiveDocuments.length ? total / archiveDocuments.length : 0
+        }
+      }),
+    [archiveDocuments]
+  )
+
+  const selectArchiveFilter = (statusId) => {
+    const next = archiveFilter === statusId ? 'all' : statusId
+    sessionStorage.setItem(archiveStorageKey, next)
+    setArchiveFilter(next)
+  }
 
   const activeCategory = categories.find((category) => category.id === activeCategoryId)
-
-  const activeCategoryDocuments = useMemo(() => {
-    if (activeCategoryId === 'all') return dateFilteredDocuments
-    return dateFilteredDocuments.filter((document) => document.categoryId === activeCategoryId)
-  }, [activeCategoryId, dateFilteredDocuments])
 
   const handleActivateCategory = (categoryId) => {
     const nextCategory = categoryId || categories[0]?.id || 'all'
@@ -209,9 +228,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         dateInputId="division-date-filter"
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
-        actionLabel="Upload Dokumen"
-        actionIcon={Plus}
-        onAction={handleOpenUpload}
+        actionLabel={isAgendaMode ? 'Tambah Agenda' : 'Upload Dokumen'}
+        actionIcon={isAgendaMode ? CalendarPlus : Plus}
+        onAction={isAgendaMode ? () => setAgendaCreateTick((tick) => tick + 1) : handleOpenUpload}
         showAction={canUploadToDivision(divisionId)}
         onBrandClick={() => navigate('/dashboard')}
       />
@@ -243,21 +262,6 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
 
       */}
 
-      <div className="grid gap-4 xl:grid-cols-4">
-        {overviewCards.map((card, index) => (
-          <ServiceCard
-            key={card.id}
-            title={card.title}
-            value={card.value}
-            subtitle={card.subtitle}
-            icon={card.icon}
-            color={card.color}
-            active={activeCategoryId === card.id}
-            onClick={() => handleActivateCategory(card.id)}
-          />
-        ))}
-      </div>
-
       {divisionId === 'finance' && (
         <section className="grid gap-4 xl:grid-cols-2">
           <BudgetGauge title="Realisasi Anggaran" percentage={budget.realisasiPercent} value={budget.totalRealisasi} valueLabel="Realisasi" pagu={budget.totalPagu} accent="#2f8cff" />
@@ -265,44 +269,86 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         </section>
       )}
 
+      {isArchiveMode && (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-[#233b84]">Sub Bagian Arsip</h2>
+              <p className="text-sm text-[#61739b]">Kelompokkan berkas menurut siklus hidup arsip</p>
+            </div>
+            {archiveFilter !== 'all' && (
+              <Button variant="outline" onClick={() => selectArchiveFilter(archiveFilter)} className="rounded-full px-4">
+                Tampilkan semua ({archiveDocuments.length})
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {archiveCards.map((card) => (
+              <ServiceCard
+                key={card.id}
+                title={card.label}
+                subtitle={card.subtitle}
+                value={card.total}
+                icon={card.icon}
+                color={card.color}
+                ratio={card.ratio}
+                active={archiveFilter === card.id}
+                actionLabel={archiveFilter === card.id ? 'Sedang ditampilkan' : 'Lihat Berkas'}
+                onClick={() => selectArchiveFilter(card.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div id="dokumen-section" className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-[#233b84]">
-              Dokumen {activeCategory?.name || 'Seluruh Kategori'}
-            </h2>
-            <p className="text-sm text-[#61739b]">Kelola, cari, unggah, dan tinjau dokumen bidang ini</p>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-[#233b84] shadow-sm">
-            <LayoutGrid className="h-4 w-4 text-[#1f63d3]" />
-            {activeCategoryDocuments.length} dokumen
-          </div>
-        </div>
+        {isAgendaMode ? (
+          <AgendaWorkspace divisionId={divisionId} focusDate={selectedDate} createTick={agendaCreateTick} />
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-[#233b84]">
+                  Dokumen {activeCategory?.name || 'Seluruh Kategori'}
+                  {isArchiveMode && archiveFilter !== 'all'
+                    ? ` - ${ARCHIVE_STATUSES.find((item) => item.id === archiveFilter)?.label}`
+                    : ''}
+                </h2>
+                <p className="text-sm text-[#61739b]">Kelola, cari, unggah, dan tinjau dokumen bidang ini</p>
+              </div>
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-[#233b84] shadow-sm">
+                <LayoutGrid className="h-4 w-4 text-[#1f63d3]" />
+                {filteredDocuments.length} dokumen
+              </div>
+            </div>
 
-        <DocumentFilters
-          search={search}
-          onSearchChange={setSearch}
-          status={status}
-          onStatusChange={setStatus}
-          year={year}
-          onYearChange={setYear}
-          categoryId={activeCategoryId}
-          onCategoryChange={(categoryId) => handleActivateCategory(categoryId)}
-          categories={categories}
-          years={years}
-        />
+            <DocumentFilters
+              search={search}
+              onSearchChange={setSearch}
+              status={status}
+              onStatusChange={setStatus}
+              year={year}
+              onYearChange={setYear}
+              categoryId={activeCategoryId}
+              onCategoryChange={(categoryId) => handleActivateCategory(categoryId)}
+              categories={categories}
+              years={years}
+            />
 
-        <DocumentTable
-          documents={filteredDocuments}
-          categoryName={activeCategory?.name || division.name}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onDownload={handleDownload}
-          canEditDocument={canManageDocument}
-          canDeleteDocument={canManageDocument}
-          canDownload
-        />
+            <DocumentTable
+              documents={filteredDocuments}
+              categoryName={activeCategory?.name || division.name}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onDownload={handleDownload}
+              canEditDocument={canManageDocument}
+              canDeleteDocument={canManageDocument}
+              canDownload
+            />
+          </>
+        )}
       </div>
 
       <DocumentUploadModal

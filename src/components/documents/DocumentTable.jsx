@@ -1,6 +1,8 @@
 import { Download, Eye, Pencil, Trash2 } from 'lucide-react'
 import { formatDate, formatFileSize } from '../../lib/utils'
 import { StatusBadge } from './StatusBadge'
+import { Badge } from '../ui/badge'
+import { DEFAULT_ARCHIVE_STATUS, getArchiveStatusMeta, isArchiveCategory } from '../../data/archiveStatus'
 import { Button } from '../ui/button'
 
 export function DocumentTable({
@@ -41,6 +43,14 @@ export function DocumentTable({
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold text-navy">{document.title}</p>
                 <StatusBadge status={document.status} />
+                {isArchiveCategory(document.categoryId) && (() => {
+                  const meta = getArchiveStatusMeta(document.archiveStatus || DEFAULT_ARCHIVE_STATUS)
+                  return (
+                    <Badge variant={meta.badge} className="gap-1">
+                      <meta.icon className="h-3 w-3" /> Arsip {meta.label}
+                    </Badge>
+                  )
+                })()}
               </div>
               <p className="mt-1 line-clamp-2 text-sm text-slate-500">{document.description}</p>
               <p className="mt-1 text-xs text-slate-400">{document.fileName} · {formatDate(document.documentDate || document.uploadedAt)}</p>
