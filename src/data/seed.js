@@ -74,9 +74,9 @@ export const DOCUMENT_STRUCTURE = [
     title: 'Keuangan',
     categories: [
       { id: 'realisasi-anggaran', name: 'Realisasi Anggaran', description: 'Dokumen realisasi anggaran dan laporan pelaksanaan.' },
+      { id: 'belanja-pegawai', name: 'Belanja Pegawai', description: 'Dokumen belanja pegawai dan administrasi pembayaran.' },
       { id: 'belanja-barang', name: 'Belanja Barang', description: 'Dokumen pengeluaran operasional dan belanja barang.' },
       { id: 'belanja-modal', name: 'Belanja Modal', description: 'Dokumen pengadaan aset dan belanja modal.' },
-      { id: 'belanja-pegawai', name: 'Belanja Pegawai', description: 'Dokumen belanja pegawai dan administrasi pembayaran.' },
       { id: 'sisa-anggaran', name: 'Sisa Anggaran', description: 'Dokumen pemantauan sisa anggaran dan proyeksi.' }
     ]
   },
