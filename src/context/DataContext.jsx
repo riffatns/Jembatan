@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import { DIVISIONS, INITIAL_CONTENT, BUDGET_SUMMARY, DOCUMENT_STRUCTURE } from '../data/seed'
+import { DIVISIONS, HIDDEN_CATEGORIES, INITIAL_CONTENT, BUDGET_SUMMARY, DOCUMENT_STRUCTURE } from '../data/seed'
 import { buildUploadedDocument, loadStoredDocuments, saveStoredDocuments } from '../lib/documentStorage'
 import {
   loadStoredAssets,
@@ -222,7 +222,19 @@ export function DataProvider({ children }) {
     setContent((prev) => prev.filter((item) => item.id !== id))
   }, [user])
   const activeDivisions = remoteDivisions || DIVISIONS
-  const activeDocumentStructure = remoteCategories || DOCUMENT_STRUCTURE
+  // Penyaringan layanan tersembunyi dikerjakan di sini saja, bukan di tiap
+  // halaman, supaya sidebar, dashboard, laporan, dan statistik tidak bisa
+  // berbeda pendapat. Berlaku untuk data lokal maupun dari Supabase.
+  const activeDocumentStructure = useMemo(() => {
+    const source = remoteCategories || DOCUMENT_STRUCTURE
+    if (!HIDDEN_CATEGORIES.size) return source
+    return source.map((division) => ({
+      ...division,
+      categories: division.categories.filter(
+        (category) => !HIDDEN_CATEGORIES.has(`${division.divisionId}:${category.id}`)
+      )
+    }))
+  }, [remoteCategories])
   const getDocumentDivision = useCallback((id) => activeDivisions.find((division) => division.id === id), [activeDivisions])
   const getDocumentCategory = useCallback((divisionId, categoryId) => activeDocumentStructure.find((item) => item.divisionId === divisionId)?.categories.find((category) => category.id === categoryId), [activeDocumentStructure])
   const getDocumentCategories = useCallback((divisionId) => activeDocumentStructure.find((item) => item.divisionId === divisionId)?.categories || [], [activeDocumentStructure])

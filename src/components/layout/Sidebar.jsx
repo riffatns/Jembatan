@@ -134,7 +134,12 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
   const division = getDocumentDivision(divisionId)
   const categories = getDocumentCategories(divisionId)
   const storageKey = `bpk-dashboard-active-category-${divisionId}`
-  const [activeCategoryId, setActiveCategoryId] = useState(() => sessionStorage.getItem(storageKey) || categories[0]?.id || 'all')
+  const [activeCategoryId, setActiveCategoryId] = useState(() => {
+    // Kategori tersimpan bisa menunjuk layanan yang kini disembunyikan.
+    const stored = sessionStorage.getItem(storageKey)
+    const dikenal = stored && categories.some((category) => category.id === stored)
+    return dikenal ? stored : categories[0]?.id || 'all'
+  })
 
   useEffect(() => {
     if (isDashboardRoute) {
@@ -143,7 +148,8 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
     }
 
     const stored = sessionStorage.getItem(storageKey)
-    setActiveCategoryId(stored || categories[0]?.id || 'all')
+    const dikenal = stored && categories.some((category) => category.id === stored)
+    setActiveCategoryId(dikenal ? stored : categories[0]?.id || 'all')
   }, [isDashboardRoute, storageKey, categories])
 
   useEffect(() => {

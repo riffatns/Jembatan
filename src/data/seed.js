@@ -125,6 +125,15 @@ export const DOCUMENT_STRUCTURE = [
   }
 ]
 
+// Layanan yang untuk sementara tidak ditampilkan. Definisinya di
+// DOCUMENT_STRUCTURE, serviceContent.js, dan serviceMeta.js sengaja
+// dibiarkan utuh, begitu pula dokumen yang sudah tersimpan di dalamnya -
+// menghapus satu baris di sini cukup untuk memunculkannya kembali.
+// Kuncinya berbentuk `divisionId:categoryId`.
+export const HIDDEN_CATEGORIES = new Set([
+  'it:peminjaman-aset'
+])
+
 export const BUDGET_SUMMARY = {
   fiscalYear: 2026,
   totalPagu: 9762828116912,

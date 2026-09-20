@@ -68,7 +68,12 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const budget = stats.budget
   const storageKey = `bpk-dashboard-active-category-${divisionId}`
 
-  const [activeCategoryId, setActiveCategoryId] = useState(() => sessionStorage.getItem(storageKey) || categories[0]?.id || 'all')
+  const [activeCategoryId, setActiveCategoryId] = useState(() => {
+    // Kategori tersimpan bisa menunjuk layanan yang kini disembunyikan.
+    const stored = sessionStorage.getItem(storageKey)
+    const dikenal = stored && categories.some((category) => category.id === stored)
+    return dikenal ? stored : categories[0]?.id || 'all'
+  })
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [year, setYear] = useState('all')
@@ -85,7 +90,8 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
 
   useEffect(() => {
     const stored = sessionStorage.getItem(storageKey)
-    setActiveCategoryId(stored || categories[0]?.id || 'all')
+    const dikenal = stored && categories.some((category) => category.id === stored)
+    setActiveCategoryId(dikenal ? stored : categories[0]?.id || 'all')
   }, [storageKey, categories])
 
   useEffect(() => {
