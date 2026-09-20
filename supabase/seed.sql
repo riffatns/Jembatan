@@ -21,10 +21,10 @@ on conflict (id) do update set
 insert into public.document_categories (division_id, id, name, description)
 values
   ('finance', 'realisasi-anggaran', 'Realisasi Anggaran', 'Dokumen realisasi anggaran dan laporan pelaksanaan.'),
-  ('finance', 'sisa-anggaran', 'Sisa Anggaran', 'Dokumen pemantauan sisa anggaran dan proyeksi.'),
-  ('finance', 'belanja-pegawai', 'Belanja Pegawai', 'Dokumen belanja pegawai dan administrasi pembayaran.'),
   ('finance', 'belanja-barang', 'Belanja Barang', 'Dokumen pengeluaran operasional dan belanja barang.'),
   ('finance', 'belanja-modal', 'Belanja Modal', 'Dokumen pengadaan aset dan belanja modal.'),
+  ('finance', 'belanja-pegawai', 'Belanja Pegawai', 'Dokumen belanja pegawai dan administrasi pembayaran.'),
+  ('finance', 'sisa-anggaran', 'Sisa Anggaran', 'Dokumen pemantauan sisa anggaran dan proyeksi.'),
   ('hr', 'bezetting', 'Bezetting', 'Dokumen data formasi, kebutuhan, dan distribusi pegawai.'),
   ('hr', 'diklat', 'Diklat', 'Dokumen pelatihan, sertifikasi, dan pengembangan pegawai.'),
   ('hr', 'manajemen-pengetahuan', 'Manajemen Pengetahuan', 'Dokumen knowledge sharing dan basis pengetahuan.'),

@@ -14,6 +14,21 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
 
 const DataContext = createContext(null)
+
+const CATEGORY_ORDER = new Map(
+  DOCUMENT_STRUCTURE.flatMap((division) =>
+    division.categories.map((category, index) => [`${division.divisionId}:${category.id}`, index])
+  )
+)
+
+function sortCategories(divisionId, categories) {
+  return [...categories].sort((a, b) => {
+    // Kategori yang tidak dikenal kode diletakkan di belakang, berurut abjad.
+    const left = CATEGORY_ORDER.get(`${divisionId}:${a.id}`) ?? Number.MAX_SAFE_INTEGER
+    const right = CATEGORY_ORDER.get(`${divisionId}:${b.id}`) ?? Number.MAX_SAFE_INTEGER
+    return left - right || a.name.localeCompare(b.name)
+  })
+}
 const CONTENT_KEY = 'bpk-dashboard-content'
 
 function loadContent() {
@@ -88,7 +103,12 @@ export function DataProvider({ children }) {
           result[category.division_id] = division
           return result
         }, {})
-        setRemoteCategories(Object.values(grouped))
+        setRemoteCategories(
+          Object.values(grouped).map((division) => ({
+            ...division,
+            categories: sortCategories(division.divisionId, division.categories)
+          }))
+        )
       }
       // Tabel agenda_events opsional: kalau supabase/agenda.sql belum dijalankan, tetap pakai localStorage.
       if (agendaResult.error) {
