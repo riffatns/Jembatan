@@ -53,20 +53,46 @@ export async function readWorkbookGrid(source) {
 
   const sheets = workbook.SheetNames.map((name) => {
     const sheet = workbook.Sheets[name]
-    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, blankrows: false })
-    const rows = matrix.map((row) => row.map(cellText))
-    const columnCount = rows.reduce((max, row) => Math.max(max, row.length), 0)
+    if (!sheet || !sheet['!ref']) return null
+
+    // !merges memakai koordinat mutlak sheet. Pembacaan harus dimulai dari A1
+    // dan mempertahankan baris kosong, kalau tidak nomor baris dan kolomnya
+    // bergeser terhadap peta penggabungan - dan seluruh header bertingkat
+    // jatuh di sel yang salah.
+    const range = XLSX.utils.decode_range(sheet['!ref'])
+    range.s.r = 0
+    range.s.c = 0
+
+    const matrix = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      defval: '',
+      raw: false,
+      blankrows: true,
+      range
+    })
+
+    const columnCount = range.e.c + 1
+    const rows = matrix.map((row) => {
+      const lengkap = new Array(columnCount).fill('')
+      for (let index = 0; index < columnCount; index += 1) lengkap[index] = cellText(row[index])
+      return lengkap
+    })
+
+    // Baris kosong di tengah dipertahankan agar sejajar dengan penggabungan;
+    // yang di ujung bawah dibuang supaya tabelnya tidak berekor panjang.
+    let akhir = rows.length
+    while (akhir > 0 && rows[akhir - 1].every((cell) => cell === '')) akhir -= 1
+
     const { anchors, covered } = buildSpanMap(sheet['!merges'])
 
     return {
       name,
-      rows,
+      rows: rows.slice(0, akhir),
       columnCount,
       spanAt: (row, column) => anchors.get(`${row}:${column}`) || null,
       isCovered: (row, column) => covered.has(`${row}:${column}`)
     }
-  }).filter((sheet) => sheet.rows.length > 0)
-
+  }).filter((sheet) => sheet && sheet.rows.length > 0)
   if (!sheets.length) throw new Error('Berkas Excel ini tidak memiliki isi yang dapat ditampilkan.')
   return { sheets }
 }

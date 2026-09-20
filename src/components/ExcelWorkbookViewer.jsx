@@ -11,7 +11,7 @@ function SheetGrid({ sheet }) {
 
   return (
     <div className="max-h-[70vh] overflow-auto">
-      <table className="min-w-full border-collapse text-left text-sm">
+      <table className="min-w-full border-collapse whitespace-nowrap text-left text-sm">
         <tbody>
           {sheet.rows.map((row, rowIndex) => (
             <tr key={rowIndex} className={cn('border-b border-slate-100 last:border-0', rowIndex % 2 ? 'bg-white' : 'bg-[#fbfdff]')}>
@@ -27,7 +27,9 @@ function SheetGrid({ sheet }) {
                     colSpan={span?.colSpan}
                     className={cn(
                       'whitespace-pre-line border border-slate-100 px-3 py-2 align-top text-slate-700',
-                      rowIndex === 0 && 'bg-[#eff5ff] font-bold text-[#233b84]'
+                      rowIndex === 0 && 'bg-[#eff5ff] font-bold text-[#233b84]',
+                      columnIndex === 0 && 'sticky left-0 z-10 bg-inherit',
+                      columnIndex === 0 && rowIndex !== 0 && (rowIndex % 2 ? 'bg-white' : 'bg-[#fbfdff]')
                     )}
                   >
                     {value}
@@ -89,7 +91,7 @@ export default function ExcelWorkbookViewer({ source, className = '' }) {
         <FileSpreadsheet className="h-5 w-5 shrink-0 text-[#1f63d3]" />
         <h2 className="font-bold text-[#233b84]">{sheet.name}</h2>
         <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-500">
-          {sheet.rows.length} baris
+          {sheet.rows.length} baris &middot; {sheet.columnCount} kolom
         </span>
       </div>
 
