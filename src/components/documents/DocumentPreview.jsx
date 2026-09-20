@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, FileWarning, LoaderCircle } from 'lucide-react'
+import { Download, ExternalLink, FileWarning, LoaderCircle } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { getDocumentFileExtension, hasDocumentFile, resolveDocumentFileUrl } from '../../lib/documentStorage'
 import ExcelWorkbookViewer from '../ExcelWorkbookViewer'
@@ -67,7 +67,7 @@ export function DocumentPreview({ document }) {
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
           {isPdf ? (
-            <iframe title={document.title} src={fileUrl} className="h-[420px] w-full" />
+            <iframe title={document.title} src={fileUrl} className="h-[70vh] min-h-[420px] w-full" />
           ) : isImage ? (
             <img src={fileUrl} alt={document.title} className="max-h-[420px] w-full object-contain" />
           ) : (
@@ -79,7 +79,17 @@ export function DocumentPreview({ document }) {
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {(isPdf || isImage) && (
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+          >
+            <ExternalLink className="h-4 w-4" /> Buka di tab baru
+          </a>
+        )}
         <a
           href={fileUrl}
           download={document.fileName || document.title}

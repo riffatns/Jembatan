@@ -7,11 +7,12 @@ import { getDocumentFileExtension } from '../../lib/documentStorage'
 
 export function DocumentDetail({ document, open, onOpenChange }) {
   if (!document) return null
-  const isSpreadsheet = ['xlsx', 'xlsm', 'xls', 'csv'].includes(getDocumentFileExtension(document.fileName))
+  const extension = getDocumentFileExtension(document.fileName)
+  const isWideContent = ['xlsx', 'xlsm', 'xls', 'csv', 'pdf'].includes(extension)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={isSpreadsheet ? 'max-w-6xl' : 'max-w-4xl'}>
+      <DialogContent className={isWideContent ? 'max-w-6xl' : 'max-w-4xl'}>
         <DialogHeader onClose={() => onOpenChange(false)}>
           <div>
             <DialogTitle>{document.title}</DialogTitle>
@@ -25,7 +26,7 @@ export function DocumentDetail({ document, open, onOpenChange }) {
           <Badge variant="outline">{document.fileName}</Badge>
         </div>
 
-        <div className={isSpreadsheet ? 'space-y-5' : 'grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]'}>
+        <div className={isWideContent ? 'space-y-5' : 'grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]'}>
             <DocumentPreview document={document} />
 
             <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
