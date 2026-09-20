@@ -22,7 +22,7 @@ export default function TransitionToDashboard() {
     { id: 'finance', title: 'Keuangan', image: '/keuangan.jpeg' },
     { id: 'hr', title: 'SDM', image: '/sdm.jpeg' },
     { id: 'legal', title: 'Hukum', image: '/hukum.jpeg' },
-    { id: 'pr', title: 'Humas TU dan Kalan', image: '/humas-tukalan.jpeg' },
+    { id: 'pr', title: 'Humas dan TU Kalan', image: '/humas-tukalan.jpeg' },
     { id: 'it', title: 'Umum dan TI', image: '/umum-ti.jpeg' }
   ]
 

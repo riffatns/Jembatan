@@ -4,11 +4,11 @@
 
 insert into public.divisions (id, name, short_name, description, color)
 values
-  ('hr', 'Human Resources', 'HR', 'Employee records, recruitment, and personnel development.', '#00A99D'),
+  ('hr', 'Sumber Daya Manusia', 'SDM', 'Employee records, recruitment, and personnel development.', '#00A99D'),
   ('finance', 'Keuangan', 'Finance', 'Budget planning, disbursement, and financial reporting.', '#003366'),
   ('legal', 'Hukum', 'Legal', 'Regulations, legal opinions, and compliance matters.', '#00A99D'),
   ('it', 'Umum dan TI', 'IT', 'Systems, infrastructure, and digital services support.', '#003366'),
-  ('pr', 'Humas TU dan Kalan', 'PR', 'Public communication, media relations, and publications.', '#00A99D'),
+  ('pr', 'Humas dan TU Kalan', 'PR', 'Public communication, media relations, and publications.', '#00A99D'),
   ('planning', 'Planning & Development', 'Planning', 'Strategic planning, audit programs, and performance monitoring.', '#003366'),
   ('archives', 'Archives & Records', 'Archives', 'Document custody, records retention, and retrieval services.', '#00A99D'),
   ('general', 'General Affairs', 'General', 'Facilities, procurement, and internal logistics.', '#003366')

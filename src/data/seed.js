@@ -4,8 +4,8 @@
 export const DIVISIONS = [
   {
     id: 'hr',
-    name: 'Human Resources',
-    shortName: 'HR',
+    name: 'Sumber Daya Manusia',
+    shortName: 'SDM',
     icon: 'Users',
     description: 'Employee records, recruitment, and personnel development.',
     color: '#00A99D'
@@ -36,7 +36,7 @@ export const DIVISIONS = [
   },
   {
     id: 'pr',
-    name: 'Humas TU dan Kalan',
+    name: 'Humas dan TU Kalan',
     shortName: 'PR',
     icon: 'Megaphone',
     description: 'Public communication, media relations, and publications.',

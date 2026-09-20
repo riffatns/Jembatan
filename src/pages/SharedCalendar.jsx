@@ -28,7 +28,7 @@ export default function SharedCalendar() {
     [divisions]
   )
 
-  // Default: bidang sendiri + Humas TU dan Kalan, karena agenda pimpinan yang
+  // Default: bidang sendiri + Humas dan TU Kalan, karena agenda pimpinan yang
   // berlingkup sekantor dikelola di sana. Admin melihat semuanya.
   const [activeIds, setActiveIds] = useState(() => {
     try {
