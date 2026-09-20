@@ -322,6 +322,39 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         <BudgetWorkspace categoryId={activeCategoryId} categoryName={activeCategory?.name} budget={budget} />
       )}
 
+      {isArchiveMode && (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-[#233b84]">Sub Bagian Arsip</h2>
+              <p className="text-sm text-[#61739b]">Kelompokkan berkas menurut siklus hidup arsip</p>
+            </div>
+            {archiveFilter !== 'all' && (
+              <Button variant="outline" onClick={() => selectArchiveFilter(archiveFilter)} className="rounded-full px-4">
+                Tampilkan semua ({archiveDocuments.length})
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {archiveCards.map((card) => (
+              <ServiceCard
+                key={card.id}
+                title={card.label}
+                subtitle={card.subtitle}
+                value={card.total}
+                icon={card.icon}
+                color={card.color}
+                ratio={card.ratio}
+                active={archiveFilter === card.id}
+                actionLabel={archiveFilter === card.id ? 'Sedang ditampilkan' : 'Lihat Berkas'}
+                onClick={() => selectArchiveFilter(card.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div id="dokumen-section" className="space-y-4">
         {isAgendaMode ? (
           <AgendaWorkspace divisionId={divisionId} focusDate={selectedDate} createTick={agendaCreateTick} />
