@@ -9,6 +9,12 @@ import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { ACCEPTED_DOCUMENT_EXTENSIONS, getAcceptedDocumentFileHint, isDocumentFileAllowed } from '../../lib/documentStorage'
 import { ARCHIVE_STATUSES, DEFAULT_ARCHIVE_STATUS, getArchiveStatusMeta, isArchiveCategory } from '../../data/archiveStatus'
+import {
+  AGREEMENT_TYPES,
+  DEFAULT_AGREEMENT_TYPE,
+  getAgreementTypeMeta,
+  isAgreementCategory
+} from '../../data/agreementStatus'
 import { detectArchiveSheets, splitArchiveFile } from '../../lib/archiveWorkbook'
 
 const emptyForm = {
@@ -20,6 +26,9 @@ const emptyForm = {
   documentDate: '',
   year: new Date().getFullYear().toString(),
   archiveStatus: DEFAULT_ARCHIVE_STATUS,
+  agreementType: DEFAULT_AGREEMENT_TYPE,
+  counterparty: '',
+  validUntil: '',
   file: null
 }
 
@@ -56,6 +65,9 @@ export function DocumentUploadModal({
         documentDate: initialDocument.documentDate || '',
         year: String(initialDocument.year || new Date().getFullYear()),
         archiveStatus: initialDocument.archiveStatus || DEFAULT_ARCHIVE_STATUS,
+        agreementType: initialDocument.agreementType || DEFAULT_AGREEMENT_TYPE,
+        counterparty: initialDocument.counterparty || '',
+        validUntil: initialDocument.validUntil || '',
         file: null
       })
     } else {
@@ -129,7 +141,21 @@ export function DocumentUploadModal({
     setSubmitting(true)
     setError('')
 
+    // Metadata kerja sama hanya bermakna untuk kategori Legislasi / Review MOU.
+    // Kategori lain disimpan null supaya kolomnya tidak terisi data yang tidak
+    // pernah ditampilkan di mana pun.
+    const agreement = isAgreementCategory(form.categoryId)
+      ? {
+          agreementType: form.agreementType,
+          counterparty: form.counterparty.trim() || null,
+          // Telaah hukum tidak berjangka, jadi masa berlakunya tidak ikut
+          // disimpan walau sempat terisi sebelum jenisnya diganti.
+          validUntil: getAgreementTypeMeta(form.agreementType).berjangka ? form.validUntil || null : null
+        }
+      : { agreementType: null, counterparty: null, validUntil: null }
+
     const basePayload = {
+      ...agreement,
       id: initialDocument?.id,
       title: form.title.trim(),
       description: form.description.trim(),
@@ -281,6 +307,44 @@ export function DocumentUploadModal({
             </div>
           )}
 
+          {isAgreementCategory(form.categoryId) && (
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-[#f8fbff] p-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Jenis Dokumen</label>
+                  <Select value={form.agreementType} onChange={handleChange('agreementType')}>
+                    {AGREEMENT_TYPES.map((jenis) => (
+                      <option key={jenis.id} value={jenis.id}>{jenis.label} - {jenis.subtitle}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Pihak Terkait</label>
+                  <Input
+                    value={form.counterparty}
+                    onChange={handleChange('counterparty')}
+                    placeholder="Nama instansi atau lembaga mitra"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Masa Berlaku Sampai</label>
+                  <Input
+                    type="date"
+                    value={form.validUntil}
+                    onChange={handleChange('validUntil')}
+                    min={form.documentDate || undefined}
+                    disabled={!getAgreementTypeMeta(form.agreementType).berjangka}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-slate-500">
+                {getAgreementTypeMeta(form.agreementType).berjangka
+                  ? `${getAgreementTypeMeta(form.agreementType).description} Isi masa berlakunya agar dokumen ini ikut terpantau saat mendekati berakhir.`
+                  : `${getAgreementTypeMeta(form.agreementType).description} Telaah hukum tidak punya masa berlaku, jadi kolomnya dinonaktifkan.`}
+              </p>
+            </div>
+          )}
+
           {isArchiveCategory(form.categoryId) && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Status Arsip</label>
@@ -299,7 +363,9 @@ export function DocumentUploadModal({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Tanggal Dokumen</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                {isAgreementCategory(form.categoryId) ? 'Tanggal Ditandatangani' : 'Tanggal Dokumen'}
+              </label>
               <Input type="date" value={form.documentDate} onChange={handleChange('documentDate')} />
             </div>
             <div>

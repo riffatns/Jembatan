@@ -36,6 +36,7 @@ import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
 import { ServiceIntro } from '../components/ServiceIntro'
 import { BudgetWorkspace } from '../components/budget/BudgetWorkspace'
 import { AssetWorkspace } from '../components/asset/AssetWorkspace'
+import { LegalWorkspace } from '../components/legal/LegalWorkspace'
 import { getServiceContent } from '../data/serviceContent'
 import { ServiceCard } from '../components/ServiceCard'
 import {
@@ -145,6 +146,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const isAgendaMode = serviceContent.type === 'agenda'
   const isBudgetMode = serviceContent.type === 'anggaran'
   const isAssetMode = serviceContent.type === 'aset'
+  const isLegalMode = serviceContent.type === 'legislasi'
   const isArchiveMode = isArchiveCategory(activeCategoryId)
 
   // Arsip lama boleh tidak punya status; perlakukan sebagai aktif supaya tidak
@@ -154,6 +156,14 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const archiveDocuments = useMemo(
     () => dateFilteredDocuments.filter((document) => isArchiveCategory(document.categoryId)),
     [dateFilteredDocuments]
+  )
+
+  // Halaman kerja sama memakai seluruh dokumen kategorinya, tidak mengikuti
+  // penyaring tanggal di atas: masa berlaku yang dipantau justru yang jatuh di
+  // luar tanggal yang sedang dipilih.
+  const legalDocuments = useMemo(
+    () => divisionDocuments.filter((document) => document.categoryId === activeCategoryId),
+    [divisionDocuments, activeCategoryId]
   )
 
   const archiveCards = useMemo(
@@ -354,6 +364,8 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
       )}
 
       {isAssetMode && <AssetWorkspace divisionId={divisionId} />}
+
+      {isLegalMode && <LegalWorkspace documents={legalDocuments} onSelect={handleView} />}
 
       {isArchiveMode && (
         <section className="space-y-3">

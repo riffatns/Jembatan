@@ -65,6 +65,9 @@ function mapRemoteDocument(document) {
     documentNumber: document.document_number,
     documentDate: document.document_date,
     archiveStatus: document.archive_status || null,
+    agreementType: document.agreement_type || null,
+    counterparty: document.counterparty || null,
+    validUntil: document.valid_until || null,
     uploadedAt: document.created_at,
     uploadedBy: document.uploaded_by || ''
   }
@@ -261,6 +264,9 @@ export function DataProvider({ children }) {
         document_date: item.documentDate || null,
         year: item.year || null,
         archive_status: item.archiveStatus || null,
+        agreement_type: item.agreementType || null,
+        counterparty: item.counterparty || null,
+        valid_until: item.validUntil || null,
         status: uploadStatus,
         uploaded_by: user.id
       }).select().single()
@@ -293,6 +299,9 @@ export function DataProvider({ children }) {
         document_date: updates.documentDate || null,
         year: updates.year || null,
         archive_status: updates.archiveStatus || null,
+        agreement_type: updates.agreementType || null,
+        counterparty: updates.counterparty || null,
+        valid_until: updates.validUntil || null,
         updated_at: new Date().toISOString()
       }
       const { data, error } = await supabase.from('documents').update(payload).eq('id', id).select().single()

@@ -382,7 +382,44 @@ where id = 'pr';
 
 
 -- ----------------------------------------------------------------------------
--- 7. Muat ulang cache skema
+-- 7. Metadata kerja sama pada layanan Legislasi / Review MOU
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: jenis dokumen, pihak terkait, dan masa berlaku pada layanan
+-- Legislasi / Review MOU, beserta pemantauan dokumen yang akan berakhir.
+-- Bila dilewat: unggahan pada layanan itu gagal, karena aplikasi mengirim
+-- ketiga kolom ini dan PostgREST menolak kolom yang tidak dikenal.
+--
+-- Ketiganya nullable dan hanya bermakna untuk kategori legislasi-review-mou;
+-- dokumen kategori lain tetap null. Statusnya (Aktif / Review / Berakhir)
+-- sengaja tidak disimpan - dihitung dari valid_until, supaya tidak basi begitu
+-- tanggalnya lewat tanpa ada yang menyunting dokumennya.
+
+alter table public.documents
+  add column if not exists agreement_type text;
+
+alter table public.documents
+  add column if not exists counterparty text;
+
+alter table public.documents
+  add column if not exists valid_until date;
+
+do $do$
+begin
+  alter table public.documents
+    add constraint documents_agreement_type_check
+    check (agreement_type is null or agreement_type in ('mou', 'perjanjian', 'review'));
+exception
+  when duplicate_object then null;
+end
+$do$;
+
+-- Pemantauan selalu mengurutkan dari yang paling dekat berakhir.
+create index if not exists documents_valid_until_idx
+  on public.documents (category_id, valid_until);
+
+
+-- ----------------------------------------------------------------------------
+-- 8. Muat ulang cache skema
 -- ----------------------------------------------------------------------------
 -- PostgREST menyimpan cache skema. Tanpa baris ini kolom yang baru ditambahkan
 -- masih bisa dilaporkan "could not find the column ... in the schema cache".
@@ -391,7 +428,7 @@ notify pgrst, 'reload schema';
 
 
 -- ----------------------------------------------------------------------------
--- 8. Pemeriksaan hasil
+-- 9. Pemeriksaan hasil
 -- ----------------------------------------------------------------------------
 -- Semua baris harus berbunyi OK. Yang masih BELUM berarti bagian itu gagal dan
 -- perlu dilihat pesan galatnya di atas.
@@ -444,5 +481,14 @@ union all
 select 'Nama bidang Humas dan TU Kalan',
        case when exists (
          select 1 from public.divisions where id = 'pr' and name = 'Humas dan TU Kalan'
+       ) then 'OK' else 'BELUM' end
+union all
+select 'Metadata kerja sama (documents.valid_until)',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'documents'
+           and column_name in ('agreement_type', 'counterparty', 'valid_until')
+         group by table_name
+         having count(*) = 3
        ) then 'OK' else 'BELUM' end
 order by 1;

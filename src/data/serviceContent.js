@@ -8,6 +8,7 @@
 //   agenda   - kalender kegiatan (bukan dokumen sama sekali)
 //   anggaran - angka pagu/realisasi/sisa, dibaca dari dokumen pendukungnya
 //   aset     - portal BMN: ringkasan, analitik, dan tabel aset dari berkas
+//   legislasi - kerja sama hukum: jenis, pihak, masa berlaku, dan pemantauan
 //   dokumen  - tabel dokumen, tetap default untuk sebagian besar layanan
 //
 // `budgetCode` mengikat layanan ke satu kode akun belanja pada dokumen
@@ -217,14 +218,15 @@ export const SERVICE_CONTENT = {
     emptyHint: 'Belum ada produk hukum yang didokumentasikan.'
   },
   'legislasi-review-mou': {
+    type: 'legislasi',
     summary: 'Telaah regulasi dan kajian hukum atas rencana kerja sama.',
     expects: [
       'Telaah dan pendapat hukum',
       'Hasil review draf MOU dan perjanjian kerja sama',
       'Catatan pendampingan hukum penugasan'
     ],
-    uploadLabel: 'Upload Telaah',
-    emptyHint: 'Belum ada telaah atau hasil review yang tercatat.'
+    uploadLabel: 'Upload Dokumen Kerja Sama',
+    emptyHint: 'Belum ada nota kesepahaman, perjanjian, atau telaah yang tercatat.'
   },
   perjanjian: {
     summary: 'Perjanjian dan kesepakatan kerja sama yang berlaku.',
