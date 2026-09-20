@@ -33,6 +33,9 @@ import { hasDocumentFile, resolveDocumentFileUrl } from '../lib/documentStorage'
 import { DashboardHeader } from '../components/layout/DashboardHeader'
 import { AgendaWorkspace } from '../components/agenda/AgendaWorkspace'
 import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
+import { ServiceIntro } from '../components/ServiceIntro'
+import { BudgetWorkspace } from '../components/budget/BudgetWorkspace'
+import { getServiceContent } from '../data/serviceContent'
 import { ServiceCard } from '../components/ServiceCard'
 import {
   ARCHIVE_STATUSES,
@@ -130,7 +133,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
     [divisionDocuments, selectedDateObject]
   )
 
-  const isAgendaMode = activeCategoryId === AGENDA_CATEGORY_ID
+  const serviceContent = getServiceContent(activeCategoryId)
+  const isAgendaMode = serviceContent.type === 'agenda'
+  const isBudgetMode = serviceContent.type === 'anggaran'
   const isArchiveMode = isArchiveCategory(activeCategoryId)
 
   // Arsip lama boleh tidak punya status; perlakukan sebagai aktif supaya tidak
@@ -239,7 +244,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         dateInputId="division-date-filter"
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
-        actionLabel={isAgendaMode ? 'Tambah Agenda' : 'Upload Dokumen'}
+        actionLabel={serviceContent.uploadLabel}
         actionIcon={isAgendaMode ? CalendarPlus : Plus}
         onAction={isAgendaMode ? () => setAgendaCreateTick((tick) => tick + 1) : handleOpenUpload}
         showAction={canUploadToDivision(divisionId)}
@@ -273,45 +278,11 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
 
       */}
 
-      {divisionId === 'finance' && (
-        <section className="grid gap-4 xl:grid-cols-2">
-          <BudgetGauge title="Realisasi Anggaran" percentage={budget.realisasiPercent} value={budget.totalRealisasi} valueLabel="Realisasi" pagu={budget.totalPagu} accent="#2f8cff" />
-          <BudgetGauge title="Sisa Anggaran" percentage={budget.sisaPercent} value={budget.totalSisa} valueLabel="Sisa Anggaran" pagu={budget.totalPagu} accent="#22d3ee" />
-        </section>
+      {!isAgendaMode && (
+        <ServiceIntro categoryId={activeCategoryId} categoryName={activeCategory?.name || division.name} />
       )}
 
-      {isArchiveMode && (
-        <section className="space-y-3">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-bold text-[#233b84]">Sub Bagian Arsip</h2>
-              <p className="text-sm text-[#61739b]">Kelompokkan berkas menurut siklus hidup arsip</p>
-            </div>
-            {archiveFilter !== 'all' && (
-              <Button variant="outline" onClick={() => selectArchiveFilter(archiveFilter)} className="rounded-full px-4">
-                Tampilkan semua ({archiveDocuments.length})
-              </Button>
-            )}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {archiveCards.map((card) => (
-              <ServiceCard
-                key={card.id}
-                title={card.label}
-                subtitle={card.subtitle}
-                value={card.total}
-                icon={card.icon}
-                color={card.color}
-                ratio={card.ratio}
-                active={archiveFilter === card.id}
-                actionLabel={archiveFilter === card.id ? 'Sedang ditampilkan' : 'Lihat Berkas'}
-                onClick={() => selectArchiveFilter(card.id)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {isBudgetMode && <BudgetWorkspace categoryId={activeCategoryId} budget={budget} />}
 
       <div id="dokumen-section" className="space-y-4">
         {isAgendaMode ? (
@@ -326,7 +297,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
                     ? ` - ${ARCHIVE_STATUSES.find((item) => item.id === archiveFilter)?.label}`
                     : ''}
                 </h2>
-                <p className="text-sm text-[#61739b]">Kelola, cari, unggah, dan tinjau dokumen bidang ini</p>
+                <p className="text-sm text-[#61739b]">
+                  {isBudgetMode ? 'Dokumen pendukung yang menjadi dasar angka di atas' : serviceContent.summary}
+                </p>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-[#233b84] shadow-sm">
                 <LayoutGrid className="h-4 w-4 text-[#1f63d3]" />
@@ -372,56 +345,6 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
       />
 
       <DocumentDetail document={selectedDocument} open={detailOpen} onOpenChange={setDetailOpen} />
-    </div>
-  )
-}
-
-function BudgetGauge({ title, percentage, value, valueLabel, pagu, accent }) {
-  const clamped = Math.max(0, Math.min(100, percentage))
-  const formattedValue = `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(value))}`
-  const formattedPagu = `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(pagu))}`
-
-  return (
-    <div className="rounded-[28px] border border-sky-400/25 bg-[#071429]/95 p-5 text-white shadow-[0_18px_45px_rgba(15,23,42,0.18)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold">{title}</h2>
-          <p className="mt-1 text-sm text-slate-300">Persentase {valueLabel}</p>
-        </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-sky-300/30 bg-white/5 text-sky-200">
-          <ArrowRight className="h-4 w-4" />
-        </div>
-      </div>
-
-      <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="flex items-center justify-center sm:w-40">
-          <div
-            className="relative flex h-36 w-36 items-center justify-center rounded-full"
-            style={{ background: `conic-gradient(${accent} ${clamped}%, rgba(148, 163, 184, 0.15) ${clamped}% 100%)` }}
-          >
-            <div className="absolute inset-3 rounded-full border border-sky-300/20 bg-[#05101f]" />
-            <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-sky-300/15 bg-[#071429] text-3xl font-semibold text-white">
-              {Math.round(clamped)}%
-            </div>
-          </div>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="h-3 overflow-hidden rounded-full border border-sky-400/25 bg-slate-900/70">
-            <div className="h-full rounded-full" style={{ width: `${clamped}%`, background: `linear-gradient(90deg, ${accent}, #4fa3ff)` }} />
-          </div>
-          <div className="mt-4 space-y-2 text-sm sm:text-base">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="w-24 text-slate-400">{valueLabel}</span>
-              <span className="font-medium">{formattedValue}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="w-24 text-slate-400">Pagu</span>
-              <span className="font-medium">{formattedPagu}</span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
