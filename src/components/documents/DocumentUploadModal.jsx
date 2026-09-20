@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Send, Upload, Paperclip } from 'lucide-react'
+import { Layers, Send, Upload, Paperclip } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { ACCEPTED_DOCUMENT_EXTENSIONS, getAcceptedDocumentFileHint, isDocumentFileAllowed } from '../../lib/documentStorage'
 import { ARCHIVE_STATUSES, DEFAULT_ARCHIVE_STATUS, getArchiveStatusMeta, isArchiveCategory } from '../../data/archiveStatus'
+import { detectArchiveSheets, splitArchiveFile } from '../../lib/archiveWorkbook'
 
 const emptyForm = {
   title: '',
@@ -35,6 +36,8 @@ export function DocumentUploadModal({
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [archiveSheets, setArchiveSheets] = useState([])
+  const [splitEnabled, setSplitEnabled] = useState(true)
 
   const divisionOptions = documentStructure
   const selectedDivisionId = form.divisionId || defaultDivisionId || user?.division || ''
@@ -64,6 +67,8 @@ export function DocumentUploadModal({
     }
     setError('')
     setSubmitting(false)
+    setArchiveSheets([])
+    setSplitEnabled(true)
   }, [open, initialDocument, defaultDivisionId, defaultCategoryId, user?.division])
 
   useEffect(() => {
@@ -73,6 +78,25 @@ export function DocumentUploadModal({
       setForm((current) => ({ ...current, categoryId: categoryOptions[0]?.id || '' }))
     }
   }, [categoryOptions, form.categoryId])
+
+  useEffect(() => {
+    if (!form.file || !isArchiveCategory(form.categoryId)) {
+      setArchiveSheets([])
+      return undefined
+    }
+
+    let cancelled = false
+    detectArchiveSheets(form.file).then((sheets) => {
+      if (cancelled) return
+      setArchiveSheets(sheets)
+      // Satu daftar saja: tidak ada yang perlu dipecah, tapi statusnya
+      // sudah ketahuan dari nama sheet-nya.
+      if (sheets.length === 1) setForm((current) => ({ ...current, archiveStatus: sheets[0].status }))
+    })
+    return () => { cancelled = true }
+  }, [form.file, form.categoryId])
+
+  const willSplit = !initialDocument && splitEnabled && archiveSheets.length > 1
 
   const handleChange = (key) => (event) => {
     const value = event.target.type === 'file' ? event.target.files?.[0] || null : event.target.value
@@ -105,22 +129,41 @@ export function DocumentUploadModal({
     setSubmitting(true)
     setError('')
 
+    const basePayload = {
+      id: initialDocument?.id,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      divisionId: form.divisionId,
+      categoryId: form.categoryId,
+      documentNumber: form.documentNumber.trim(),
+      documentDate: form.documentDate,
+      year: Number(form.year),
+      uploadedBy: initialDocument?.uploadedBy || user?.name,
+      status: initialDocument?.status || 'pending',
+      rejectionReason: initialDocument?.rejectionReason || ''
+    }
+
     try {
-      await onSubmit({
-        id: initialDocument?.id,
-        title: form.title.trim(),
-        description: form.description.trim(),
-        divisionId: form.divisionId,
-        categoryId: form.categoryId,
-        documentNumber: form.documentNumber.trim(),
-        documentDate: form.documentDate,
-        year: Number(form.year),
-        archiveStatus: isArchiveCategory(form.categoryId) ? form.archiveStatus : null,
-        file: form.file || undefined,
-        uploadedBy: initialDocument?.uploadedBy || user?.name,
-        status: initialDocument?.status || 'pending',
-        rejectionReason: initialDocument?.rejectionReason || ''
-      })
+      if (willSplit) {
+        // Tiap sheet berstatus menjadi dokumen tersendiri, membawa hanya
+        // sheet-nya sendiri sebagai berkas.
+        const parts = await splitArchiveFile(form.file)
+        for (const part of parts) {
+          await onSubmit({
+            ...basePayload,
+            id: undefined,
+            title: `${basePayload.title} - ${getArchiveStatusMeta(part.status).label}`,
+            archiveStatus: part.status,
+            file: part.file
+          })
+        }
+      } else {
+        await onSubmit({
+          ...basePayload,
+          archiveStatus: isArchiveCategory(form.categoryId) ? form.archiveStatus : null,
+          file: form.file || undefined
+        })
+      }
       onOpenChange(false)
     } catch (err) {
       setError(err?.message || 'Gagal menyimpan dokumen.')
@@ -195,15 +238,62 @@ export function DocumentUploadModal({
             </div>
           </div>
 
+          {!initialDocument && archiveSheets.length > 1 && (
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={splitEnabled}
+                  onChange={(event) => setSplitEnabled(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer rounded border-slate-300 text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
+                />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-sky-900">
+                    <Layers className="h-4 w-4 shrink-0" />
+                    Pecah otomatis menjadi {archiveSheets.length} dokumen
+                  </span>
+                  <span className="mt-1 block text-xs text-sky-800">
+                    Berkas ini memuat beberapa daftar arsip. Tiap sheet disimpan sebagai dokumen
+                    tersendiri dengan status masing-masing:
+                  </span>
+                  <ul className="mt-2 space-y-1">
+                    {archiveSheets.map((sheet) => {
+                      const meta = getArchiveStatusMeta(sheet.status)
+                      return (
+                        <li key={sheet.status} className="flex items-center gap-2 text-xs text-sky-900">
+                          <span
+                            aria-hidden="true"
+                            className="h-2.5 w-2.5 shrink-0 rounded-[3px] ring-1 ring-inset ring-black/15"
+                            style={{ backgroundColor: meta.color }}
+                          />
+                          <span className="truncate">
+                            {sheet.sheetName} &rarr; {form.title.trim() || 'Nama dokumen'} - {meta.label}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  <span className="mt-2 block text-xs text-sky-700">
+                    Hapus centang bila ingin menyimpannya sebagai satu dokumen utuh.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
+
           {isArchiveCategory(form.categoryId) && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Status Arsip</label>
-              <Select value={form.archiveStatus} onChange={handleChange('archiveStatus')}>
+              <Select value={form.archiveStatus} onChange={handleChange('archiveStatus')} disabled={willSplit}>
                 {ARCHIVE_STATUSES.map((item) => (
                   <option key={item.id} value={item.id}>{item.label}</option>
                 ))}
               </Select>
-              <p className="mt-1.5 text-xs text-slate-500">{getArchiveStatusMeta(form.archiveStatus).description}</p>
+              <p className="mt-1.5 text-xs text-slate-500">
+                {willSplit
+                  ? 'Tidak dipakai: tiap dokumen hasil pemecahan memakai status dari nama sheet-nya.'
+                  : getArchiveStatusMeta(form.archiveStatus).description}
+              </p>
             </div>
           )}
 
@@ -232,7 +322,14 @@ export function DocumentUploadModal({
               Cancel
             </Button>
             <Button type="submit" variant="teal" disabled={submitting}>
-              <Send className="h-4 w-4" /> {submitting ? 'Saving...' : initialDocument ? 'Update Dokumen' : 'Upload Dokumen'}
+              <Send className="h-4 w-4" />{' '}
+              {submitting
+                ? 'Menyimpan...'
+                : initialDocument
+                  ? 'Update Dokumen'
+                  : willSplit
+                    ? `Upload ${archiveSheets.length} Dokumen`
+                    : 'Upload Dokumen'}
             </Button>
           </div>
         </form>
