@@ -123,7 +123,7 @@ function SidebarNavButton({ icon: Icon, label, count, isActive, onClick }) {
 }
 
 function DivisionSidebar({ divisionId, onCloseMobile }) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const { getDocumentDivision, getDocumentCategories, stats, documents, agendaEvents } = useData()
   const navigate = useNavigate()
   const location = useLocation()
@@ -133,6 +133,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
 
   const division = getDocumentDivision(divisionId)
   const categories = getDocumentCategories(divisionId)
+  const punyaArsip = categories.some((category) => category.id === 'arsip')
   const storageKey = `bpk-dashboard-active-category-${divisionId}`
   const [activeCategoryId, setActiveCategoryId] = useState(() => {
     // Kategori tersimpan bisa menunjuk layanan yang kini disembunyikan.
@@ -241,44 +242,52 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           <div className="mt-3 space-y-1.5">
             {[
               { label: 'Kalender Bersama', icon: CalendarDays, path: '/dashboard/kalender' },
-              { label: 'Monitoring Layanan', icon: LineChart, path: '/dashboard/monitoring' },
-              { label: 'Laporan', icon: ClipboardList, path: '/dashboard/laporan' }
-            ].map((item) => (
-              <SidebarNavButton
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                isActive={currentPath === item.path}
-                onClick={() => {
-                  sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
-                  navigate(item.path)
-                }}
-              />
-            ))}
+              { label: 'Monitoring Layanan', icon: LineChart, path: '/dashboard/monitoring', adminSaja: true },
+              { label: 'Laporan', icon: ClipboardList, path: '/dashboard/laporan', adminSaja: true }
+            ]
+              // Untuk sementara hanya admin yang melihat rekap lintas bidang.
+              // Kalender Bersama tetap terbuka untuk semua.
+              .filter((item) => isAdmin || !item.adminSaja)
+              .map((item) => (
+                <SidebarNavButton
+                  key={item.label}
+                  icon={item.icon}
+                  label={item.label}
+                  isActive={currentPath === item.path}
+                  onClick={() => {
+                    sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
+                    navigate(item.path)
+                  }}
+                />
+              ))}
           </div>
         </div>
 
-        <div className="mt-5 border-t border-white/10 pt-4">
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Dokumen</p>
-          <div className="mt-3 space-y-1.5">
-            <SidebarNavButton
-              icon={FileText}
-              label="Semua Dokumen"
-              count={Object.values(categoryCounts).reduce((total, count) => total + count, 0)}
-              isActive={!isDashboardRoute && !isSectionRoute && activeCategoryId === 'all'}
-              onClick={() => selectCategory('all')}
-            />
-            {categories.some((category) => category.id === 'arsip') && (
-              <SidebarNavButton
-                icon={FolderArchive}
-                label="Arsip Digital"
-                count={categoryCounts.arsip || 0}
-                isActive={!isDashboardRoute && !isSectionRoute && activeCategoryId === 'arsip'}
-                onClick={() => selectCategory('arsip')}
-              />
-            )}
+        {(isAdmin || punyaArsip) && (
+          <div className="mt-5 border-t border-white/10 pt-4">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Dokumen</p>
+            <div className="mt-3 space-y-1.5">
+              {isAdmin && (
+                <SidebarNavButton
+                  icon={FileText}
+                  label="Semua Dokumen"
+                  count={Object.values(categoryCounts).reduce((total, count) => total + count, 0)}
+                  isActive={!isDashboardRoute && !isSectionRoute && activeCategoryId === 'all'}
+                  onClick={() => selectCategory('all')}
+                />
+              )}
+              {punyaArsip && (
+                <SidebarNavButton
+                  icon={FolderArchive}
+                  label="Arsip Digital"
+                  count={categoryCounts.arsip || 0}
+                  isActive={!isDashboardRoute && !isSectionRoute && activeCategoryId === 'arsip'}
+                  onClick={() => selectCategory('arsip')}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/65">Integrasi Aplikasi</p>
