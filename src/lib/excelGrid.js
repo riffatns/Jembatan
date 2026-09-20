@@ -51,9 +51,13 @@ export async function readWorkbookGrid(source) {
   const XLSX = await import('xlsx')
   const workbook = XLSX.read(await toArrayBuffer(source), { type: 'array', cellDates: true })
 
-  const sheets = workbook.SheetNames.map((name) => {
+  const sheets = workbook.SheetNames.map((name, sheetIndex) => {
     const sheet = workbook.Sheets[name]
     if (!sheet || !sheet['!ref']) return null
+
+    // Sheet yang disembunyikan penyusunnya di Excel ikut disembunyikan di sini;
+    // menampilkannya hanya menambah tab yang membingungkan.
+    if (workbook.Workbook?.Sheets?.[sheetIndex]?.Hidden) return null
 
     // !merges memakai koordinat mutlak sheet. Pembacaan harus dimulai dari A1
     // dan mempertahankan baris kosong, kalau tidak nomor baris dan kolomnya
@@ -84,9 +88,14 @@ export async function readWorkbookGrid(source) {
     while (akhir > 0 && rows[akhir - 1].every((cell) => cell === '')) akhir -= 1
 
     const { anchors, covered } = buildSpanMap(sheet['!merges'])
+    const isiTerpakai = rows.slice(0, akhir).reduce(
+      (total, row) => total + row.filter((cell) => cell !== '').length,
+      0
+    )
 
     return {
       name,
+      isiTerpakai,
       rows: rows.slice(0, akhir),
       columnCount,
       spanAt: (row, column) => anchors.get(`${row}:${column}`) || null,
@@ -94,5 +103,14 @@ export async function readWorkbookGrid(source) {
     }
   }).filter((sheet) => sheet && sheet.rows.length > 0)
   if (!sheets.length) throw new Error('Berkas Excel ini tidak memiliki isi yang dapat ditampilkan.')
-  return { sheets }
+
+  // Sheet pertama belum tentu sheet utamanya. Berkas bezetting, misalnya,
+  // dibuka pada sheet ringkasan yang hampir kosong sementara data pegawainya
+  // ada di sheet lain. Yang dipilih adalah sheet dengan isi terbanyak.
+  const defaultIndex = sheets.reduce(
+    (terpilih, sheet, index) => (sheet.isiTerpakai > sheets[terpilih].isiTerpakai ? index : terpilih),
+    0
+  )
+
+  return { sheets, defaultIndex }
 }

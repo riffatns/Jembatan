@@ -62,7 +62,11 @@ export default function ExcelWorkbookViewer({ source, className = '' }) {
     setActiveSheet(0)
 
     readWorkbookGrid(source)
-      .then((result) => { if (!cancelled) setWorkbook(result) })
+      .then((result) => {
+        if (cancelled) return
+        setWorkbook(result)
+        setActiveSheet(result.defaultIndex || 0)
+      })
       .catch((reason) => { if (!cancelled) setError(reason.message || 'Berkas Excel gagal dibaca.') })
       .finally(() => { if (!cancelled) setLoading(false) })
 
