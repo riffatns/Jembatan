@@ -60,6 +60,46 @@ export function parseDateKey(value) {
   return new Date(year, month - 1, day)
 }
 
+// eventDate adalah tanggal mulai; endDate kosong berarti kegiatan sehari.
+export function agendaEndDate(event) {
+  const end = event?.endDate
+  return end && end >= event.eventDate ? end : event?.eventDate
+}
+
+export function isMultiDayAgenda(event) {
+  return agendaEndDate(event) !== event?.eventDate
+}
+
+// Perbandingan string cukup karena formatnya YYYY-MM-DD.
+export function agendaCoversDate(event, dateKey) {
+  return dateKey >= event.eventDate && dateKey <= agendaEndDate(event)
+}
+
+// Kegiatan 31 Agustus - 5 September harus tampil di bulan Agustus maupun
+// September, jadi yang diperiksa irisannya dengan bulan, bukan tanggal mulai.
+export function agendaOverlapsMonth(event, year, month) {
+  const monthStart = toDateKey(new Date(year, month, 1))
+  const monthEnd = toDateKey(new Date(year, month + 1, 0))
+  return event.eventDate <= monthEnd && agendaEndDate(event) >= monthStart
+}
+
+export function agendaDateKeys(event) {
+  const keys = []
+  const end = agendaEndDate(event)
+  const cursor = parseDateKey(event.eventDate)
+
+  // Penjaga terhadap endDate yang keliru jauh ke depan; tanpa ini satu baris
+  // data rusak bisa membuat kalender menggantung.
+  for (let guard = 0; guard < 400; guard += 1) {
+    const key = toDateKey(cursor)
+    keys.push(key)
+    if (key >= end) break
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return keys
+}
+
 export function formatAgendaDate(value) {
   return parseDateKey(value).toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -67,6 +107,31 @@ export function formatAgendaDate(value) {
     month: 'long',
     year: 'numeric'
   })
+}
+
+export function formatAgendaDateRange(event) {
+  const akhir = agendaEndDate(event)
+  if (akhir === event.eventDate) return formatAgendaDate(event.eventDate)
+
+  const mulai = parseDateKey(event.eventDate)
+  const selesai = parseDateKey(akhir)
+  const tahunSama = mulai.getFullYear() === selesai.getFullYear()
+  const bulanSama = tahunSama && mulai.getMonth() === selesai.getMonth()
+
+  // Nama hari hanya pantas untuk kegiatan sehari; pada rentang ia justru
+  // membingungkan karena seolah menunjuk satu tanggal saja.
+  const teksMulai = mulai.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    ...(bulanSama ? {} : { month: 'long' }),
+    ...(tahunSama ? {} : { year: 'numeric' })
+  })
+  const teksSelesai = selesai.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+
+  return `${teksMulai} - ${teksSelesai}`
 }
 
 function normalizeTime(value) {
@@ -110,13 +175,22 @@ export function findAgendaConflicts(events, candidate) {
   const target = minuteRange(candidate)
   if (!target || !candidate.eventDate) return []
 
+  const candidateEnd = agendaEndDate(candidate)
+
   return events.reduce((result, event) => {
     if (event.id === candidate.id) return result
-    if (event.eventDate !== candidate.eventDate) return result
     if (event.status === 'cancelled') return result
 
-    const range = minuteRange(event)
-    if (!range || range.start >= target.end || target.start >= range.end) return result
+    // Tanggalnya harus beririsan lebih dulu; kegiatan berhari-hari cukup
+    // diperiksa pada tingkat tanggal, karena jam mulai dan selesainya hanya
+    // berlaku di hari pertama dan terakhir.
+    if (event.eventDate > candidateEnd || agendaEndDate(event) < candidate.eventDate) return result
+
+    const lintasHari = isMultiDayAgenda(event) || isMultiDayAgenda(candidate)
+    if (!lintasHari) {
+      const range = minuteRange(event)
+      if (!range || range.start >= target.end || target.start >= range.end) return result
+    }
 
     const locationClash = sameLocation(event.location, candidate.location)
     const divisionClash = event.divisionId === candidate.divisionId
@@ -156,9 +230,11 @@ export function sortAgendaEvents(events) {
 
 export function groupAgendaByDate(events) {
   return events.reduce((result, event) => {
-    const bucket = result[event.eventDate] || []
-    bucket.push(event)
-    result[event.eventDate] = bucket
+    for (const key of agendaDateKeys(event)) {
+      const bucket = result[key] || []
+      bucket.push(event)
+      result[key] = bucket
+    }
     return result
   }, {})
 }
@@ -174,6 +250,7 @@ export function mapRemoteAgendaEvent(row) {
     organizer: row.organizer || '',
     attendees: row.attendees || '',
     eventDate: row.event_date,
+    endDate: row.end_date || null,
     startTime: normalizeTime(row.start_time),
     endTime: normalizeTime(row.end_time),
     allDay: Boolean(row.all_day),
@@ -197,6 +274,7 @@ export function toRemoteAgendaPayload(event) {
     organizer: event.organizer || null,
     attendees: event.attendees || null,
     event_date: event.eventDate,
+    end_date: event.endDate || null,
     start_time: event.allDay ? null : normalizeTime(event.startTime) || null,
     end_time: event.allDay ? null : normalizeTime(event.endTime) || null,
     all_day: Boolean(event.allDay),
@@ -217,6 +295,7 @@ export function normalizeAgendaInput(input) {
     organizer: String(input.organizer || '').trim(),
     attendees: String(input.attendees || '').trim(),
     eventDate: input.eventDate,
+    endDate: input.endDate && input.endDate > input.eventDate ? input.endDate : null,
     startTime: allDay ? '' : normalizeTime(input.startTime),
     endTime: allDay ? '' : normalizeTime(input.endTime),
     allDay,

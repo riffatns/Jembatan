@@ -12,6 +12,7 @@ create table if not exists public.agenda_events (
   organizer text,
   attendees text,
   event_date date not null,
+  end_date date,
   start_time time,
   end_time time,
   all_day boolean not null default false,
@@ -29,6 +30,21 @@ create table if not exists public.agenda_events (
 
 alter table public.agenda_events
   add column if not exists visibility text not null default 'public';
+
+-- Kegiatan berhari-hari: event_date adalah tanggal mulai, end_date tanggal
+-- selesai. Kosong berarti kegiatannya hanya sehari.
+alter table public.agenda_events
+  add column if not exists end_date date;
+
+do $do$
+begin
+  alter table public.agenda_events
+    add constraint agenda_events_end_date_check
+    check (end_date is null or end_date >= event_date);
+exception
+  when duplicate_object then null;
+end
+$do$;
 
 do $do$
 begin

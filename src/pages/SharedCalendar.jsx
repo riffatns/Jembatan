@@ -11,7 +11,15 @@ import { AgendaEventDetail } from '../components/agenda/AgendaEventDetail'
 import { DivisionFilterPanel } from '../components/agenda/DivisionFilterPanel'
 import { AgendaListItem } from '../components/agenda/AgendaListItem'
 import { COLORED_DIVISION_IDS } from '../data/divisionPalette'
-import { formatAgendaDate, parseDateKey, sortAgendaEvents, toDateKey } from '../lib/agendaStorage'
+import {
+  agendaCoversDate,
+  agendaEndDate,
+  agendaOverlapsMonth,
+  formatAgendaDate,
+  parseDateKey,
+  sortAgendaEvents,
+  toDateKey
+} from '../lib/agendaStorage'
 
 const FILTER_KEY = 'bpk-dashboard-agenda-divisions'
 
@@ -66,31 +74,27 @@ export default function SharedCalendar() {
   )
 
   const monthEvents = useMemo(
-    () =>
-      visibleEvents.filter((event) => {
-        const date = parseDateKey(event.eventDate)
-        return date.getFullYear() === cursor.getFullYear() && date.getMonth() === cursor.getMonth()
-      }),
+    () => visibleEvents.filter((event) => agendaOverlapsMonth(event, cursor.getFullYear(), cursor.getMonth())),
     [visibleEvents, cursor]
   )
 
   const monthCountsByDivision = useMemo(() => {
     const counts = {}
     for (const event of agendaEvents) {
-      const date = parseDateKey(event.eventDate)
-      if (date.getFullYear() !== cursor.getFullYear() || date.getMonth() !== cursor.getMonth()) continue
+      if (!agendaOverlapsMonth(event, cursor.getFullYear(), cursor.getMonth())) continue
       counts[event.divisionId] = (counts[event.divisionId] || 0) + 1
     }
     return counts
   }, [agendaEvents, cursor])
 
   const selectedDayEvents = useMemo(
-    () => sortAgendaEvents(visibleEvents.filter((event) => event.eventDate === selectedKey)),
+    () => sortAgendaEvents(visibleEvents.filter((event) => agendaCoversDate(event, selectedKey))),
     [visibleEvents, selectedKey]
   )
 
   const upcomingEvents = useMemo(
-    () => sortAgendaEvents(visibleEvents.filter((event) => event.eventDate >= todayKey && event.status !== 'cancelled')).slice(0, 5),
+    // Kegiatan yang sedang berlangsung tetap terhitung mendatang sampai berakhir.
+    () => sortAgendaEvents(visibleEvents.filter((event) => agendaEndDate(event) >= todayKey && event.status !== 'cancelled')).slice(0, 5),
     [visibleEvents, todayKey]
   )
 

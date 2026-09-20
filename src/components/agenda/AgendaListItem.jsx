@@ -1,6 +1,6 @@
 import { Clock3, MapPin } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import { formatAgendaDate, formatAgendaTime, getAgendaStatusMeta, getAgendaTypeMeta } from '../../lib/agendaStorage'
+import { formatAgendaDateRange, formatAgendaTime, getAgendaStatusMeta, getAgendaTypeMeta, isMultiDayAgenda } from '../../lib/agendaStorage'
 import { getDivisionVisual } from '../../data/divisionPalette'
 
 // Satu-satunya bentuk baris agenda di seluruh portal: dipakai kalender bersama,
@@ -31,9 +31,10 @@ export function AgendaListItem({ event, divisionName = '', onSelect, showDate = 
           {divisionName ? `${divisionName} · ${typeMeta.label}` : typeMeta.label}
           {isGuest ? ' · BIDANG LAIN' : ''}
         </p>
-        {showDate && <p className="mt-1 text-xs font-medium text-[#1f63d3]">{formatAgendaDate(event.eventDate)}</p>}
+        {showDate && <p className="mt-1 text-xs font-medium text-[#1f63d3]">{formatAgendaDateRange(event)}</p>}
         <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-          <Clock3 className="h-3.5 w-3.5 shrink-0" /> {formatAgendaTime(event)}
+          <Clock3 className="h-3.5 w-3.5 shrink-0" />{' '}
+          {isMultiDayAgenda(event) ? formatAgendaDateRange(event) : formatAgendaTime(event)}
         </p>
         {event.location ? (
           <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-slate-500">

@@ -26,6 +26,7 @@ function buildEmptyForm(defaultDate, defaultDivisionId) {
     organizer: '',
     attendees: '',
     eventDate: defaultDate || toDateKey(new Date()),
+    endDate: '',
     startTime: '09:00',
     endTime: '10:00',
     allDay: false,
@@ -63,6 +64,7 @@ export function AgendaEventModal({
             organizer: initialEvent.organizer || '',
             attendees: initialEvent.attendees || '',
             eventDate: initialEvent.eventDate || defaultDate || toDateKey(new Date()),
+            endDate: initialEvent.endDate || '',
             startTime: initialEvent.startTime || '09:00',
             endTime: initialEvent.endTime || '',
             allDay: Boolean(initialEvent.allDay),
@@ -112,7 +114,13 @@ export function AgendaEventModal({
       return
     }
 
-    if (!form.allDay && form.endTime && form.endTime <= form.startTime) {
+    if (form.endDate && form.endDate < form.eventDate) {
+      setError({ message: 'Tanggal selesai tidak boleh mendahului tanggal mulai.' })
+      return
+    }
+
+    // Jam hanya bermakna pada kegiatan sehari; lintas hari tidak diperiksa.
+    if (!form.allDay && !form.endDate && form.endTime && form.endTime <= form.startTime) {
       setError({ message: 'Jam selesai harus lebih lambat dari jam mulai.' })
       return
     }
@@ -150,11 +158,19 @@ export function AgendaEventModal({
             <Input value={form.title} onChange={handleChange('title')} placeholder="Contoh: Rapat Koordinasi Mingguan Kalan" />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Tanggal</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Tanggal Mulai</label>
               <Input type="date" value={form.eventDate} onChange={handleChange('eventDate')} />
             </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Tanggal Selesai</label>
+              <Input type="date" value={form.endDate} onChange={handleChange('endDate')} min={form.eventDate} />
+              <p className="mt-1.5 text-xs text-slate-500">Kosongkan bila kegiatannya hanya sehari.</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Jam Mulai</label>
               <Input type="time" value={form.startTime} onChange={handleChange('startTime')} disabled={form.allDay} />

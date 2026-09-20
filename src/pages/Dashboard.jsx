@@ -9,7 +9,13 @@ import { AgendaCalendar } from '../components/agenda/AgendaCalendar'
 import { AgendaListItem } from '../components/agenda/AgendaListItem'
 import { AgendaEventDetail } from '../components/agenda/AgendaEventDetail'
 import { OtherDivisionsToggle } from '../components/agenda/OtherDivisionsToggle'
-import { AGENDA_CATEGORY_ID, parseDateKey, sortAgendaEvents, toDateKey } from '../lib/agendaStorage'
+import {
+  AGENDA_CATEGORY_ID,
+  agendaCoversDate,
+  agendaOverlapsMonth,
+  sortAgendaEvents,
+  toDateKey
+} from '../lib/agendaStorage'
 
 const OTHER_DIVISIONS_KEY = 'bpk-dashboard-agenda-show-others'
 
@@ -64,15 +70,11 @@ export default function Dashboard() {
     [selectedDateObject]
   )
   const monthAgenda = useMemo(
-    () =>
-      calendarAgenda.filter((event) => {
-        const date = parseDateKey(event.eventDate)
-        return date.getFullYear() === calendarCursor.getFullYear() && date.getMonth() === calendarCursor.getMonth()
-      }),
+    () => calendarAgenda.filter((event) => agendaOverlapsMonth(event, calendarCursor.getFullYear(), calendarCursor.getMonth())),
     [calendarAgenda, calendarCursor]
   )
   const selectedDayAgenda = useMemo(
-    () => sortAgendaEvents(calendarAgenda.filter((event) => event.eventDate === toDateKey(selectedDateObject))),
+    () => sortAgendaEvents(calendarAgenda.filter((event) => agendaCoversDate(event, toDateKey(selectedDateObject)))),
     [calendarAgenda, selectedDateObject]
   )
 

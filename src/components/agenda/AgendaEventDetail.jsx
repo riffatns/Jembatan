@@ -4,7 +4,9 @@ import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import {
   formatAgendaDate,
+  formatAgendaDateRange,
   formatAgendaTime,
+  isMultiDayAgenda,
   getAgendaStatusMeta,
   getAgendaTypeMeta,
   getAgendaVisibilityMeta
@@ -49,7 +51,7 @@ export function AgendaEventDetail({ event, open, onOpenChange, onEdit, onDelete,
               {divisionName || visual.abbr} · {typeMeta.label}
             </span>
             <DialogTitle className="mt-2">{event.title}</DialogTitle>
-            <DialogDescription>{formatAgendaDate(event.eventDate)}</DialogDescription>
+            <DialogDescription>{formatAgendaDateRange(event)}</DialogDescription>
           </div>
         </DialogHeader>
 
@@ -62,7 +64,11 @@ export function AgendaEventDetail({ event, open, onOpenChange, onEdit, onDelete,
 
         <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
           <DetailRow icon={Building2} label="Bidang" value={divisionName || visual.abbr} />
-          <DetailRow icon={CalendarDays} label="Tanggal" value={formatAgendaDate(event.eventDate)} />
+          <DetailRow
+            icon={CalendarDays}
+            label={isMultiDayAgenda(event) ? 'Tanggal Pelaksanaan' : 'Tanggal'}
+            value={formatAgendaDateRange(event)}
+          />
           <DetailRow icon={Clock3} label="Waktu" value={formatAgendaTime(event)} />
           <DetailRow icon={MapPin} label="Tempat" value={event.location} />
           <DetailRow icon={UserCircle2} label="Penyelenggara" value={event.organizer} />

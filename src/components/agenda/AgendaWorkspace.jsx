@@ -9,7 +9,15 @@ import { AgendaEventModal } from './AgendaEventModal'
 import { AgendaEventDetail } from './AgendaEventDetail'
 import { AgendaListItem } from './AgendaListItem'
 import { OtherDivisionsToggle } from './OtherDivisionsToggle'
-import { formatAgendaDate, parseDateKey, sortAgendaEvents, toDateKey } from '../../lib/agendaStorage'
+import {
+  agendaCoversDate,
+  agendaEndDate,
+  agendaOverlapsMonth,
+  formatAgendaDate,
+  parseDateKey,
+  sortAgendaEvents,
+  toDateKey
+} from '../../lib/agendaStorage'
 
 const OTHER_DIVISIONS_KEY = 'bpk-dashboard-agenda-show-others'
 
@@ -62,20 +70,17 @@ export function AgendaWorkspace({ divisionId, focusDate = '', createTick = 0 }) 
   )
   const isGuest = (event) => event.divisionId !== divisionId
 
-  const inCursorMonth = (event) => {
-    const date = parseDateKey(event.eventDate)
-    return date.getFullYear() === cursor.getFullYear() && date.getMonth() === cursor.getMonth()
-  }
+  const inCursorMonth = (event) => agendaOverlapsMonth(event, cursor.getFullYear(), cursor.getMonth())
   const monthEvents = useMemo(() => calendarEvents.filter(inCursorMonth), [calendarEvents, cursor])
   const ownMonthCount = useMemo(() => divisionEvents.filter(inCursorMonth).length, [divisionEvents, cursor])
 
   const selectedDayEvents = useMemo(
-    () => sortAgendaEvents(calendarEvents.filter((event) => event.eventDate === selectedKey)),
+    () => sortAgendaEvents(calendarEvents.filter((event) => agendaCoversDate(event, selectedKey))),
     [calendarEvents, selectedKey]
   )
 
   const upcomingEvents = useMemo(
-    () => sortAgendaEvents(calendarEvents.filter((event) => event.eventDate >= todayKey && event.status !== 'cancelled')).slice(0, 5),
+    () => sortAgendaEvents(calendarEvents.filter((event) => agendaEndDate(event) >= todayKey && event.status !== 'cancelled')).slice(0, 5),
     [calendarEvents, todayKey]
   )
 
