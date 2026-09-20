@@ -196,6 +196,11 @@ All content is stored in the `DataContext` and persisted to `localStorage` under
   `document_categories`, `documents`, and `content`. Role metadata is centralized in
   `src/data/accessControl.js`, so the UI and future database values use the same role
   contract.
+- **Database migrations:** `supabase/jalankan-semua.sql` bundles every schema and
+  policy change made after `schema.sql`, `seed.sql`, and `policies.sql` into one
+  idempotent script. Run it once in the Supabase SQL Editor; it ends with a check
+  table that should read `OK` on every row. Account creation (`users.sql`,
+  `set-role.sql`) stays separate because it needs a password typed at run time.
 - **ABK analysis:** `src/components/KondisiPegawai.jsx` is mounted on the main
   dashboard and reads an uploaded `.xlsx`/`.xls` file through the `ABK` sheet.
   The parser is isolated in `src/lib/parseExcelABK.js`; it can also be used
