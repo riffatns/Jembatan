@@ -22,9 +22,9 @@ export function DashboardHeader({
           DASHBOARD {division?.shortName?.toUpperCase() || 'DIVISI'}
         </button>
         <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#233b84] sm:text-3xl">
-          Dashboard {division?.shortName || 'Divisi'}
+          {division?.name ? `Selamat datang di Subbag ${division.name}` : 'Selamat datang'}
         </h1>
-        <p className="mt-1 text-sm text-[#61739b]">Ringkasan layanan {division?.name || 'divisi'}</p>
+        <p className="mt-1 text-sm text-[#61739b]">Ringkasan layanan, dokumen, dan agenda bidang ini</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
