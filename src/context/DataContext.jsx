@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { DIVISIONS, HIDDEN_CATEGORIES, INITIAL_CONTENT, BUDGET_SUMMARY, DOCUMENT_STRUCTURE } from '../data/seed'
-import { buildUploadedDocument, loadStoredDocuments, saveStoredDocuments } from '../lib/documentStorage'
+import { buildUploadedDocument, loadStoredDocuments, newDocumentId, saveStoredDocuments } from '../lib/documentStorage'
 import {
   loadStoredAssets,
   mapRemoteAsset,
@@ -269,7 +269,16 @@ export function DataProvider({ children }) {
       setDocuments((prev) => [newDocument, ...prev])
       return newDocument
     }
-    const newDocument = await buildUploadedDocument({ id: `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`, uploadedAt: new Date().toISOString(), fileDataUrl: null, ...item, status: uploadStatus })
+    // id ditaruh sesudah spread, bukan sebelumnya. Modal unggah selalu
+    // mengirim properti id - undefined untuk dokumen baru - sehingga id yang
+    // dibuat di depan justru tertimpa dan dokumennya tersimpan tanpa id.
+    const newDocument = await buildUploadedDocument({
+      uploadedAt: new Date().toISOString(),
+      fileDataUrl: null,
+      ...item,
+      id: item.id || newDocumentId(),
+      status: uploadStatus
+    })
     setDocuments((prev) => [newDocument, ...prev])
     return newDocument
   }, [user])

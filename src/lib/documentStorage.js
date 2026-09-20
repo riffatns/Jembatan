@@ -47,6 +47,27 @@ const CATEGORY_MIGRATIONS = {
   'agenda-kalan': 'tata-usaha-kalan'
 }
 
+// crypto.randomUUID hanya tersedia di secure context. Mode lokal bisa saja
+// dibuka lewat http di alamat LAN, jadi selalu disediakan cadangan.
+export function newDocumentId() {
+  if (globalThis.crypto?.randomUUID) return `doc-${globalThis.crypto.randomUUID()}`
+  return `doc-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+}
+
+// Dokumen tanpa id pernah tersimpan karena id yang dibuat saat unggah
+// tertimpa properti id kosong dari modal. Dokumen seperti itu tidak bisa
+// disunting maupun dihapus - keduanya mencocokkan lewat id - dan membuat
+// React kehilangan key. Diperbaiki saat dimuat supaya data lama ikut pulih.
+function repairMissingIds(documents) {
+  let changed = false
+  const repaired = documents.map((document) => {
+    if (document.id) return document
+    changed = true
+    return { ...document, id: newDocumentId() }
+  })
+  return changed ? repaired : documents
+}
+
 function migrateDocumentCategories(documents) {
   let changed = false
   const migrated = documents.map((document) => {
@@ -64,7 +85,8 @@ export function loadStoredDocuments() {
 
   try {
     const parsed = JSON.parse(saved)
-    return Array.isArray(parsed) ? migrateDocumentCategories(parsed) : INITIAL_DOCUMENTS
+    if (!Array.isArray(parsed)) return INITIAL_DOCUMENTS
+    return migrateDocumentCategories(repairMissingIds(parsed))
   } catch {
     return INITIAL_DOCUMENTS
   }
