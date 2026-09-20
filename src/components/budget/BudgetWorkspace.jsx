@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { ArrowUpRight, Wallet } from 'lucide-react'
 import { SummaryTile } from '../layout/SectionHeader'
+import { getServiceContent } from '../../data/serviceContent'
 
 function formatRupiah(value) {
   return `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(value || 0))}`
@@ -49,8 +50,31 @@ function BudgetGauge({ title, subtitle, percentage, value, valueLabel, pagu, acc
 
 // Layanan anggaran tidak berhenti di daftar berkas: angkanya dibaca dari dokumen
 // anggaran dan ditampilkan sebagai konteks, dengan rincian per kode program.
-export function BudgetWorkspace({ categoryId, budget }) {
+export function BudgetWorkspace({ categoryId, categoryName, budget }) {
+  const budgetCode = getServiceContent(categoryId).budgetCode
   const isSisa = categoryId === 'sisa-anggaran'
+
+  // Layanan yang terikat satu kode akun hanya menampilkan angka kode itu;
+  // realisasi dan sisa anggaran memakai angka keseluruhan.
+  const codeRow = useMemo(
+    () => (budgetCode ? (budget?.breakdown || []).find((row) => String(row.code) === budgetCode) : null),
+    [budget, budgetCode]
+  )
+
+  const angka = budgetCode
+    ? {
+        pagu: codeRow?.pagu || 0,
+        realisasi: codeRow?.realisasi || 0,
+        sisa: codeRow?.sisa || 0
+      }
+    : {
+        pagu: budget?.totalPagu || 0,
+        realisasi: budget?.totalRealisasi || 0,
+        sisa: budget?.totalSisa || 0
+      }
+
+  const serapanPercent = angka.pagu ? (angka.realisasi / angka.pagu) * 100 : 0
+  const sisaPercent = angka.pagu ? (angka.sisa / angka.pagu) * 100 : 0
 
   const breakdown = useMemo(() => {
     const rows = budget?.breakdown || []
@@ -59,29 +83,44 @@ export function BudgetWorkspace({ categoryId, budget }) {
       .sort((a, b) => b.pagu - a.pagu)
   }, [budget])
 
-  const terserapPercent = budget?.totalPagu ? (budget.totalRealisasi / budget.totalPagu) * 100 : 0
-
   return (
     <div className="space-y-5">
+      {budgetCode && !codeRow && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Kode anggaran {budgetCode} tidak ditemukan pada dokumen anggaran yang tersimpan, sehingga angkanya belum bisa ditampilkan.
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryTile label="Pagu Anggaran" value={formatRupiah(budget?.totalPagu)} color="#2a78d6" hint={`Tahun ${budget?.fiscalYear || '-'}`} />
-        <SummaryTile label="Realisasi" value={formatRupiah(budget?.totalRealisasi)} color="#16a34a" />
-        <SummaryTile label="Sisa Anggaran" value={formatRupiah(budget?.totalSisa)} color="#f59e0b" />
-        <SummaryTile label="Penyerapan" value={`${Math.round(terserapPercent)}%`} color="#7c3aed" hint="Realisasi terhadap pagu" />
+        <SummaryTile
+          label="Pagu Anggaran"
+          value={formatRupiah(angka.pagu)}
+          color="#2a78d6"
+          hint={budgetCode ? `Kode ${budgetCode} - tahun ${budget?.fiscalYear || '-'}` : `Tahun ${budget?.fiscalYear || '-'}`}
+        />
+        <SummaryTile label="Realisasi" value={formatRupiah(angka.realisasi)} color="#16a34a" />
+        <SummaryTile label="Sisa Anggaran" value={formatRupiah(angka.sisa)} color="#f59e0b" />
+        <SummaryTile label="Penyerapan" value={`${Math.round(serapanPercent)}%`} color="#7c3aed" hint="Realisasi terhadap pagu" />
       </div>
 
       <BudgetGauge
-        title={isSisa ? 'Sisa Anggaran' : 'Realisasi Anggaran'}
-        subtitle={isSisa ? 'Pagu yang belum terserap' : 'Penyerapan terhadap pagu tahun berjalan'}
-        percentage={isSisa ? budget?.sisaPercent : budget?.realisasiPercent}
-        value={isSisa ? budget?.totalSisa : budget?.totalRealisasi}
-        valueLabel={isSisa ? 'Sisa Anggaran' : 'Realisasi'}
-        pagu={budget?.totalPagu}
-        accent={isSisa ? '#f59e0b' : '#16a34a'}
-        icon={isSisa ? Wallet : ArrowUpRight}
+        title={budgetCode ? categoryName || `Kode ${budgetCode}` : isSisa ? 'Sisa Anggaran' : 'Realisasi Anggaran'}
+        subtitle={
+          budgetCode
+            ? `Penyerapan kode akun ${budgetCode} terhadap pagunya`
+            : isSisa
+              ? 'Pagu yang belum terserap'
+              : 'Penyerapan terhadap pagu tahun berjalan'
+        }
+        percentage={isSisa && !budgetCode ? sisaPercent : serapanPercent}
+        value={isSisa && !budgetCode ? angka.sisa : angka.realisasi}
+        valueLabel={isSisa && !budgetCode ? 'Sisa Anggaran' : 'Realisasi'}
+        pagu={angka.pagu}
+        accent={isSisa && !budgetCode ? '#f59e0b' : '#16a34a'}
+        icon={isSisa && !budgetCode ? Wallet : ArrowUpRight}
       />
 
-      {breakdown.length > 0 && (
+      {!budgetCode && breakdown.length > 0 && (
         <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
           <div className="border-b border-slate-100 px-5 py-4">
             <h3 className="text-lg font-bold text-[#233b84]">Rincian per Kode Anggaran</h3>

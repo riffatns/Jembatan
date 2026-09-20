@@ -9,6 +9,9 @@
 //   anggaran - angka pagu/realisasi/sisa, dibaca dari dokumen pendukungnya
 //   dokumen  - tabel dokumen, tetap default untuk sebagian besar layanan
 //
+// `budgetCode` mengikat layanan ke satu kode akun belanja pada dokumen
+// anggaran. Tanpa kode, layanan anggaran menampilkan angka keseluruhan.
+//
 // `expects` bukan hiasan: itu yang muncul sebagai panduan di halaman layanan dan
 // pada keadaan kosong, supaya pengguna tahu berkas apa yang diharapkan alih-alih
 // melihat kalimat umum yang sama di mana-mana.
@@ -18,6 +21,7 @@
 
 const DEFAULT_CONTENT = {
   type: 'dokumen',
+  budgetCode: null,
   summary: 'Dokumen layanan bidang ini.',
   expects: [],
   uploadLabel: 'Upload Dokumen',
@@ -49,6 +53,8 @@ export const SERVICE_CONTENT = {
     emptyHint: 'Unggah dokumen pemantauan agar sisa anggaran terbaca di sini.'
   },
   'belanja-pegawai': {
+    type: 'anggaran',
+    budgetCode: '51',
     summary: 'Pembayaran gaji, tunjangan, dan hak keuangan pegawai.',
     expects: [
       'Daftar gaji dan tunjangan kinerja',
@@ -59,6 +65,8 @@ export const SERVICE_CONTENT = {
     emptyHint: 'Belum ada dokumen belanja pegawai untuk periode ini.'
   },
   'belanja-barang': {
+    type: 'anggaran',
+    budgetCode: '52',
     summary: 'Pengeluaran operasional dan belanja barang habis pakai.',
     expects: [
       'SPM dan SP2D belanja barang',
@@ -69,6 +77,8 @@ export const SERVICE_CONTENT = {
     emptyHint: 'Belum ada dokumen belanja barang untuk periode ini.'
   },
   'belanja-modal': {
+    type: 'anggaran',
+    budgetCode: '53',
     summary: 'Pengadaan aset tetap yang menambah nilai kekayaan negara.',
     expects: [
       'Kontrak dan berita acara serah terima pengadaan',

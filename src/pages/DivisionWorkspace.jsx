@@ -282,7 +282,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         <ServiceIntro categoryId={activeCategoryId} categoryName={activeCategory?.name || division.name} />
       )}
 
-      {isBudgetMode && <BudgetWorkspace categoryId={activeCategoryId} budget={budget} />}
+      {isBudgetMode && (
+        <BudgetWorkspace categoryId={activeCategoryId} categoryName={activeCategory?.name} budget={budget} />
+      )}
 
       <div id="dokumen-section" className="space-y-4">
         {isAgendaMode ? (
