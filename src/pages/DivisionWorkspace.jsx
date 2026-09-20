@@ -57,7 +57,7 @@ function parseDateInputValue(value) {
 
 export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const { divisionId: routeDivisionId } = useParams()
-  const { getDocumentDivision, getDocumentCategories, documents, addDocument, updateDocument, deleteDocument, stats } = useData()
+  const { getDocumentDivision, getDocumentCategories, documents, addDocument, updateDocument, deleteDocument, updateBudgetFromFile, stats } = useData()
   const { user, canUploadToDivision, canManageDocument, canAccessDivision } = useAuth()
   const navigate = useNavigate()
 
@@ -77,6 +77,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const [editingDocument, setEditingDocument] = useState(null)
   const [selectedDocument, setSelectedDocument] = useState(null)
   const [agendaCreateTick, setAgendaCreateTick] = useState(0)
+  const [budgetNotice, setBudgetNotice] = useState(null)
   const archiveStorageKey = `bpk-dashboard-archive-status-${divisionId}`
   const [archiveFilter, setArchiveFilter] = useState(() => sessionStorage.getItem(archiveStorageKey) || 'all')
   const selectedDateObject = useMemo(() => selectedDate ? parseDateInputValue(selectedDate) : new Date(), [selectedDate])
@@ -230,6 +231,26 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
       uploadedAt: new Date().toISOString(),
       status: 'pending'
     })
+
+    if (!isBudgetMode || !payload.file || !/.(xlsx|xlsm|xls)$/i.test(payload.file.name)) return
+
+    try {
+      const { shared, message } = await updateBudgetFromFile(payload.file)
+      setBudgetNotice({
+        tone: 'success',
+        text: shared
+          ? 'Angka anggaran diperbarui dari berkas ini dan tersimpan untuk semua pengguna.'
+          : message
+            ? `Angka anggaran diperbarui di perangkat ini, tetapi gagal disimpan ke server: ${message}`
+            : 'Angka anggaran diperbarui dari berkas ini.'
+      })
+    } catch (error) {
+      // Dokumennya tetap tersimpan; yang gagal hanya pembacaan angkanya.
+      setBudgetNotice({
+        tone: 'error',
+        text: `Dokumen tersimpan, tetapi angka anggaran tidak terbaca: ${error.message}`
+      })
+    }
   }
 
   if (!division || !canAccessDivision(divisionId)) {
@@ -280,6 +301,21 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
 
       {!isAgendaMode && (
         <ServiceIntro categoryId={activeCategoryId} categoryName={activeCategory?.name || division.name} />
+      )}
+
+      {budgetNotice && (
+        <div
+          className={`flex items-start justify-between gap-3 rounded-2xl border p-4 text-sm ${
+            budgetNotice.tone === 'error'
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+          }`}
+        >
+          <p className="min-w-0">{budgetNotice.text}</p>
+          <button type="button" onClick={() => setBudgetNotice(null)} className="shrink-0 cursor-pointer font-semibold underline">
+            Tutup
+          </button>
+        </div>
       )}
 
       {isBudgetMode && (

@@ -1,7 +1,14 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { DIVISIONS, INITIAL_CONTENT, BUDGET_SUMMARY, DOCUMENT_STRUCTURE } from '../data/seed'
 import { buildUploadedDocument, loadStoredDocuments, saveStoredDocuments } from '../lib/documentStorage'
-import { loadBudgetData } from '../lib/budgetStorage'
+import {
+  loadBudgetData,
+  loadStoredBudget,
+  mapRemoteBudget,
+  parseBudgetWorkbook,
+  saveStoredBudget,
+  toRemoteBudget
+} from '../lib/budgetStorage'
 import {
   canViewAgendaEvent,
   loadStoredAgenda,
@@ -65,7 +72,7 @@ export function DataProvider({ children }) {
   const { user } = useAuth()
   const [content, setContent] = useState(loadContent)
   const [documents, setDocuments] = useState(loadStoredDocuments)
-  const [budgetData, setBudgetData] = useState(BUDGET_SUMMARY)
+  const [budgetData, setBudgetData] = useState(() => loadStoredBudget() || BUDGET_SUMMARY)
   const [remoteDivisions, setRemoteDivisions] = useState(null)
   const [remoteCategories, setRemoteCategories] = useState(null)
   const [allAgendaEvents, setAgendaEvents] = useState(loadStoredAgenda)
@@ -73,7 +80,10 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     let active = true
-    loadBudgetData().then((budget) => { if (active) setBudgetData(budget) }).catch(() => {})
+    // Berkas bawaan hanya dipakai bila belum pernah ada anggaran yang diunggah.
+    if (!loadStoredBudget()) {
+      loadBudgetData().then((budget) => { if (active) setBudgetData(budget) }).catch(() => {})
+    }
     return () => { active = false }
   }, [])
 
@@ -120,15 +130,12 @@ export function DataProvider({ children }) {
       if (!documentResult.error) setDocuments((documentResult.data || []).map(mapRemoteDocument))
       if (!contentResult.error) setContent(contentResult.data || [])
       if (!budgetResult.error && budgetResult.data?.[0]) {
-        const snapshot = budgetResult.data[0]
+        const remote = mapRemoteBudget(budgetResult.data[0])
         setBudgetData((current) => ({
           ...current,
-          fiscalYear: snapshot.fiscal_year,
-          totalPagu: Number(snapshot.total_pagu),
-          totalRealisasi: Number(snapshot.total_realisasi),
-          totalSisa: Number(snapshot.total_sisa),
-          realisasiPercent: Number(snapshot.realisasi_percent),
-          sisaPercent: Number(snapshot.sisa_percent)
+          ...remote,
+          // Snapshot lama bisa belum punya kolom breakdown; jangan hapus yang ada.
+          breakdown: remote.breakdown.length ? remote.breakdown : current.breakdown
         }))
       }
     }
@@ -348,6 +355,23 @@ export function DataProvider({ children }) {
     setAgendaEvents((prev) => prev.filter((item) => item.id !== id))
   }, [user, isAgendaRemote])
 
+  const updateBudgetFromFile = useCallback(async (file) => {
+    const budget = await parseBudgetWorkbook(file)
+    setBudgetData(budget)
+    saveStoredBudget(budget)
+
+    if (isSupabaseConfigured && user?.id) {
+      // Gagal menyimpan ke server tidak membatalkan pembaruan di layar; angka
+      // barunya tetap dipakai, hanya belum tersebar ke pengguna lain.
+      const { error } = await supabase
+        .from('budget_snapshots')
+        .upsert(toRemoteBudget(budget), { onConflict: 'fiscal_year' })
+      if (error) return { budget, shared: false, message: error.message }
+    }
+
+    return { budget, shared: isSupabaseConfigured }
+  }, [user])
+
   const getDivision = useCallback((id) => activeDivisions.find((division) => division.id === id), [activeDivisions])
 
   const stats = useMemo(() => {
@@ -376,7 +400,7 @@ export function DataProvider({ children }) {
     return { total, pending, approved, rejected, perDivision, statusDistribution: [{ name: 'Approved', value: approved, color: '#00A99D' }, { name: 'Pending', value: pending, color: '#F5A623' }, { name: 'Rejected', value: rejected, color: '#E15554' }], totalDivisions: activeDivisions.length, budget, documentTotal: total, documentPending: pending, documentApproved: approved, documentRejected: rejected, documentsByDivision, documentsByCategory, latestDocuments, recentActivity }
   }, [activeDivisions, activeDocumentStructure, budgetData, content, documents])
 
-  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
+  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 
