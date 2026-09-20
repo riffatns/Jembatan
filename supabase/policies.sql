@@ -90,7 +90,13 @@ create policy "Authenticated users can read document files"
 
 create policy "Users can upload document files"
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'documents' and (storage.foldername(name))[1] = public.current_profile_division());
+  with check (
+    bucket_id = 'documents'
+    and (
+      public.current_profile_role() = 'admin'
+      or (storage.foldername(name))[1] = public.current_profile_division()
+    )
+  );
 
 create policy "Owners and admins can update document files"
   on storage.objects for update to authenticated
