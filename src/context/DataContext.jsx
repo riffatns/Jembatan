@@ -2,6 +2,13 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo } 
 import { DIVISIONS, INITIAL_CONTENT, BUDGET_SUMMARY, DOCUMENT_STRUCTURE } from '../data/seed'
 import { buildUploadedDocument, loadStoredDocuments, saveStoredDocuments } from '../lib/documentStorage'
 import {
+  loadStoredAssets,
+  mapRemoteAsset,
+  parseAssetWorkbook,
+  saveStoredAssets,
+  toRemoteAsset
+} from '../lib/assetWorkbook'
+import {
   loadBudgetData,
   loadStoredBudget,
   mapRemoteBudget,
@@ -77,6 +84,8 @@ export function DataProvider({ children }) {
   const [remoteCategories, setRemoteCategories] = useState(null)
   const [allAgendaEvents, setAgendaEvents] = useState(loadStoredAgenda)
   const [isAgendaRemote, setIsAgendaRemote] = useState(false)
+  const [assets, setAssets] = useState(loadStoredAssets)
+  const [isAssetRemote, setIsAssetRemote] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -91,13 +100,14 @@ export function DataProvider({ children }) {
     if (!isSupabaseConfigured || !user) return undefined
     let active = true
     const loadRemoteData = async () => {
-      const [divisionResult, categoryResult, documentResult, contentResult, budgetResult, agendaResult] = await Promise.all([
+      const [divisionResult, categoryResult, documentResult, contentResult, budgetResult, agendaResult, assetResult] = await Promise.all([
         supabase.from('divisions').select('*').order('name'),
         supabase.from('document_categories').select('*').order('name'),
         supabase.from('documents').select('*').order('created_at', { ascending: false }),
         supabase.from('content').select('*').order('created_at', { ascending: false }),
         supabase.from('budget_snapshots').select('*').order('fiscal_year', { ascending: false }).limit(1),
-        supabase.from('agenda_events').select('*').order('event_date', { ascending: true })
+        supabase.from('agenda_events').select('*').order('event_date', { ascending: true }),
+        supabase.from('assets').select('*').order('nama_barang')
       ])
       if (!active) return
       if (!divisionResult.error && divisionResult.data?.length) setRemoteDivisions(divisionResult.data.map((division) => ({ ...division, shortName: division.short_name })))
@@ -119,6 +129,13 @@ export function DataProvider({ children }) {
             categories: sortCategories(division.divisionId, division.categories)
           }))
         )
+      }
+      // Tabel assets opsional, sama seperti agenda_events.
+      if (assetResult.error) {
+        setIsAssetRemote(false)
+      } else {
+        setIsAssetRemote(true)
+        setAssets((assetResult.data || []).map(mapRemoteAsset))
       }
       // Tabel agenda_events opsional: kalau supabase/agenda.sql belum dijalankan, tetap pakai localStorage.
       if (agendaResult.error) {
@@ -167,6 +184,7 @@ export function DataProvider({ children }) {
   useEffect(() => { localStorage.setItem(CONTENT_KEY, JSON.stringify(content)) }, [content])
   useEffect(() => { saveStoredDocuments(documents) }, [documents])
   useEffect(() => { saveStoredAgenda(allAgendaEvents) }, [allAgendaEvents])
+  useEffect(() => { saveStoredAssets(assets) }, [assets])
 
   // Disaring sekali di sini supaya tidak ada halaman yang lupa menerapkan
   // aturan visibility. Yang keluar dari context sudah aman ditampilkan.
@@ -355,6 +373,26 @@ export function DataProvider({ children }) {
     setAgendaEvents((prev) => prev.filter((item) => item.id !== id))
   }, [user, isAgendaRemote])
 
+  // Unggahan berkas aset menggantikan seluruh daftar BMN: berkas SIMAK selalu
+  // berisi kondisi terkini, jadi menggabungkannya dengan data lama justru
+  // menyisakan aset yang sudah dihapus dari catatan.
+  const updateAssetsFromFile = useCallback(async (file, divisionId = 'it') => {
+    const { assets: parsed, sheetName } = await parseAssetWorkbook(file)
+    const withDivision = parsed.map((asset) => ({ ...asset, divisionId }))
+    setAssets(withDivision)
+    saveStoredAssets(withDivision)
+
+    if (isSupabaseConfigured && isAssetRemote && user?.id) {
+      const { error: deleteError } = await supabase.from('assets').delete().eq('division_id', divisionId)
+      if (deleteError) return { assets: withDivision, sheetName, shared: false, message: deleteError.message }
+
+      const { error } = await supabase.from('assets').insert(withDivision.map((a) => toRemoteAsset(a, divisionId)))
+      if (error) return { assets: withDivision, sheetName, shared: false, message: error.message }
+    }
+
+    return { assets: withDivision, sheetName, shared: isSupabaseConfigured && isAssetRemote }
+  }, [user, isAssetRemote])
+
   const updateBudgetFromFile = useCallback(async (file) => {
     const budget = await parseBudgetWorkbook(file)
     setBudgetData(budget)
@@ -400,7 +438,7 @@ export function DataProvider({ children }) {
     return { total, pending, approved, rejected, perDivision, statusDistribution: [{ name: 'Approved', value: approved, color: '#00A99D' }, { name: 'Pending', value: pending, color: '#F5A623' }, { name: 'Rejected', value: rejected, color: '#E15554' }], totalDivisions: activeDivisions.length, budget, documentTotal: total, documentPending: pending, documentApproved: approved, documentRejected: rejected, documentsByDivision, documentsByCategory, latestDocuments, recentActivity }
   }, [activeDivisions, activeDocumentStructure, budgetData, content, documents])
 
-  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
+  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, assets, isAssetRemote, updateAssetsFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 

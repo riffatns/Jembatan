@@ -35,6 +35,7 @@ import { AgendaWorkspace } from '../components/agenda/AgendaWorkspace'
 import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
 import { ServiceIntro } from '../components/ServiceIntro'
 import { BudgetWorkspace } from '../components/budget/BudgetWorkspace'
+import { AssetWorkspace } from '../components/asset/AssetWorkspace'
 import { getServiceContent } from '../data/serviceContent'
 import { ServiceCard } from '../components/ServiceCard'
 import {
@@ -57,7 +58,7 @@ function parseDateInputValue(value) {
 
 export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const { divisionId: routeDivisionId } = useParams()
-  const { getDocumentDivision, getDocumentCategories, documents, addDocument, updateDocument, deleteDocument, updateBudgetFromFile, stats } = useData()
+  const { getDocumentDivision, getDocumentCategories, documents, addDocument, updateDocument, deleteDocument, updateBudgetFromFile, updateAssetsFromFile, stats } = useData()
   const { user, canUploadToDivision, canManageDocument, canAccessDivision } = useAuth()
   const navigate = useNavigate()
 
@@ -137,6 +138,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const serviceContent = getServiceContent(activeCategoryId)
   const isAgendaMode = serviceContent.type === 'agenda'
   const isBudgetMode = serviceContent.type === 'anggaran'
+  const isAssetMode = serviceContent.type === 'aset'
   const isArchiveMode = isArchiveCategory(activeCategoryId)
 
   // Arsip lama boleh tidak punya status; perlakukan sebagai aktif supaya tidak
@@ -232,7 +234,30 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
       status: 'pending'
     })
 
-    if (!isBudgetMode || !payload.file || !/.(xlsx|xlsm|xls)$/i.test(payload.file.name)) return
+    const spreadsheet = payload.file && /\.(xlsx|xlsm|xls)$/i.test(payload.file.name)
+
+    if (isAssetMode && spreadsheet) {
+      try {
+        const { assets: parsed, shared, message } = await updateAssetsFromFile(payload.file, divisionId)
+        setBudgetNotice({
+          tone: 'success',
+          text: shared
+            ? `${parsed.length} aset terbaca dari berkas ini dan tersimpan untuk semua pengguna.`
+            : message
+              ? `${parsed.length} aset terbaca, tetapi gagal disimpan ke server: ${message}`
+              : `${parsed.length} aset terbaca dari berkas ini.`
+        })
+      } catch (error) {
+        // Dokumennya tetap tersimpan; yang gagal hanya pembacaan datanya.
+        setBudgetNotice({
+          tone: 'error',
+          text: `Dokumen tersimpan, tetapi data aset tidak terbaca: ${error.message}`
+        })
+      }
+      return
+    }
+
+    if (!isBudgetMode || !spreadsheet) return
 
     try {
       const { shared, message } = await updateBudgetFromFile(payload.file)
@@ -321,6 +346,8 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
       {isBudgetMode && (
         <BudgetWorkspace categoryId={activeCategoryId} categoryName={activeCategory?.name} budget={budget} />
       )}
+
+      {isAssetMode && <AssetWorkspace divisionId={divisionId} />}
 
       {isArchiveMode && (
         <section className="space-y-3">

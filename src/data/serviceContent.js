@@ -7,6 +7,7 @@
 // `type` menentukan modul yang dirender:
 //   agenda   - kalender kegiatan (bukan dokumen sama sekali)
 //   anggaran - angka pagu/realisasi/sisa, dibaca dari dokumen pendukungnya
+//   aset     - portal BMN: ringkasan, analitik, dan tabel aset dari berkas
 //   dokumen  - tabel dokumen, tetap default untuk sebagian besar layanan
 //
 // `budgetCode` mengikat layanan ke satu kode akun belanja pada dokumen
@@ -248,6 +249,7 @@ export const SERVICE_CONTENT = {
 
   // ------------------------------------------------------ Umum dan TI
   aset: {
+    type: 'aset',
     summary: 'Barang Milik Negara yang dikuasai perwakilan.',
     expects: [
       'Daftar inventaris dan kartu identitas barang',
@@ -255,7 +257,7 @@ export const SERVICE_CONTENT = {
       'Berita acara pemeliharaan dan penghapusan aset'
     ],
     uploadLabel: 'Upload Data Aset',
-    emptyHint: 'Belum ada data aset yang tercatat.'
+    emptyHint: 'Unggah berkas daftar aset agar data BMN terbaca di sini.'
   },
   arsip: {
     summary: 'Arsip dinamis perwakilan menurut siklus retensinya.',
