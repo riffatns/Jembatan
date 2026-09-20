@@ -49,7 +49,7 @@ export async function readWorkbookGrid(source) {
   if (!source) throw new Error('Berkas Excel belum tersedia.')
 
   const XLSX = await import('xlsx')
-  const workbook = XLSX.read(await toArrayBuffer(source), { type: 'array', cellDates: true })
+  const workbook = XLSX.read(await toArrayBuffer(source), { type: 'array', cellDates: true, cellStyles: true })
 
   const sheets = workbook.SheetNames.map((name, sheetIndex) => {
     const sheet = workbook.Sheets[name]
@@ -87,6 +87,18 @@ export async function readWorkbookGrid(source) {
     let akhir = rows.length
     while (akhir > 0 && rows[akhir - 1].every((cell) => cell === '')) akhir -= 1
 
+    // Lebar kolom dari berkas dipakai apa adanya. Tanpa ini browser membagi
+    // lebar sendiri, sehingga kolom sempit memaksa teks membungkus dan
+    // tabelnya terlihat jauh berbeda dari tampilan di Excel.
+    const sheetCols = sheet['!cols'] || []
+    const columns = Array.from({ length: columnCount }, (_, index) => {
+      const meta = sheetCols[index]
+      return {
+        widthPx: meta?.hidden ? 0 : Math.round(meta?.wpx || 0) || null,
+        hidden: Boolean(meta?.hidden)
+      }
+    })
+
     const { anchors, covered } = buildSpanMap(sheet['!merges'])
     const isiTerpakai = rows.slice(0, akhir).reduce(
       (total, row) => total + row.filter((cell) => cell !== '').length,
@@ -96,6 +108,7 @@ export async function readWorkbookGrid(source) {
     return {
       name,
       isiTerpakai,
+      columns,
       rows: rows.slice(0, akhir),
       columnCount,
       spanAt: (row, column) => anchors.get(`${row}:${column}`) || null,

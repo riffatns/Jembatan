@@ -11,7 +11,18 @@ function SheetGrid({ sheet }) {
 
   return (
     <div className="max-h-[70vh] overflow-auto">
-      <table className="min-w-full border-collapse whitespace-nowrap text-left text-sm">
+      <table className="w-max table-fixed border-collapse text-left text-sm">
+        <colgroup>
+          {columns.map((columnIndex) => {
+            const meta = sheet.columns?.[columnIndex]
+            return (
+              <col
+                key={columnIndex}
+                style={meta?.widthPx ? { width: `${meta.widthPx}px` } : { width: '140px' }}
+              />
+            )
+          })}
+        </colgroup>
         <tbody>
           {sheet.rows.map((row, rowIndex) => (
             <tr key={rowIndex} className={cn('border-b border-slate-100 last:border-0', rowIndex % 2 ? 'bg-white' : 'bg-[#fbfdff]')}>
@@ -26,7 +37,7 @@ function SheetGrid({ sheet }) {
                     rowSpan={span?.rowSpan}
                     colSpan={span?.colSpan}
                     className={cn(
-                      'whitespace-pre-line border border-slate-100 px-3 py-2 align-top text-slate-700',
+                      'overflow-hidden whitespace-pre-line break-words border border-slate-100 px-3 py-2 align-top text-slate-700',
                       rowIndex === 0 && 'bg-[#eff5ff] font-bold text-[#233b84]',
                       columnIndex === 0 && 'sticky left-0 z-10 bg-inherit',
                       columnIndex === 0 && rowIndex !== 0 && (rowIndex % 2 ? 'bg-white' : 'bg-[#fbfdff]')
