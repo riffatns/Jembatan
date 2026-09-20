@@ -6,7 +6,10 @@ import { Topbar } from './Topbar'
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
-  const isDivisionShellRoute = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard/division/') || location.pathname === '/dashboard/kalender' || location.pathname === '/profile'
+  const isDivisionShellRoute = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard/division/') || location.pathname.startsWith('/dashboard/kalender') ||
+    location.pathname.startsWith('/dashboard/monitoring') ||
+    location.pathname.startsWith('/dashboard/laporan') ||
+    location.pathname === '/profile'
 
   if (isDivisionShellRoute) {
     return (

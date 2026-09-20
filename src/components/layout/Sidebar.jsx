@@ -95,12 +95,41 @@ function DivisionItemIcon({ divisionId, categoryId, className }) {
   return <Icon className={className} />
 }
 
+const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/monitoring', '/dashboard/laporan']
+
+function SidebarNavButton({ icon: Icon, label, count, isActive, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex w-full cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all active:scale-[0.99]',
+        isActive
+          ? 'bg-white text-[#0b2d5a] shadow-[0_10px_24px_rgba(255,255,255,0.12)]'
+          : 'text-white/88 hover:bg-white/8 hover:text-white'
+      )}
+    >
+      <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', isActive ? 'bg-[#1f63d3] text-white' : 'bg-white/10 text-sky-100')}>
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <span className="flex-1 text-sm font-medium leading-tight">{label}</span>
+      {count !== undefined && (
+        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', isActive ? 'bg-[#1f63d3] text-white' : 'bg-white/10 text-sky-100')}>
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
 function DivisionSidebar({ divisionId, onCloseMobile }) {
   const { user } = useAuth()
   const { getDocumentDivision, getDocumentCategories, stats, documents, agendaEvents } = useData()
   const navigate = useNavigate()
   const location = useLocation()
   const isDashboardRoute = location.pathname === '/dashboard'
+  const currentPath = location.pathname
+  const isSectionRoute = SECTION_ROUTES.includes(currentPath)
 
   const division = getDocumentDivision(divisionId)
   const categories = getDocumentCategories(divisionId)
@@ -187,27 +216,16 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
         <div className="mt-3 space-y-1.5">
           {categories.map((category) => {
             const ActiveIcon = DIVISION_ICON_MAP[divisionId]?.[category.id] || FileText
-            const isActive = !isDashboardRoute && activeCategoryId === category.id
+            const isActive = !isDashboardRoute && !isSectionRoute && activeCategoryId === category.id
             return (
-              <button
+              <SidebarNavButton
                 key={category.id}
-                type="button"
+                icon={ActiveIcon}
+                label={category.name}
+                count={categoryCounts[category.id] || 0}
+                isActive={isActive}
                 onClick={() => selectCategory(category.id)}
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all',
-                  isActive
-                    ? 'bg-white text-[#0b2d5a] shadow-[0_10px_24px_rgba(255,255,255,0.12)]'
-                    : 'text-white/88 hover:bg-white/8 hover:text-white'
-                )}
-              >
-                <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', isActive ? 'bg-[#1f63d3] text-white' : 'bg-white/10 text-sky-100')}>
-                  <ActiveIcon className="h-4.5 w-4.5" />
-                </div>
-                <span className="flex-1 text-sm font-medium leading-tight">{category.name}</span>
-                <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', isActive ? 'bg-[#1f63d3] text-white' : 'bg-white/10 text-sky-100')}>
-                  {categoryCounts[category.id] || 0}
-                </span>
-              </button>
+              />
             )
           })}
         </div>
@@ -216,28 +234,20 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Monitoring</p>
           <div className="mt-3 space-y-1.5">
             {[
-              { label: 'Kalender Bersama', icon: CalendarDays, action: () => navigate('/dashboard/kalender') },
-              {
-                label: 'Monitoring Layanan',
-                icon: LineChart,
-                action: () => {
-                  sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
-                  navigate(`/dashboard/division/${divisionId}`)
-                }
-              },
-              { label: 'Laporan', icon: ClipboardList, action: () => navigate('/approvals') }
+              { label: 'Kalender Bersama', icon: CalendarDays, path: '/dashboard/kalender' },
+              { label: 'Monitoring Layanan', icon: LineChart, path: '/dashboard/monitoring' },
+              { label: 'Laporan', icon: ClipboardList, path: '/dashboard/laporan' }
             ].map((item) => (
-              <button
+              <SidebarNavButton
                 key={item.label}
-                type="button"
-                onClick={item.action}
-                className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-white/80 transition-all hover:bg-white/8 hover:text-white"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sky-100">
-                  <item.icon className="h-4.5 w-4.5" />
-                </div>
-                <span className="flex-1 text-sm font-medium leading-tight">{item.label}</span>
-              </button>
+                icon={item.icon}
+                label={item.label}
+                isActive={currentPath === item.path}
+                onClick={() => {
+                  sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
+                  navigate(item.path)
+                }}
+              />
             ))}
           </div>
         </div>
@@ -245,36 +255,22 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
         <div className="mt-5 border-t border-white/10 pt-4">
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Dokumen</p>
           <div className="mt-3 space-y-1.5">
-            {[
-              {
-                label: 'Dokumen',
-                icon: FileText,
-                action: () => {
-                  sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
-                  navigate(`/dashboard/division/${divisionId}`)
-                }
-              },
-              {
-                label: 'Arsip Digital',
-                icon: FolderArchive,
-                action: () => {
-                  sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
-                  navigate(`/dashboard/division/${divisionId}`)
-                }
-              }
-            ].map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={item.action}
-                className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-white/80 transition-all hover:bg-white/8 hover:text-white"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sky-100">
-                  <item.icon className="h-4.5 w-4.5" />
-                </div>
-                <span className="flex-1 text-sm font-medium leading-tight">{item.label}</span>
-              </button>
-            ))}
+            <SidebarNavButton
+              icon={FileText}
+              label="Semua Dokumen"
+              count={Object.values(categoryCounts).reduce((total, count) => total + count, 0)}
+              isActive={!isDashboardRoute && !isSectionRoute && activeCategoryId === 'all'}
+              onClick={() => selectCategory('all')}
+            />
+            {categories.some((category) => category.id === 'arsip') && (
+              <SidebarNavButton
+                icon={FolderArchive}
+                label="Arsip Digital"
+                count={categoryCounts.arsip || 0}
+                isActive={!isDashboardRoute && !isSectionRoute && activeCategoryId === 'arsip'}
+                onClick={() => selectCategory('arsip')}
+              />
+            )}
           </div>
         </div>
 
@@ -447,10 +443,10 @@ export function Sidebar({ mobileOpen, onCloseMobile }) {
   const divisionMatch = matchPath('/dashboard/division/:divisionId/*', location.pathname) || matchPath('/division/:divisionId/*', location.pathname)
   const isDashboardRoute = location.pathname === '/dashboard'
   const isProfileRoute = location.pathname === '/profile'
-  const isSharedCalendarRoute = location.pathname === '/dashboard/kalender'
+  const isSectionRoute = SECTION_ROUTES.includes(location.pathname)
   const selectedDivisionId = sessionStorage.getItem('bpk-dashboard-selected-division') || user?.division || 'finance'
 
-  if (divisionMatch || isDashboardRoute || isProfileRoute || isSharedCalendarRoute) {
+  if (divisionMatch || isDashboardRoute || isProfileRoute || isSectionRoute) {
     const activeDivisionId = divisionMatch?.params?.divisionId || selectedDivisionId
     if (!activeDivisionId) {
       return <LegacySidebar mobileOpen={mobileOpen} onCloseMobile={onCloseMobile} />
