@@ -32,6 +32,7 @@ function mapRemoteDocument(document) {
     fileName: document.file_name,
     fileType: document.file_type,
     fileSize: document.file_size,
+    filePath: document.file_path || null,
     documentNumber: document.document_number,
     documentDate: document.document_date,
     archiveStatus: document.archive_status || null,
@@ -76,8 +77,13 @@ export function DataProvider({ children }) {
       if (!active) return
       if (!divisionResult.error && divisionResult.data?.length) setRemoteDivisions(divisionResult.data.map((division) => ({ ...division, shortName: division.short_name })))
       if (!categoryResult.error && categoryResult.data?.length) {
+        const divisionNames = Object.fromEntries((divisionResult.data || []).map((division) => [division.id, division.name]))
         const grouped = categoryResult.data.reduce((result, category) => {
-          const division = result[category.division_id] || { divisionId: category.division_id, title: category.division_id, categories: [] }
+          const division = result[category.division_id] || {
+            divisionId: category.division_id,
+            title: divisionNames[category.division_id] || category.division_id,
+            categories: []
+          }
           division.categories.push({ id: category.id, name: category.name, description: category.description })
           result[category.division_id] = division
           return result

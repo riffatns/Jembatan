@@ -29,7 +29,7 @@ import { DocumentFilters } from '../components/documents/DocumentFilters'
 import { DocumentTable } from '../components/documents/DocumentTable'
 import { DocumentUploadModal } from '../components/documents/DocumentUploadModal'
 import { DocumentDetail } from '../components/documents/DocumentDetail'
-import { createDownloadUrl } from '../lib/documentStorage'
+import { hasDocumentFile, resolveDocumentFileUrl } from '../lib/documentStorage'
 import { DashboardHeader } from '../components/layout/DashboardHeader'
 import { AgendaWorkspace } from '../components/agenda/AgendaWorkspace'
 import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
@@ -195,9 +195,20 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
     deleteDocument(document.id)
   }
 
-  const handleDownload = (doc) => {
+  const handleDownload = async (doc) => {
+    if (!hasDocumentFile(doc)) {
+      window.alert('Dokumen ini belum memiliki berkas untuk diunduh.')
+      return
+    }
+
+    const url = await resolveDocumentFileUrl(doc)
+    if (!url) {
+      window.alert('Berkas gagal diambil dari penyimpanan. Coba muat ulang halaman.')
+      return
+    }
+
     const link = globalThis.document.createElement('a')
-    link.href = createDownloadUrl(doc)
+    link.href = url
     link.download = doc.fileName || doc.title
     link.click()
   }

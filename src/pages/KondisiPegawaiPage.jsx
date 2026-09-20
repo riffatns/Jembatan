@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { ArrowLeft, Download, ExternalLink, FileSpreadsheet } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../context/DataContext'
@@ -5,7 +6,7 @@ import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { StatusBadge } from '../components/documents/StatusBadge'
 import ExcelWorkbookViewer from '../components/ExcelWorkbookViewer'
-import { createDownloadUrl } from '../lib/documentStorage'
+import { hasDocumentFile, resolveDocumentFileUrl } from '../lib/documentStorage'
 
 export default function KondisiPegawaiPage() {
   const { divisionId, documentId } = useParams()
@@ -15,7 +16,17 @@ export default function KondisiPegawaiPage() {
   const document = documents.find((item) => item.id === documentId) || location.state?.document
   const documentDivisionId = document?.divisionId || divisionId
   const division = getDocumentDivision(documentDivisionId)
-  const fileUrl = document?.fileDataUrl ? createDownloadUrl(document) : ''
+  const [fileUrl, setFileUrl] = useState('')
+
+  useEffect(() => {
+    if (!hasDocumentFile(document)) {
+      setFileUrl('')
+      return undefined
+    }
+    let cancelled = false
+    resolveDocumentFileUrl(document).then((url) => { if (!cancelled) setFileUrl(url || '') })
+    return () => { cancelled = true }
+  }, [document])
 
   const downloadFile = () => {
     if (!fileUrl) return
@@ -62,8 +73,8 @@ export default function KondisiPegawaiPage() {
         </div>
       </div>
 
-      {document.fileDataUrl ? (
-        <ExcelWorkbookViewer source={document.fileDataUrl} />
+      {fileUrl ? (
+        <ExcelWorkbookViewer source={fileUrl} />
       ) : (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
           File Excel belum memiliki data file yang dapat dibaca. Silakan upload ulang dokumen Bezetting.

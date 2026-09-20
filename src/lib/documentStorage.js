@@ -1,4 +1,5 @@
 import { INITIAL_DOCUMENTS } from '../data/seed'
+import { isSupabaseConfigured, supabase } from './supabaseClient'
 
 const DOCUMENTS_KEY = 'bpk-dashboard-documents'
 
@@ -84,9 +85,30 @@ export async function buildUploadedDocument({ file, ...metadata }) {
   }
 }
 
-export function createDownloadUrl(document) {
-  if (document.fileDataUrl) return document.fileDataUrl
+export function hasDocumentFile(document) {
+  return Boolean(document?.fileDataUrl || document?.filePath)
+}
 
+// Satu-satunya cara benar mendapatkan berkas sebuah dokumen.
+// Mode lokal menyimpannya sebagai data URL; mode Supabase menyimpannya di
+// Storage bucket privat, sehingga perlu signed URL berumur pendek.
+export async function resolveDocumentFileUrl(document) {
+  if (!document) return null
+  if (document.fileDataUrl) return document.fileDataUrl
+  if (!document.filePath || !isSupabaseConfigured || !supabase) return null
+
+  const { data, error } = await supabase.storage
+    .from('documents')
+    .createSignedUrl(document.filePath, 3600)
+
+  if (error) return null
+  return data?.signedUrl || null
+}
+
+// Dipakai hanya bila dokumen memang tidak punya berkas. Dulu fungsi ini juga
+// menangani dokumen Supabase, sehingga yang terunduh adalah teks ini dengan
+// nama .xlsx - dan Excel melaporkannya rusak.
+export function createPlaceholderUrl(document) {
   const fallback = [
     `Dokumen: ${document.title}`,
     `Nomor: ${document.documentNumber || '-'}`,
