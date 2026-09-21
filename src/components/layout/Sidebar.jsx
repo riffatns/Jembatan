@@ -242,7 +242,6 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           <div className="mt-3 space-y-1.5">
             {[
               { label: 'Kalender Bersama', icon: CalendarDays, path: '/dashboard/kalender' },
-              { label: 'Panduan Sistem', icon: BookOpen, path: '/dashboard/panduan' },
               { label: 'Monitoring Layanan', icon: LineChart, path: '/dashboard/monitoring', adminSaja: true },
               { label: 'Laporan', icon: ClipboardList, path: '/dashboard/laporan', adminSaja: true }
             ]
@@ -289,6 +288,21 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
             </div>
           </div>
         )}
+
+        <div className="mt-5 border-t border-white/10 pt-4">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Bantuan</p>
+          <div className="mt-3 space-y-1.5">
+            <SidebarNavButton
+              icon={BookOpen}
+              label="Panduan Sistem"
+              isActive={currentPath === '/dashboard/panduan'}
+              onClick={() => {
+                sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
+                navigate('/dashboard/panduan')
+              }}
+            />
+          </div>
+        </div>
 
         <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/65">Integrasi Aplikasi</p>
