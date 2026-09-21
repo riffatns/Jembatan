@@ -95,7 +95,7 @@ function DivisionItemIcon({ divisionId, categoryId, className }) {
   return <Icon className={className} />
 }
 
-const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/monitoring', '/dashboard/laporan']
+const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
 
 function SidebarNavButton({ icon: Icon, label, count, isActive, onClick }) {
   return (
@@ -242,6 +242,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           <div className="mt-3 space-y-1.5">
             {[
               { label: 'Kalender Bersama', icon: CalendarDays, path: '/dashboard/kalender' },
+              { label: 'Panduan Sistem', icon: BookOpen, path: '/dashboard/panduan' },
               { label: 'Monitoring Layanan', icon: LineChart, path: '/dashboard/monitoring', adminSaja: true },
               { label: 'Laporan', icon: ClipboardList, path: '/dashboard/laporan', adminSaja: true }
             ]

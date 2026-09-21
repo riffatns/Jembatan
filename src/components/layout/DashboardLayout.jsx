@@ -9,6 +9,7 @@ export function DashboardLayout() {
   const isDivisionShellRoute = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard/division/') || location.pathname.startsWith('/dashboard/kalender') ||
     location.pathname.startsWith('/dashboard/monitoring') ||
     location.pathname.startsWith('/dashboard/laporan') ||
+    location.pathname.startsWith('/dashboard/panduan') ||
     location.pathname === '/profile'
 
   if (isDivisionShellRoute) {

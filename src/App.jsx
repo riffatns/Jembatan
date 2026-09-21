@@ -13,6 +13,7 @@ const KondisiPegawaiPage = lazy(() => import('./pages/KondisiPegawaiPage'))
 const SharedCalendar = lazy(() => import('./pages/SharedCalendar'))
 const ServiceMonitoring = lazy(() => import('./pages/ServiceMonitoring'))
 const Reports = lazy(() => import('./pages/Reports'))
+const SystemGuide = lazy(() => import('./pages/SystemGuide'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function LegacyDivisionRedirect() {
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/dashboard/kalender" element={<SharedCalendar />} />
           <Route path="/dashboard/monitoring" element={<ServiceMonitoring />} />
           <Route path="/dashboard/laporan" element={<Reports />} />
+          <Route path="/dashboard/panduan" element={<SystemGuide />} />
           <Route path="/profile" element={<Profile />} />
           <Route
             path="/approvals"
