@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation, matchPath, useNavigate } from 'react-router-dom'
 import {
+  ArrowLeft,
   LayoutDashboard,
   ShieldCheck,
   ChevronDown,
@@ -97,6 +98,45 @@ function DivisionItemIcon({ divisionId, categoryId, className }) {
 
 const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
 
+// Blok merek di kiri atas sekaligus jalan kembali ke pemilihan bidang.
+//
+// Sebelumnya logonya memang sudah bisa diklik, tetapi tanpa penanda apa pun:
+// kursornya tidak berubah, tidak ada label, dan satu-satunya petunjuk adalah
+// aria-label berbahasa Inggris yang hanya terbaca oleh pembaca layar. Orang
+// yang baru memakai portal ini tidak punya cara untuk tahu.
+//
+// Sekarang tujuannya ditulis apa adanya - "Pilih bidang lain" - lengkap dengan
+// panah, kursor tangan, latar yang berubah saat disentuh, dan cincin fokus
+// untuk papan ketik. Petunjuknya selalu terlihat, bukan muncul saat hover,
+// karena pada layar sentuh hover tidak pernah terjadi.
+//
+// Keterangan panjang "Jendela Manajemen dan Kolaborasi Kesekretariatan"
+// digantikan label itu. Di sini ia melipat jadi dua baris dan tidak memberi
+// tahu apa pun yang bisa dikerjakan; namanya sudah muncul di halaman masuk dan
+// halaman pemilihan bidang.
+function BrandBackButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Kembali ke pilihan bidang"
+      aria-label="Kembali ke pilihan bidang"
+      className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/60"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15 transition-colors group-hover:bg-white/15">
+        <img src="/favicon-jembatan.png" alt="" className="h-8 w-8 object-contain" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold leading-tight text-white">JEMBATAN</span>
+        <span className="mt-1 flex items-center gap-1.5 text-[11px] font-medium leading-tight text-sky-200/85 transition-colors group-hover:text-white">
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5" />
+          Pilih bidang lain
+        </span>
+      </span>
+    </button>
+  )
+}
+
 function SidebarNavButton({ icon: Icon, label, count, isActive, onClick }) {
   return (
     <button
@@ -189,22 +229,13 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
 
   return (
     <aside className="flex w-full flex-col bg-[#0b2d5a] text-white shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:sticky lg:top-0 lg:h-screen lg:w-[290px]">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-5">
+      <div className="flex items-center gap-2 border-b border-white/10 px-3 py-4">
+        <BrandBackButton onClick={() => navigate('/transition')} />
         <button
-          type="button"
-          onClick={() => navigate('/transition')}
-          className="flex items-center gap-3 text-left transition-opacity hover:opacity-90"
-          aria-label="Back to transition page"
+          onClick={onCloseMobile}
+          className="shrink-0 cursor-pointer rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+          aria-label="Tutup sidebar"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 p-1 shadow-[0_0_24px_rgba(60,130,255,0.22)]">
-            <img src="/jembatan-logo.png" alt="Logo Jembatan" className="h-full w-full object-contain" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold leading-tight text-white">JEMBATAN</p>
-            <p className="text-[11px] leading-tight text-sky-200/80">Jendela Manajemen dan Kolaborasi Kesekretariatan</p>
-          </div>
-        </button>
-        <button onClick={onCloseMobile} className="text-slate-300 lg:hidden" aria-label="Tutup sidebar">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -364,22 +395,13 @@ function LegacySidebar({ mobileOpen, onCloseMobile }) {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-5">
+        <div className="flex items-center gap-2 border-b border-white/10 px-3 py-4">
+          <BrandBackButton onClick={() => navigate('/transition')} />
           <button
-            type="button"
-            onClick={() => navigate('/transition')}
-            className="flex items-center gap-3 text-left transition-opacity hover:opacity-90"
-            aria-label="Back to transition page"
+            onClick={onCloseMobile}
+            className="shrink-0 cursor-pointer rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+            aria-label="Tutup sidebar"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 p-1 shadow-[0_0_24px_rgba(60,130,255,0.22)]">
-              <img src="/jembatan-logo.png" alt="Logo Jembatan" className="h-full w-full object-contain" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white leading-tight">JEMBATAN</p>
-              <p className="text-xs text-slate-400 leading-tight">Jendela Manajemen dan Kolaborasi Kesekretariatan</p>
-            </div>
-          </button>
-          <button onClick={onCloseMobile} className="text-slate-300 lg:hidden">
             <X className="h-5 w-5" />
           </button>
         </div>
