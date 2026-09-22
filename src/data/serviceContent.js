@@ -14,9 +14,12 @@
 // `budgetCode` mengikat layanan ke satu kode akun belanja pada dokumen
 // anggaran. Tanpa kode, layanan anggaran menampilkan angka keseluruhan.
 //
-// `expects` bukan hiasan: itu yang muncul sebagai panduan di halaman layanan dan
-// pada keadaan kosong, supaya pengguna tahu berkas apa yang diharapkan alih-alih
-// melihat kalimat umum yang sama di mana-mana.
+// `expects` untuk sementara TIDAK ditampilkan di mana pun. Isinya disusun dari
+// rujukan umum tugas subbagian, bukan dari ketentuan resmi perwakilan ini,
+// sehingga belum tentu benar - dan daftar yang salah di halaman layanan lebih
+// menyesatkan daripada tidak ada daftar sama sekali. Datanya dibiarkan utuh di
+// sini supaya bisa dimunculkan kembali begitu sudah diverifikasi; yang perlu
+// diubah hanya ServiceIntro.jsx.
 //
 // Rujukan tugas subbagian: laman Bidang Tugas BPK RI Perwakilan Sulawesi Utara
 // dan Papua Barat.
