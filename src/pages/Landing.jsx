@@ -5,7 +5,6 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Sparkles,
   User,
   Wallet,
   ShieldCheck
@@ -25,15 +24,36 @@ function formatCurrency(value) {
   return `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(value))}`
 }
 
+// Panel kaca. Bingkainya satu garis rambut, ditambah sorot tipis di tepi atas
+// seperti tepi kaca yang menangkap cahaya.
+//
+// Sebelumnya ada bingkai kedua di dalam panel, sejajar sejarak sepuluh piksel.
+// Dua garis sejajar sama-sama terbaca sebagai tepi, jadi batas panelnya
+// menjadi kabur tanpa ada yang bertambah.
+// Tiap panel setinggi isinya sendiri. Sempat dipaksa mengikuti tinggi baris
+// grid agar ketiganya rata bawah, tapi kartu anggaran memang berisi lebih
+// sedikit daripada panel masuk - meregangkannya hanya memindahkan ruang kosong
+// ke dalam kartu.
 function NeonPanel({ className = '', children }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-[30px] border border-sky-400/25 bg-[#071429]/90 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl ${className}`}
+      className={`relative overflow-hidden rounded-[30px] bg-[#071429]/90 shadow-[0_28px_80px_-24px_rgba(2,10,26,0.95)] ring-1 ring-white/10 backdrop-blur-xl ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.12),transparent_34%)]" />
-      <div className="pointer-events-none absolute inset-[10px] rounded-[24px] border border-sky-400/15" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.11),transparent_36%)]" />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/55 to-transparent" />
       <div className="relative">{children}</div>
     </div>
+  )
+}
+
+// Label kecil berhuruf besar di atas nominal. Memberi hierarki tanpa menambah
+// warna, sehingga angkanya tetap yang paling menonjol. Dipakai di kartu
+// anggaran maupun panel masuk, supaya ketiganya terbaca satu keluarga.
+function FieldLabel({ children, className = '' }) {
+  return (
+    <p className={`text-[10px] font-medium uppercase tracking-[0.22em] text-sky-200/60 ${className}`}>
+      {children}
+    </p>
   )
 }
 
@@ -42,58 +62,77 @@ function BudgetGauge({ label, subtitle, icon: Icon, percentage, accent, primaryV
 
   return (
     <NeonPanel className="p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-white sm:text-[2rem]">{label}</h2>
-          <p className="mt-1 text-sm text-slate-300">{subtitle}</p>
-        </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-sky-300/30 bg-white/5 text-sky-200 shadow-[0_0_24px_rgba(59,130,246,0.35)]">
-          <Sparkles className="h-4 w-4" />
-        </div>
+      <div className="min-w-0">
+        <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-[1.9rem]">{label}</h2>
+        <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
       </div>
 
-      <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-center">
-        <div className="flex shrink-0 items-center justify-center lg:w-48">
+      {/* Garis pemisah kepala dan isi. Sisa tinggi kartu jadi terbaca sebagai
+          struktur, bukan ruang yang kebetulan kosong. */}
+      <div className="mt-4 h-px bg-white/10" />
+
+      {/* Cincin dan angkanya dipasangkan - sejajar tengah, bukan direntang ke
+          dua ujung. Merentangkannya sempat membuat jaraknya acak: seratus
+          piksel di satu celah, lima puluh di celah berikutnya. */}
+      <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-center">
+        {/* Cincinnya dibesarkan dari 160 ke 192 piksel. Dengan isi kartu yang
+            kini meregang penuh, ukuran lama membuatnya terbaca menggantung di
+            tengah kolomnya sendiri. */}
+        <div className="flex shrink-0 items-center justify-center lg:w-52">
           <div
-            className="relative flex h-40 w-40 items-center justify-center rounded-full"
+            aria-hidden="true"
+            className="relative flex h-48 w-48 items-center justify-center rounded-full"
             style={{
-              background: `conic-gradient(${accent} ${clamped}%, rgba(148, 163, 184, 0.15) ${clamped}% 100%)`
+              background: `conic-gradient(${accent} ${clamped}%, rgba(148, 163, 184, 0.14) ${clamped}% 100%)`,
+              filter: `drop-shadow(0 0 20px ${accent}40)`
             }}
           >
-            <div className="absolute inset-4 rounded-full border border-sky-300/20 bg-[#05101f] shadow-[inset_0_0_28px_rgba(9,132,255,0.18)]" />
-            <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-sky-300/15 bg-[#071429] text-sky-200 shadow-[0_0_20px_rgba(0,168,255,0.2)]">
+            <div className="absolute inset-5 rounded-full bg-[#05101f] ring-1 ring-inset ring-white/10" />
+            <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-[#071429] text-sky-200 ring-1 ring-white/10">
               <Icon className="h-9 w-9" />
             </div>
           </div>
         </div>
 
-        <div className="flex-1">
-          <div className="flex items-baseline gap-1">
-            <span className="text-5xl font-semibold tracking-tight text-white sm:text-6xl">{Math.round(clamped)}</span>
-            <span className="text-3xl font-medium text-sky-300">%</span>
+        <div className="min-w-0 flex-1">
+          {/* tabular-nums supaya 57 dan 43 sama lebar dan tidak bergeser dari
+              satu kartu ke kartu sebelahnya. */}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-5xl font-bold tabular-nums tracking-tighter text-white sm:text-6xl">
+              {Math.round(clamped)}
+            </span>
+            <span className="text-2xl font-medium text-sky-300/90">%</span>
           </div>
 
-          <div className="mt-4 h-4 overflow-hidden rounded-full border border-sky-400/25 bg-slate-900/70">
+          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-900/80 ring-1 ring-inset ring-white/10">
             <div
-              className="h-full rounded-full shadow-[0_0_18px_rgba(56,189,248,0.45)]"
-              style={{ width: `${clamped}%`, background: `linear-gradient(90deg, ${accent}, #4fa3ff)` }}
+              className="h-full rounded-full"
+              style={{
+                width: `${clamped}%`,
+                background: `linear-gradient(90deg, ${accent}, #7cc4ff)`,
+                boxShadow: `0 0 14px ${accent}88`
+              }}
             />
           </div>
 
-          <div className="mt-4 space-y-3 text-sm text-slate-200">
-            <div>
-              <p className="text-[13px] text-slate-400">{secondaryLabel}</p>
-              <p className="mt-0.5 whitespace-nowrap text-base font-medium tabular-nums tracking-tight text-white sm:text-lg">
+          {/* Daftar nominal: label di kiri, angka rata kanan, dipisah garis
+              dengan tinggi baris yang sama. Tepi kanan yang sejajar itu yang
+              membuatnya terbaca tertata - sebelumnya label dan angka bertumpuk
+              dengan jarak yang berbeda-beda. */}
+          <dl className="mt-6">
+            <div className="flex items-center justify-between gap-4 border-t border-white/10 py-4">
+              <dt><FieldLabel>{secondaryLabel}</FieldLabel></dt>
+              <dd className="whitespace-nowrap text-lg font-semibold tabular-nums tracking-tight text-white">
                 {formatCurrency(secondaryValue)}
-              </p>
+              </dd>
             </div>
-            <div>
-              <p className="text-[13px] text-slate-400">Pagu</p>
-              <p className="mt-0.5 whitespace-nowrap text-base font-medium tabular-nums tracking-tight text-white sm:text-lg">
+            <div className="flex items-center justify-between gap-4 border-t border-white/10 py-4">
+              <dt><FieldLabel>Pagu</FieldLabel></dt>
+              <dd className="whitespace-nowrap text-lg font-semibold tabular-nums tracking-tight text-white">
                 {formatCurrency(primaryValue)}
-              </p>
+              </dd>
             </div>
-          </div>
+          </dl>
         </div>
       </div>
     </NeonPanel>
@@ -105,24 +144,33 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
     <NeonPanel className="p-5 sm:p-6">
       <div className="flex flex-col">
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-18 w-18 items-center justify-center rounded-2xl border border-sky-300/30 bg-white/5 text-center shadow-[0_0_35px_rgba(56,189,248,0.25)]">
-            <img src="/jembatan-logo.png" alt="Logo Jembatan" className="h-1/2 w-1/2 object-contain" />
+          {/* Marka berlatar transparan, bukan logo lockup penuh: di kotak
+              sekecil ini wordmark dan taglinenya tidak terbaca, dan latar
+              hitamnya tampil sebagai kotak gelap di dalam panel kaca.
+              Wadahnya dulu memakai h-18/w-18 yang tidak ada di skala Tailwind,
+              jadi ukurannya tidak pernah benar-benar ditetapkan. */}
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-sky-300/25">
+            <img src="/favicon-jembatan.png" alt="Logo Jembatan" className="h-14 w-14 object-contain" />
           </div>
 
-          <h2 className="mt-5 text-2xl font-semibold text-sky-300">Selamat Datang</h2>
-          <p className="mt-1 text-sm text-slate-300">Silakan login untuk melanjutkan</p>
+          <h2 className="mt-5 text-2xl font-semibold tracking-tight text-sky-300">Selamat Datang</h2>
+          <p className="mt-1.5 text-sm text-slate-400">Silakan login untuk melanjutkan</p>
         </div>
 
-        <form onSubmit={onLogin} className="mt-6 space-y-4">
+        {/* Pemisah yang sama dengan kartu anggaran, supaya ketiganya terbaca
+            memakai susunan kepala-isi yang sama. */}
+        <div className="mt-5 h-px bg-white/10" />
+
+        <form onSubmit={onLogin} className="mt-5 space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-200">Username</label>
+            <FieldLabel className="mb-1.5">Username</FieldLabel>
             <div className="relative">
               <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-300" />
               <Input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Username"
-                className="h-12 rounded-xl border-sky-400/25 bg-[#04101d]/85 pl-10 pr-10 text-white placeholder:text-slate-500 focus-visible:border-sky-300 focus-visible:ring-sky-300/30"
+                className="h-12 rounded-xl border-white/10 bg-[#04101d]/85 pl-10 pr-10 text-white placeholder:text-slate-500 focus-visible:border-sky-300 focus-visible:ring-sky-300/30"
                 required
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sky-300/80">
@@ -132,7 +180,7 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-200">Password</label>
+            <FieldLabel className="mb-1.5">Password</FieldLabel>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-300" />
               <Input
@@ -140,7 +188,7 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="h-12 rounded-xl border-sky-400/25 bg-[#04101d]/85 pl-10 pr-11 text-white placeholder:text-slate-500 focus-visible:border-sky-300 focus-visible:ring-sky-300/30"
+                className="h-12 rounded-xl border-white/10 bg-[#04101d]/85 pl-10 pr-11 text-white placeholder:text-slate-500 focus-visible:border-sky-300 focus-visible:ring-sky-300/30"
                 required
               />
               <button
@@ -155,7 +203,7 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
           </div>
 
           {error ? (
-            <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            <div className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-200 ring-1 ring-red-400/30">
               {error}
             </div>
           ) : null}
@@ -163,7 +211,7 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
           <Button
             type="submit"
             variant="teal"
-            className="h-12 w-full rounded-xl border border-sky-300/30 bg-gradient-to-r from-[#2f8cff] to-[#12c5d5] text-base font-semibold shadow-[0_0_30px_rgba(56,189,248,0.45)] hover:from-[#3f97ff] hover:to-[#15d8ea]"
+            className="h-12 w-full rounded-xl bg-gradient-to-r from-[#2f8cff] to-[#12c5d5] text-base font-semibold tracking-[0.12em] shadow-[0_10px_30px_-8px_rgba(47,140,255,0.85)] ring-1 ring-sky-300/30 transition-all hover:from-[#3f97ff] hover:to-[#15d8ea] hover:shadow-[0_14px_38px_-8px_rgba(47,140,255,1)]"
             disabled={submitting}
           >
             {submitting ? 'Memproses...' : 'LOGIN'}
@@ -263,6 +311,8 @@ export default function Landing() {
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col justify-center gap-5 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        {/* items-start: tiap kartu berhenti di tinggi isinya sendiri, jadi
+            kartu anggaran tetap ringkas dan tidak ikut setinggi panel masuk. */}
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_340px] xl:items-start">
           <BudgetGauge
             label="Realisasi Anggaran"
