@@ -1,9 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CalendarDays, FileSpreadsheet, GraduationCap, LoaderCircle, TrendingDown, UserRound, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarDays,
+  FileSpreadsheet,
+  FileText,
+  GraduationCap,
+  LoaderCircle,
+  Star,
+  TrendingDown,
+  User,
+  UserRound,
+  Users
+} from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { hasDocumentFile, resolveDocumentFileUrl } from '../../lib/documentStorage'
 import { parseExcelABK } from '../../lib/parseExcelABK'
-import { agendaCoversDate, sortAgendaEvents, toDateKey } from '../../lib/agendaStorage'
+import {
+  AGENDA_STATUSES,
+  agendaCoversDate,
+  getAgendaTypeMeta,
+  sortAgendaEvents,
+  toDateKey
+} from '../../lib/agendaStorage'
 
 const KATEGORI_BEZETTING = 'bezetting'
 const HARI_KE_DEPAN = 7
@@ -49,6 +69,7 @@ function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon, kosong = f
 
 export function HrOverview({ divisionId }) {
   const { documents, agendaEvents } = useData()
+  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [memuat, setMemuat] = useState(true)
   const [galat, setGalat] = useState('')
@@ -132,15 +153,14 @@ export function HrOverview({ divisionId }) {
   // Unit yang kekurangan orang paling banyak. Menggantikan daftar "jabatan
   // prioritas" yang tidak punya sumber data: ini dihitung dari selisih pada
   // berkas bezetting itu sendiri.
-  const unitKurangSemua = useMemo(() => {
-    if (!data?.rows?.length) return []
-    return data.rows
-      .filter((row) => row.unitKerja && !/jumlah/i.test(row.unitKerja) && (row.selisih ?? 0) < 0)
-      .sort((a, b) => a.selisih - b.selisih)
+  // Berapa banyak unit yang jumlah riilnya di bawah kebutuhan. Dipakai sebagai
+  // penanda berapa titik yang perlu ditindaklanjuti.
+  const unitKurang = useMemo(() => {
+    if (!data?.rows?.length) return 0
+    return data.rows.filter(
+      (row) => row.unitKerja && !/jumlah/i.test(row.unitKerja) && (row.selisih ?? 0) < 0
+    ).length
   }, [data])
-
-  const unitKurang = unitKurangSemua.length
-  const kekuranganTerbesar = unitKurangSemua.slice(0, 5)
 
   if (memuat) {
     return (
@@ -262,24 +282,25 @@ export function HrOverview({ divisionId }) {
 
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
               {[
-                { label: 'Laki-laki', nilai: rekap.laki, warna: '#2563eb' },
-                { label: 'Perempuan', nilai: rekap.perempuan, warna: '#db2777' }
+                { label: 'Laki-laki', nilai: rekap.laki, warna: '#2563eb', ikon: User },
+                { label: 'Perempuan', nilai: rekap.perempuan, warna: '#db2777', ikon: UserRound }
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl bg-[#f8fbff] px-4 py-3">
-                  <p className="flex items-center gap-2 text-xs text-slate-500">
-                    <span
-                      aria-hidden="true"
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: item.warna }}
-                    />
-                    {item.label}
-                  </p>
-                  <p className="mt-1 flex items-baseline gap-2">
-                    <span className="text-xl font-bold tabular-nums text-[#233b84]">{item.nilai}</span>
-                    <span className="text-xs tabular-nums text-slate-400">
-                      {rekap.total ? Math.round((item.nilai / rekap.total) * 100) : 0}%
-                    </span>
-                  </p>
+                <div key={item.label} className="flex items-center gap-3 rounded-2xl bg-[#f8fbff] px-4 py-3">
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+                    style={{ backgroundColor: item.warna }}
+                  >
+                    <item.ikon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-slate-500">{item.label}</p>
+                    <p className="flex items-baseline gap-2">
+                      <span className="text-xl font-bold tabular-nums text-[#233b84]">{item.nilai}</span>
+                      <span className="text-xs tabular-nums text-slate-400">
+                        {rekap.total ? Math.round((item.nilai / rekap.total) * 100) : 0}%
+                      </span>
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -302,90 +323,149 @@ export function HrOverview({ divisionId }) {
 
           <dl className="mt-5 space-y-3">
             {[
-              { label: 'Pegawai Aktif', nilai: riil, keterangan: 'dari berkas bezetting', warna: '#2563eb' },
-              { label: 'Kebutuhan ABK', nilai: standar, keterangan: 'total formasi', warna: '#7c3aed' },
-              { label: 'Kekurangan Pegawai', nilai: kekurangan, keterangan: `${standar ? Math.round((kekurangan / standar) * 100) : 0}% dari kebutuhan`, warna: '#dc2626' },
-              { label: 'Unit Kekurangan', nilai: unitKurang, keterangan: 'unit di bawah kebutuhan', warna: '#f59e0b' }
+              {
+                label: 'Pegawai Aktif',
+                nilai: riil,
+                sisi: riil && rekap?.total ? `${Math.round((riil / rekap.total) * 100)}%` : '100%',
+                keterangan: 'dari total pegawai',
+                warna: '#16a34a',
+                ikon: Users
+              },
+              {
+                label: 'Kebutuhan ABK',
+                nilai: standar,
+                sisi: '100%',
+                keterangan: 'total formasi',
+                warna: '#2563eb',
+                ikon: FileText
+              },
+              {
+                label: 'Kekurangan Pegawai',
+                nilai: kekurangan,
+                sisi: `${standar ? Math.round((kekurangan / standar) * 100) : 0}%`,
+                keterangan: 'dari kebutuhan ABK',
+                warna: '#dc2626',
+                ikon: AlertTriangle
+              },
+              {
+                label: 'Unit Kekurangan',
+                nilai: unitKurang,
+                sisi: '',
+                keterangan: 'perlu tindak lanjut',
+                warna: '#7c3aed',
+                ikon: Star
+              }
             ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-3 rounded-2xl bg-[#f8fbff] px-4 py-3">
-                <dt className="min-w-0">
-                  <span className="block text-sm font-medium" style={{ color: item.warna }}>{item.label}</span>
-                  <span className="block text-xs text-slate-500">{item.keterangan}</span>
+              <div key={item.label} className="flex items-center gap-3 rounded-2xl bg-[#f8fbff] px-4 py-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
+                  style={{ backgroundColor: item.warna }}
+                >
+                  <item.ikon className="h-4 w-4" />
+                </span>
+                <dt className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium" style={{ color: item.warna }}>
+                    {item.label}
+                  </span>
+                  <span className="block text-xl font-bold tabular-nums text-[#233b84]">{item.nilai}</span>
                 </dt>
-                <dd className="shrink-0 text-2xl font-bold tabular-nums text-[#233b84]">{item.nilai}</dd>
+                <dd className="shrink-0 text-right">
+                  {item.sisi ? (
+                    <span className="block text-sm font-bold tabular-nums" style={{ color: item.warna }}>
+                      {item.sisi}
+                    </span>
+                  ) : null}
+                  <span className="block text-xs text-slate-500">{item.keterangan}</span>
+                </dd>
               </div>
             ))}
           </dl>
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-        {kekuranganTerbesar.length > 0 && (
-          <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h2 className="text-lg font-bold text-[#233b84]">Kekurangan Terbesar</h2>
-              <p className="text-sm text-slate-500">Unit dengan selisih terbanyak terhadap kebutuhan</p>
-            </div>
-            <ul className="divide-y divide-slate-100">
-              {kekuranganTerbesar.map((row) => (
-                <li key={`${row.index}-${row.unitKerja}`} className="flex items-center justify-between gap-4 px-5 py-3">
-                  <p className="min-w-0 truncate text-sm text-slate-700">{row.unitKerja}</p>
-                  <span className="flex shrink-0 items-center gap-3 text-sm tabular-nums">
-                    <span className="text-slate-400">
-                      {row.riil ?? 0} / {row.standar ?? 0}
-                    </span>
-                    <span className="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700">
-                      {row.selisih}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {agendaTerdekat.length > 0 && (
-        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-          <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-            <CalendarDays className="h-4 w-4 shrink-0 text-[#1f63d3]" />
-            <div>
-              <h2 className="text-lg font-bold text-[#233b84]">Agenda SDM {HARI_KE_DEPAN} Hari ke Depan</h2>
+      {/* Jadwal sepekan ke depan dalam bentuk tabel. Kalender tetap ada di
+          bawahnya, tetapi untuk menengok agenda terdekat beserta jenis dan
+          penanggung jawabnya, daftar seperti ini lebih cepat dibaca daripada
+          mencarinya satu per satu di kotak tanggal. */}
+      <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#eff5ff] text-[#1f63d3]">
+              <CalendarDays className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-[#233b84]">Jadwal SDM {HARI_KE_DEPAN} Hari ke Depan</h2>
               <p className="text-sm text-slate-500">Kegiatan bidang ini pada pekan berjalan</p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/kalender')}
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-[#1f63d3] transition-colors hover:bg-[#eff5ff]"
+          >
+            Lihat Semua <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {agendaTerdekat.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-slate-500">
+            Tidak ada kegiatan terjadwal pada {HARI_KE_DEPAN} hari ke depan.
+          </p>
+        ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-left text-sm">
               <thead className="bg-[#f8fbff]">
                 <tr className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   <th className="px-5 py-3">Tanggal</th>
                   <th className="px-5 py-3">Agenda</th>
-                  <th className="px-5 py-3">Lokasi</th>
+                  <th className="px-5 py-3">Jenis</th>
+                  <th className="px-5 py-3">PIC</th>
                   <th className="px-5 py-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {agendaTerdekat.map((event) => (
-                  <tr key={event.id}>
-                    <td className="whitespace-nowrap px-5 py-3 tabular-nums text-slate-600">
-                      {new Date(event.eventDate).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </td>
-                    <td className="px-5 py-3 font-medium text-[#233b84]">{event.title}</td>
-                    <td className="px-5 py-3 text-slate-600">{event.location || '-'}</td>
-                    <td className="px-5 py-3">
-                      <span className="rounded-full bg-[#eff5ff] px-2.5 py-0.5 text-xs font-medium text-[#1f3f89]">
-                        {event.status === 'done' ? 'Selesai' : event.status === 'cancelled' ? 'Dibatalkan' : 'Terjadwal'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {agendaTerdekat.map((event) => {
+                  const jenis = getAgendaTypeMeta(event.eventType)
+                  const status = AGENDA_STATUSES.find((item) => item.id === event.status) || AGENDA_STATUSES[0]
+                  const warnaStatus =
+                    status.id === 'done'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : status.id === 'cancelled'
+                        ? 'bg-red-50 text-red-700'
+                        : 'bg-[#eff5ff] text-[#1f3f89]'
+
+                  return (
+                    <tr key={event.id} className="transition-colors hover:bg-[#f8fbff]">
+                      <td className="whitespace-nowrap px-5 py-3 tabular-nums text-slate-600">
+                        {new Date(event.eventDate).toLocaleDateString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </td>
+                      <td className="px-5 py-3 font-medium text-[#233b84]">{event.title}</td>
+                      <td className="whitespace-nowrap px-5 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-slate-600">
+                          <span
+                            aria-hidden="true"
+                            className="h-2.5 w-2.5 shrink-0 rounded-[3px]"
+                            style={{ backgroundColor: jenis.color }}
+                          />
+                          {jenis.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-slate-600">{event.organizer || '-'}</td>
+                      <td className="px-5 py-3">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${warnaStatus}`}>
+                          {status.label}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
-        </div>
         )}
       </div>
     </div>
