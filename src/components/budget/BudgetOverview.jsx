@@ -25,6 +25,25 @@ function formatRupiah(nilai) {
   return `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(nilai || 0))}`
 }
 
+// updatedAt datang dalam dua bentuk: "2026-10-02" bila angkanya baru dibaca
+// dari berkas Excel, dan timestamp penuh "2026-09-20T15:03:32.315037+00:00"
+// bila diambil dari Supabase. Keduanya dirapikan jadi satu bentuk yang sama.
+//
+// Tanggal polos sengaja tidak dilewatkan ke new Date() apa adanya: string itu
+// dibaca sebagai tengah malam UTC, dan di zona waktu kita tanggalnya bisa
+// mundur sehari.
+function formatTanggal(nilai) {
+  if (!nilai) return null
+
+  const polos = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(nilai))
+  const tanggal = polos
+    ? new Date(Number(polos[1]), Number(polos[2]) - 1, Number(polos[3]))
+    : new Date(nilai)
+
+  if (Number.isNaN(tanggal.getTime())) return null
+  return tanggal.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 // Sumbu dan label batang memakai satuan miliar. Angka penuh tidak muat di
 // bawah batang selebar tiga puluhan piksel.
 function formatMiliar(nilai) {
@@ -107,8 +126,8 @@ export function BudgetOverview({ budget }) {
               Pagu, realisasi, dan sisa per jenis belanja &middot; tahun {budget.fiscalYear || '-'}
             </p>
           </div>
-          {budget.updatedAt && (
-            <p className="text-xs text-slate-400">Diperbarui {budget.updatedAt}</p>
+          {formatTanggal(budget.updatedAt) && (
+            <p className="text-xs text-slate-400">Diperbarui {formatTanggal(budget.updatedAt)}</p>
           )}
         </div>
 

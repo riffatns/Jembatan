@@ -174,19 +174,25 @@ export default function Dashboard() {
           berubah tanpa ada angka yang perlu disunting. */}
       {isFinanceDashboard && <BudgetOverview budget={stats.budget} />}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {overviewCards.map((item) => (
-          <ServiceCard
-            key={item.id}
-            title={item.title}
-            value={item.value}
-            subtitle={item.subtitle}
-            icon={item.icon}
-            color={item.color}
-            onClick={goToDivision}
-          />
-        ))}
-      </div>
+      {/* Di Keuangan kartu ini dilepas: angkanya cuma jumlah dokumen per
+          layanan, yang sudah tertera di sidebar, dan di bawah ringkasan
+          anggaran ia justru menggeser kalender jauh ke bawah. Bidang lain
+          tetap memakainya karena di sana tidak ada ringkasan apa pun. */}
+      {!isFinanceDashboard && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {overviewCards.map((item) => (
+            <ServiceCard
+              key={item.id}
+              title={item.title}
+              value={item.value}
+              subtitle={item.subtitle}
+              icon={item.icon}
+              color={item.color}
+              onClick={goToDivision}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
