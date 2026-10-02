@@ -161,6 +161,43 @@ function parseRekapPegawai(matrix) {
   }
 }
 
+// Sheet "JUMLAH SDM" berisi angka yang diisi manual, berupa pasangan label dan
+// nilai: "Penempatan Pwk. Papbar | 45 | orang", "CPNS Diklat | 5 | orang", dan
+// seterusnya. Isinya dibaca apa adanya menjadi daftar, lalu komponen yang
+// memakainya mencari label yang dibutuhkan.
+//
+// Dibuat begini supaya menambah angka baru di dashboard cukup dengan menambah
+// satu baris di berkasnya, tanpa menyentuh kode. Baris tanpa angka - judul
+// kelompok seperti "Jumlah SDM PNS" - dilewati.
+// numberValue() tidak bisa dipakai untuk membedakan label dari angka di sini:
+// untuk teks tanpa digit ia mengembalikan 0, bukan null, karena Number('')
+// bernilai 0. Jadi pemeriksaannya dibuat sendiri - sel dianggap angka hanya
+// bila memang memuat digit, dan dianggap label bila memuat huruf.
+function selAngka(sel) {
+  if (typeof sel === 'number') return Number.isFinite(sel) ? sel : null
+  const teks = clean(sel)
+  if (!teks || !/\d/.test(teks)) return null
+  return numberValue(teks)
+}
+
+function parseDaftarAngka(matrix) {
+  if (!Array.isArray(matrix)) return []
+
+  const hasil = []
+  for (const row of matrix) {
+    if (!Array.isArray(row)) continue
+
+    const indexLabel = row.findIndex((sel) => /[a-z]/i.test(clean(sel)))
+    if (indexLabel < 0) continue
+
+    const nilai = row.slice(indexLabel + 1).map(selAngka).find((angka) => angka !== null && angka !== undefined)
+    if (nilai === null || nilai === undefined) continue
+
+    hasil.push({ label: clean(row[indexLabel]), nilai })
+  }
+  return hasil
+}
+
 export async function parseExcelABK(source) {
   const XLSX = await import('xlsx')
   if (!source) throw new Error('File Excel ABK belum dipilih.')
@@ -198,7 +235,12 @@ export async function parseExcelABK(source) {
     ? parseRekapPegawai(XLSX.utils.sheet_to_json(sheetRekap, { header: 1, defval: '', raw: true }))
     : null
 
-  return { ...result, sheetTitle, rekap }
+  const sheetJumlah = workbook.Sheets['JUMLAH SDM']
+  const daftarAngka = sheetJumlah
+    ? parseDaftarAngka(XLSX.utils.sheet_to_json(sheetJumlah, { header: 1, defval: '', raw: true }))
+    : []
+
+  return { ...result, sheetTitle, rekap, daftarAngka }
 }
 
 export async function parseExcelWorkbook(source) {

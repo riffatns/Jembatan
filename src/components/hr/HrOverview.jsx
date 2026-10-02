@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CalendarDays, FileSpreadsheet, LoaderCircle, TrendingDown, UserRound, Users } from 'lucide-react'
+import { AlertTriangle, CalendarDays, FileSpreadsheet, GraduationCap, LoaderCircle, TrendingDown, UserRound, Users } from 'lucide-react'
 import { useData } from '../../context/DataContext'
 import { hasDocumentFile, resolveDocumentFileUrl } from '../../lib/documentStorage'
 import { parseExcelABK } from '../../lib/parseExcelABK'
@@ -15,22 +15,26 @@ const WARNA_CADANGAN = ['#16a34a', '#f59e0b', '#64748b']
 // angka besar di bawahnya, lalu keterangan, dan bilah dengan persentasenya di
 // ujung kanan. Angka maupun panjang bilahnya dihitung dari data, bukan nilai
 // tetap - persentase di rancangan hanya contoh tampilan.
-function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon }) {
-  const terbatas = Math.max(0, Math.min(100, Math.round(persen)))
+function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon, kosong = false }) {
+  const terbatas = kosong ? 0 : Math.max(0, Math.min(100, Math.round(persen)))
 
   return (
     <div className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
       <div className="flex items-center gap-2.5">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
-          style={{ backgroundColor: warna }}
+          style={{ backgroundColor: kosong ? '#cbd5e1' : warna }}
         >
           <Ikon className="h-4 w-4" />
         </span>
         <p className="min-w-0 truncate text-sm font-semibold text-[#233b84]">{label}</p>
       </div>
 
-      <p className="mt-2.5 text-3xl font-bold tabular-nums tracking-tight text-[#233b84]">{nilai}</p>
+      <p
+        className={`mt-2.5 text-3xl font-bold tabular-nums tracking-tight ${kosong ? 'text-slate-300' : 'text-[#233b84]'}`}
+      >
+        {kosong ? '–' : nilai}
+      </p>
       <p className="mt-0.5 text-xs text-slate-500">{keterangan}</p>
 
       <div className="mt-3 flex items-center gap-2">
@@ -116,16 +120,27 @@ export function HrOverview({ divisionId }) {
     }))
   }, [rekap])
 
+  // Angka cuti dan diklat tidak ada di sheet ABK maupun rekap - keduanya diisi
+  // manual sebagai baris label dan nilai pada sheet "JUMLAH SDM". Dicari lewat
+  // kata kuncinya, bukan posisi barisnya, supaya penulisan labelnya boleh
+  // berbeda. Kalau belum ada barisnya, kartunya tampil kosong, bukan nol -
+  // "belum diisi" dan "tidak ada yang cuti" dua hal yang berbeda.
+  const angka = (pola) => (data?.daftarAngka || []).find((item) => pola.test(item.label))
+  const cuti = angka(/cuti/i)
+  const diklat = angka(/diklat|pelatihan/i)
+
   // Unit yang kekurangan orang paling banyak. Menggantikan daftar "jabatan
   // prioritas" yang tidak punya sumber data: ini dihitung dari selisih pada
   // berkas bezetting itu sendiri.
-  const kekuranganTerbesar = useMemo(() => {
+  const unitKurangSemua = useMemo(() => {
     if (!data?.rows?.length) return []
     return data.rows
       .filter((row) => row.unitKerja && !/jumlah/i.test(row.unitKerja) && (row.selisih ?? 0) < 0)
       .sort((a, b) => a.selisih - b.selisih)
-      .slice(0, 5)
   }, [data])
+
+  const unitKurang = unitKurangSemua.length
+  const kekuranganTerbesar = unitKurangSemua.slice(0, 5)
 
   if (memuat) {
     return (
@@ -161,20 +176,22 @@ export function HrOverview({ divisionId }) {
           ikon={Users}
         />
         <Kartu
-          label="Kebutuhan ABK"
-          nilai={standar}
-          keterangan="Standar kebutuhan SDM aparatur"
-          persen={100}
+          label="Cuti Aktif"
+          nilai={cuti?.nilai ?? 0}
+          keterangan={cuti ? cuti.label : 'Belum ada barisnya di berkas bezetting'}
+          persen={cuti && riil ? (cuti.nilai / riil) * 100 : 0}
           warna="#7c3aed"
           ikon={UserRound}
+          kosong={!cuti}
         />
         <Kartu
-          label="Kekurangan Pegawai"
-          nilai={kekurangan}
-          keterangan="Selisih riil terhadap kebutuhan"
-          persen={standar ? (kekurangan / standar) * 100 : 0}
-          warna="#dc2626"
-          ikon={TrendingDown}
+          label="Diklat Berjalan"
+          nilai={diklat?.nilai ?? 0}
+          keterangan={diklat ? diklat.label : 'Belum ada barisnya di berkas bezetting'}
+          persen={diklat && riil ? (diklat.nilai / riil) * 100 : 0}
+          warna="#f97316"
+          ikon={GraduationCap}
+          kosong={!diklat}
         />
         <Kartu
           label="Ketersediaan Formasi"
@@ -269,6 +286,40 @@ export function HrOverview({ divisionId }) {
           </div>
         )}
 
+        {/* Kebutuhan dan kekurangan dipindah ke sini dari deretan kartu atas,
+            mengikuti rancangan: kartu atas untuk angka harian, panel ini untuk
+            kondisi formasinya. */}
+        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-6">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eff5ff] text-[#1f63d3]">
+              <TrendingDown className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-[#233b84]">Ringkasan SDM</h2>
+              <p className="text-sm text-slate-500">Kondisi formasi terhadap kebutuhan</p>
+            </div>
+          </div>
+
+          <dl className="mt-5 space-y-3">
+            {[
+              { label: 'Pegawai Aktif', nilai: riil, keterangan: 'dari berkas bezetting', warna: '#2563eb' },
+              { label: 'Kebutuhan ABK', nilai: standar, keterangan: 'total formasi', warna: '#7c3aed' },
+              { label: 'Kekurangan Pegawai', nilai: kekurangan, keterangan: `${standar ? Math.round((kekurangan / standar) * 100) : 0}% dari kebutuhan`, warna: '#dc2626' },
+              { label: 'Unit Kekurangan', nilai: unitKurang, keterangan: 'unit di bawah kebutuhan', warna: '#f59e0b' }
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between gap-3 rounded-2xl bg-[#f8fbff] px-4 py-3">
+                <dt className="min-w-0">
+                  <span className="block text-sm font-medium" style={{ color: item.warna }}>{item.label}</span>
+                  <span className="block text-xs text-slate-500">{item.keterangan}</span>
+                </dt>
+                <dd className="shrink-0 text-2xl font-bold tabular-nums text-[#233b84]">{item.nilai}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {kekuranganTerbesar.length > 0 && (
           <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
             <div className="border-b border-slate-100 px-5 py-4">
@@ -292,9 +343,8 @@ export function HrOverview({ divisionId }) {
             </ul>
           </div>
         )}
-      </div>
 
-      {agendaTerdekat.length > 0 && (
+        {agendaTerdekat.length > 0 && (
         <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
           <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
             <CalendarDays className="h-4 w-4 shrink-0 text-[#1f63d3]" />
@@ -336,7 +386,8 @@ export function HrOverview({ divisionId }) {
             </table>
           </div>
         </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
