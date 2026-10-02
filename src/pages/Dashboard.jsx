@@ -6,6 +6,7 @@ import { ServiceCard } from '../components/ServiceCard'
 import { SERVICE_META } from '../data/serviceMeta'
 import { DashboardHeader } from '../components/layout/DashboardHeader'
 import { BudgetOverview } from '../components/budget/BudgetOverview'
+import { HrOverview } from '../components/hr/HrOverview'
 import { AgendaCalendar } from '../components/agenda/AgendaCalendar'
 import { AgendaListItem } from '../components/agenda/AgendaListItem'
 import { AgendaEventDetail } from '../components/agenda/AgendaEventDetail'
@@ -47,6 +48,9 @@ export default function Dashboard() {
   const categories = getDocumentCategories(selectedDivisionId) || getDocumentCategories('finance')
 
   const isFinanceDashboard = selectedDivisionId === 'finance'
+  const isHrDashboard = selectedDivisionId === 'hr'
+  // Kartu layanan dilepas di bidang yang sudah punya ringkasannya sendiri.
+  const adaRingkasanBidang = isFinanceDashboard || isHrDashboard
 
   const divisionDocuments = useMemo(
     () => documents.filter((document) => document.divisionId === selectedDivisionId),
@@ -174,11 +178,15 @@ export default function Dashboard() {
           berubah tanpa ada angka yang perlu disunting. */}
       {isFinanceDashboard && <BudgetOverview budget={stats.budget} />}
 
-      {/* Di Keuangan kartu ini dilepas: angkanya cuma jumlah dokumen per
-          layanan, yang sudah tertera di sidebar, dan di bawah ringkasan
-          anggaran ia justru menggeser kalender jauh ke bawah. Bidang lain
-          tetap memakainya karena di sana tidak ada ringkasan apa pun. */}
-      {!isFinanceDashboard && (
+      {/* Angka SDM dibaca dari berkas bezetting yang diunggah di layanan
+          Bezetting, bukan dari basis data. */}
+      {isHrDashboard && <HrOverview divisionId={selectedDivisionId} />}
+
+      {/* Di bidang yang sudah punya ringkasan sendiri, kartu ini dilepas:
+          angkanya cuma jumlah dokumen per layanan, yang sudah tertera di
+          sidebar, dan di bawah ringkasan ia justru menggeser kalender jauh ke
+          bawah. Bidang lain tetap memakainya. */}
+      {!adaRingkasanBidang && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {overviewCards.map((item) => (
             <ServiceCard

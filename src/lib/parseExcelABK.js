@@ -55,7 +55,12 @@ function mapRow(row, index) {
     Object.entries(row).map(([key, value]) => [normalizeHeader(key), value])
   )
 
-  const standar = numberValue(firstValue(values, ['standar', 'standar abk', 'abk']))
+  // Judul kolomnya di berkas sebenarnya berbunyi "Standar Kebutuhan SDM
+  // Aparatur (ABK)", sehingga pencocokan persis tidak pernah kena dan seluruh
+  // nilai standar terbaca kosong. Dicocokkan lewat awalan kata.
+  const kunciStandar = Object.keys(values).find((kunci) => kunci.startsWith('standar') || kunci === 'abk')
+  const standar = numberValue(firstValue(values, ['standar', 'standar abk', 'abk'])) ??
+    (kunciStandar ? numberValue(values[kunciStandar]) : null)
   const riil = numberValue(firstValue(values, ['riil', 'jumlah riil', 'jumlah riil pegawai', 'realisasi']))
   const parsedSelisih = numberValue(values.selisih)
 
@@ -90,6 +95,72 @@ export function parseABKRows(rows) {
   return { rows: parsedRows, total, categories, items, breakdown }
 }
 
+// Berkas bezetting memuat sheet "Rekap Jenis Klmn" berisi dua tabel
+// bersebelahan pada baris yang sama: jumlah pegawai per jenis kelamin, dan
+// per jenjang pendidikan.
+//
+// Angkanya dibaca dari baris TOTAL yang sudah tersedia di sheet itu, bukan
+// dijumlahkan sendiri dari rinciannya. Sheet ini memuat baris kelompok
+// (STRUKTURAL, PEMERIKSA), baris rincian, dan baris TOTAL sekaligus pada satu
+// kolom yang sama - menjumlahkan semuanya menghitung ganda. Pada berkas Juni
+// 2026 hasil penjumlahan naif 98 orang, padahal pegawainya 49.
+//
+// Tabel jenjang pendidikan di sebelahnya sengaja tidak dibaca: pada berkas yang
+// ada, baris TOTAL PNS berisi rincian berjumlah 4 tetapi kolom jumlahnya
+// tertulis 16, dan TOTAL OB seluruhnya nol tetapi jumlahnya 12. Menampilkan
+// angka yang tidak berjumlah benar lebih menyesatkan daripada tidak
+// menampilkannya.
+const GOLONGAN_PEGAWAI = [
+  { nama: 'PNS', pola: /total\s*pns/i },
+  { nama: 'TTT', pola: /total\s*ttt/i },
+  { nama: 'OB', pola: /total\s*ob/i }
+]
+
+function parseRekapPegawai(matrix) {
+  if (!Array.isArray(matrix) || !matrix.length) return null
+
+  const headerIndex = matrix.findIndex((row) => {
+    const labels = row.map(normalizeHeader)
+    return labels.includes('laki laki') && labels.includes('perempuan')
+  })
+  if (headerIndex < 0) return null
+
+  const labels = matrix[headerIndex].map(normalizeHeader)
+  const kolomLaki = labels.indexOf('laki laki')
+  const kolomPerempuan = labels.indexOf('perempuan')
+  const kolomJumlah = labels.indexOf('jumlah')
+
+  const isi = matrix.slice(headerIndex + 1)
+  // Label baris bisa jatuh di kolom mana pun di antara tiga kolom pertama,
+  // tergantung tingkatannya.
+  const labelBaris = (row) => [row[0], row[1], row[2]].map(clean).filter(Boolean).join(' ')
+
+  const golongan = GOLONGAN_PEGAWAI.map(({ nama, pola }) => {
+    const row = isi.find((item) => pola.test(labelBaris(item)))
+    if (!row) return null
+    const laki = numberValue(row[kolomLaki]) || 0
+    const perempuan = numberValue(row[kolomPerempuan]) || 0
+    return { nama, laki, perempuan, jumlah: numberValue(row[kolomJumlah]) ?? laki + perempuan }
+  }).filter(Boolean)
+
+  if (!golongan.length) return null
+
+  const laki = golongan.reduce((jumlah, item) => jumlah + item.laki, 0)
+  const perempuan = golongan.reduce((jumlah, item) => jumlah + item.perempuan, 0)
+
+  // Baris "TOTAL PEGAWAI" dipakai bila ada, supaya angkanya persis seperti yang
+  // tertulis di berkas.
+  const barisTotal = isi.find((item) => /^total\s*pegawai$/i.test(labelBaris(item)))
+  const totalTertulis = barisTotal ? numberValue(barisTotal[kolomJumlah]) : null
+
+  return {
+    golongan,
+    laki,
+    perempuan,
+    total: totalTertulis ?? golongan.reduce((jumlah, item) => jumlah + item.jumlah, 0)
+  }
+}
+
 export async function parseExcelABK(source) {
   const XLSX = await import('xlsx')
   if (!source) throw new Error('File Excel ABK belum dipilih.')
@@ -119,7 +190,15 @@ export async function parseExcelABK(source) {
   const rows = matrix.slice(headerIndex + 1).map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ''])))
   const result = parseABKRows(rows)
   if (!result.rows.length) throw new Error('Data pada sheet "ABK" tidak ditemukan setelah header.')
-  return { ...result, sheetTitle }
+
+  // Sheet rekapnya tidak wajib ada: berkas yang hanya memuat ABK tetap terbaca,
+  // rekapnya saja yang bernilai null.
+  const sheetRekap = workbook.Sheets['Rekap Jenis Klmn']
+  const rekap = sheetRekap
+    ? parseRekapPegawai(XLSX.utils.sheet_to_json(sheetRekap, { header: 1, defval: '', raw: true }))
+    : null
+
+  return { ...result, sheetTitle, rekap }
 }
 
 export async function parseExcelWorkbook(source) {
