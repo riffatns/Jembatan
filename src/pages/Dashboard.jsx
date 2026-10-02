@@ -5,6 +5,7 @@ import { useData } from '../context/DataContext'
 import { ServiceCard } from '../components/ServiceCard'
 import { SERVICE_META } from '../data/serviceMeta'
 import { DashboardHeader } from '../components/layout/DashboardHeader'
+import { BudgetOverview } from '../components/budget/BudgetOverview'
 import { AgendaCalendar } from '../components/agenda/AgendaCalendar'
 import { AgendaListItem } from '../components/agenda/AgendaListItem'
 import { AgendaEventDetail } from '../components/agenda/AgendaEventDetail'
@@ -32,7 +33,7 @@ function parseDateInputValue(value) {
 }
 
 export default function Dashboard() {
-  const { documents, agendaEvents, divisions, getDocumentDivision, getDocumentCategories } = useData()
+  const { documents, agendaEvents, divisions, getDocumentDivision, getDocumentCategories, stats } = useData()
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState(() => toDateInputValue(new Date()))
   const [detailEvent, setDetailEvent] = useState(null)
@@ -44,6 +45,8 @@ export default function Dashboard() {
   const selectedDivisionId = sessionStorage.getItem('bpk-dashboard-selected-division') || 'finance'
   const division = getDocumentDivision(selectedDivisionId) || getDocumentDivision('finance')
   const categories = getDocumentCategories(selectedDivisionId) || getDocumentCategories('finance')
+
+  const isFinanceDashboard = selectedDivisionId === 'finance'
 
   const divisionDocuments = useMemo(
     () => documents.filter((document) => document.divisionId === selectedDivisionId),
@@ -164,6 +167,12 @@ export default function Dashboard() {
         </div>
       </div>
       */}
+
+      {/* Angka anggaran hanya relevan di dashboard Keuangan. Sumbernya
+          stats.budget - dokumen anggaran yang sama dengan yang dibaca layanan
+          Realisasi Anggaran, jadi begitu berkasnya diganti, grafik di sini ikut
+          berubah tanpa ada angka yang perlu disunting. */}
+      {isFinanceDashboard && <BudgetOverview budget={stats.budget} />}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {overviewCards.map((item) => (
