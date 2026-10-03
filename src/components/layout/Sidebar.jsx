@@ -21,12 +21,15 @@ import {
   Building2,
   Boxes,
   Archive,
-  Handshake
+  Handshake,
+  Database
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { cn } from '../../lib/utils'
 import { AGENDA_CATEGORY_ID } from '../../lib/agendaStorage'
+import { getServiceContent } from '../../data/serviceContent'
+import { USE_NEW_ACCOUNT_VIEWS } from '../../lib/tampilan'
 
 const LEGACY_ICONS = {
   Users,
@@ -96,7 +99,7 @@ function DivisionItemIcon({ divisionId, categoryId, className }) {
   return <Icon className={className} />
 }
 
-const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/anggaran', '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
+const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/anggaran', '/dashboard/master-anggaran', '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
 
 // Blok merek di kiri atas sekaligus jalan kembali ke pemilihan bidang.
 //
@@ -174,6 +177,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
   const division = getDocumentDivision(divisionId)
   const categories = getDocumentCategories(divisionId)
   const punyaArsip = categories.some((category) => category.id === 'arsip')
+  const usesAccountViews = USE_NEW_ACCOUNT_VIEWS && divisionId === 'finance'
   const storageKey = `bpk-dashboard-active-category-${divisionId}`
   const [activeCategoryId, setActiveCategoryId] = useState(() => {
     // Kategori tersimpan bisa menunjuk layanan yang kini disembunyikan.
@@ -255,18 +259,37 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           {categories.map((category) => {
             const ActiveIcon = DIVISION_ICON_MAP[divisionId]?.[category.id] || FileText
             const isActive = !isDashboardRoute && !isSectionRoute && activeCategoryId === category.id
+            // Menu akun Keuangan tidak lagi berisi dokumen, jadi tanpa hitungan dokumen.
+            const isAccountMenu = usesAccountViews && Boolean(getServiceContent(category.id).budgetCode)
             return (
               <SidebarNavButton
                 key={category.id}
                 icon={ActiveIcon}
                 label={category.name}
-                count={categoryCounts[category.id] || 0}
+                count={isAccountMenu ? undefined : categoryCounts[category.id] || 0}
                 isActive={isActive}
                 onClick={() => selectCategory(category.id)}
               />
             )
           })}
         </div>
+
+        {usesAccountViews && user?.role === 'admin' && (
+          <div className="mt-5 border-t border-white/10 pt-4">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Master Data</p>
+            <div className="mt-3 space-y-1.5">
+              <SidebarNavButton
+                icon={Database}
+                label="Master Data Anggaran"
+                isActive={currentPath === '/dashboard/master-anggaran'}
+                onClick={() => {
+                  sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
+                  navigate('/dashboard/master-anggaran')
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 border-t border-white/10 pt-4">
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Monitoring</p>
