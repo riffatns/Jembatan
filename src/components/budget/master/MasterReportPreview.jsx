@@ -4,8 +4,8 @@ import { IconInfo, IconTableList } from '../../icons/DuotoneIcons'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../dashboard/dashboardTheme'
 import { ACCOUNT_GROUPS } from '../accounts/accountModel'
 
-const HEAD = 'sticky top-0 bg-[#e6eefb] px-2.5 py-1.5 text-right text-[12.5px] font-bold text-[#12305f] first:text-left'
-const CELL = 'whitespace-nowrap border-t border-[#e8edf5] px-2.5 py-1.5 text-right text-[12.5px] tabular-nums text-[#12305f] first:text-left'
+const HEAD = 'sticky top-0 bg-[#e6eefb] px-2 py-1.5 text-right text-[12px] font-bold text-[#12305f] first:text-left'
+const CELL = 'whitespace-nowrap border-t border-[#e8edf5] px-2 py-1.5 text-right text-[12px] tabular-nums text-[#12305f] first:whitespace-normal first:text-left'
 
 function GroupRow({ label, values, bold }) {
   const percent = values.pagu ? (values.realisasi / values.pagu) * 100 : 0
@@ -51,30 +51,33 @@ export function MasterReportPreview({ parsed, fiscalYear, periodMonth }) {
           <IconTableList className="h-5 w-5 text-[#2f7fe8]" />
           Pratinjau TA {fiscalYear} · s.d. {MONTH_NAMES[periodMonth - 1]}
         </h2>
-        <span className="rounded-full bg-[#dcf5e8] px-3 py-1 text-xs font-bold text-[#0b7a4f]">
-          Cocok dengan JUMLAH SELURUHNYA
+        <span
+          className="rounded-full bg-[#dcf5e8] px-3 py-1 text-xs font-bold text-[#0b7a4f]"
+          title="Jumlah semua baris akun sudah dicocokkan dengan baris JUMLAH SELURUHNYA di Excel dan sama persis."
+        >
+          ✓ Total cocok dengan Excel
         </span>
       </div>
       <p className="mb-2 text-[13px] text-[#3f557d]">
         {parsed.rowCount} baris akun dibaca, digabung menjadi {parsed.accounts.length} akun 6 digit.
       </p>
       <div className="min-h-0 overflow-auto rounded-xl border border-[#e1e8f4]">
-        <table className="w-full min-w-[600px] border-collapse">
+        <table className="w-full min-w-[680px] table-fixed border-collapse">
           <thead>
             <tr>
-              <th className={HEAD}>Akun</th>
+              <th className={`${HEAD} w-[19%]`}>Akun</th>
               <th className={HEAD}>Pagu</th>
               <th className={HEAD}>Realisasi s.d.</th>
               <th className={HEAD}>Bulan ini</th>
               <th className={HEAD}>Sisa</th>
-              <th className={HEAD}>%</th>
+              <th className={`${HEAD} w-[9%]`}>%</th>
             </tr>
           </thead>
           <tbody>
             {['51', '52', '53'].map((code) => (
-              <GroupRow key={code} label={`${code} · ${ACCOUNT_GROUPS[code].title} (${parsed.groups[code].accountCount} akun)`} values={parsed.groups[code]} />
+              <GroupRow key={code} label={<>{code} · {ACCOUNT_GROUPS[code].title}<span className="block text-[11px] font-normal text-[#7a8aa8]">{parsed.groups[code].accountCount} akun</span></>} values={parsed.groups[code]} />
             ))}
-            <GroupRow label="Total (Dashboard)" values={groupTotals} bold />
+            <GroupRow label={<>Total<span className="block text-[11px] font-normal text-[#7a8aa8]">tampil di Dashboard</span></>} values={groupTotals} bold />
           </tbody>
         </table>
       </div>

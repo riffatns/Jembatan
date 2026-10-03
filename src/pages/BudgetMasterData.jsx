@@ -89,7 +89,7 @@ export default function BudgetMasterData() {
   return (
     <div className="flex flex-col gap-4 text-[#12305f] fit:h-[calc(100dvh-4rem)] fit:gap-2.5 tall:gap-3">
       <BudgetDashboardHeader title="MASTER DATA ANGGARAN" icon={IconTableList} showYearPicker={false} />
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.6fr)] fit:min-h-0 fit:flex-1 fit:gap-2.5 tall:gap-3">
+      <section className="grid gap-4 fit:min-h-0 fit:grid-cols-[minmax(0,0.6fr)_minmax(0,1.7fr)] fit:flex-1 fit:gap-2.5 tall:gap-3">
         <MasterUploadForm
           file={file}
           parsing={parsing}
