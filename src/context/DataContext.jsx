@@ -12,6 +12,7 @@ import {
   loadBudgetData,
   loadStoredBudget,
   mapRemoteBudget,
+  mergeRemoteBudget,
   parseBudgetWorkbook,
   saveStoredBudget,
   toRemoteBudget
@@ -99,6 +100,21 @@ export function DataProvider({ children }) {
     return () => { active = false }
   }, [])
 
+  // Ambil ulang snapshot anggaran terbaru. Dipanggil oleh Dashboard Anggaran
+  // dan oleh realtime saat admin mengunggah berkas anggaran baru.
+  const refreshBudget = useCallback(async () => {
+    if (!isSupabaseConfigured || !user) return
+    const { data, error } = await supabase
+      .from('budget_snapshots')
+      .select('*')
+      .order('fiscal_year', { ascending: false })
+      .limit(1)
+    if (!error && data?.[0]) {
+      const remote = mapRemoteBudget(data[0])
+      setBudgetData((current) => mergeRemoteBudget(current, remote))
+    }
+  }, [user])
+
   useEffect(() => {
     if (!isSupabaseConfigured || !user) return undefined
     let active = true
@@ -151,12 +167,7 @@ export function DataProvider({ children }) {
       if (!contentResult.error) setContent(contentResult.data || [])
       if (!budgetResult.error && budgetResult.data?.[0]) {
         const remote = mapRemoteBudget(budgetResult.data[0])
-        setBudgetData((current) => ({
-          ...current,
-          ...remote,
-          // Snapshot lama bisa belum punya kolom breakdown; jangan hapus yang ada.
-          breakdown: remote.breakdown.length ? remote.breakdown : current.breakdown
-        }))
+        setBudgetData((current) => mergeRemoteBudget(current, remote))
       }
     }
     loadRemoteData().catch(() => {})
@@ -176,6 +187,11 @@ export function DataProvider({ children }) {
         if (event.eventType === 'INSERT') setContent((prev) => prev.some((item) => item.id === event.new.id) ? prev : [event.new, ...prev])
         if (event.eventType === 'UPDATE') setContent((prev) => prev.map((item) => item.id === event.new.id ? event.new : item))
         if (event.eventType === 'DELETE') setContent((prev) => prev.filter((item) => item.id !== event.old.id))
+      })
+      // Butuh budget_snapshots di publikasi supabase_realtime (supabase/anggaran-realtime.sql).
+      // Snapshot diambil ulang, bukan dari payload, supaya tetap tahun terbaru yang tampil.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'budget_snapshots' }, () => {
+        refreshBudget().catch(() => {})
       })
       .subscribe()
     return () => {
@@ -468,7 +484,7 @@ export function DataProvider({ children }) {
     return { total, pending, approved, rejected, perDivision, statusDistribution: [{ name: 'Approved', value: approved, color: '#00A99D' }, { name: 'Pending', value: pending, color: '#F5A623' }, { name: 'Rejected', value: rejected, color: '#E15554' }], totalDivisions: activeDivisions.length, budget, documentTotal: total, documentPending: pending, documentApproved: approved, documentRejected: rejected, documentsByDivision, documentsByCategory, latestDocuments, recentActivity }
   }, [activeDivisions, activeDocumentStructure, budgetData, content, documents])
 
-  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, assets, isAssetRemote, updateAssetsFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
+  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, refreshBudget, assets, isAssetRemote, updateAssetsFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 

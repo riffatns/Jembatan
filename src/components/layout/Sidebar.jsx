@@ -96,7 +96,7 @@ function DivisionItemIcon({ divisionId, categoryId, className }) {
   return <Icon className={className} />
 }
 
-const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
+const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/anggaran', '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
 
 // Blok merek di kiri atas sekaligus jalan kembali ke pemilihan bidang.
 //
@@ -249,6 +249,26 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           <Home className="h-5 w-5" />
           Dashboard
         </button>
+
+        {/* Dashboard Anggaran baru berjalan berdampingan dengan Dashboard lama
+            sampai yang lama dilepas. Hanya ada di Subbagian Keuangan. */}
+        {divisionId === 'finance' && (
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
+              navigate('/dashboard/anggaran')
+            }}
+            className={cn(
+              '-mt-2 mb-4 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition-colors',
+              currentPath === '/dashboard/anggaran' ? 'bg-white/20 text-white ring-1 ring-sky-300/70' : 'bg-white/10 text-sky-50 hover:bg-white/15'
+            )}
+          >
+            <LineChart className="h-5 w-5" />
+            Dashboard Anggaran
+            <span className="ml-auto rounded-full bg-emerald-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0b2d5a]">Baru</span>
+          </button>
+        )}
 
         <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Layanan</p>
         <div className="mt-3 space-y-1.5">

@@ -7,6 +7,7 @@ export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
   const isDivisionShellRoute = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard/division/') || location.pathname.startsWith('/dashboard/kalender') ||
+    location.pathname.startsWith('/dashboard/anggaran') ||
     location.pathname.startsWith('/dashboard/monitoring') ||
     location.pathname.startsWith('/dashboard/laporan') ||
     location.pathname.startsWith('/dashboard/panduan') ||

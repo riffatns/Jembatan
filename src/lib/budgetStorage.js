@@ -105,6 +105,16 @@ export function mapRemoteBudget(snapshot) {
   }
 }
 
+// Snapshot dari server menimpa angka di layar, kecuali rinciannya: snapshot
+// lama bisa belum punya kolom breakdown, dan rincian yang ada jangan dihapus.
+export function mergeRemoteBudget(current, remote) {
+  return {
+    ...current,
+    ...remote,
+    breakdown: remote.breakdown.length ? remote.breakdown : current.breakdown
+  }
+}
+
 export function toRemoteBudget(budget) {
   return {
     fiscal_year: budget.fiscalYear,
