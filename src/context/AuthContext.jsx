@@ -126,7 +126,10 @@ export function AuthProvider({ children }) {
     async (updates) => {
       if (!user) return
       if (isSupabaseConfigured) {
-        const { data: updatedProfile, error } = await supabase.from('profiles').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', user.id).select('*').single()
+        // Peran dan bidang tidak pernah diubah dari profil sendiri; database juga
+        // menguncinya (supabase/perbaikan-profil-peran.sql).
+        const { role: _role, division_id: _divisionId, division: _division, ...safeUpdates } = updates
+        const { data: updatedProfile, error } = await supabase.from('profiles').update({ ...safeUpdates, updated_at: new Date().toISOString() }).eq('id', user.id).select('*').single()
         if (error) throw error
         const updated = { ...updatedProfile, division: updatedProfile.division_id }
         setUser(updated)
