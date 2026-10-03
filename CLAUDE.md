@@ -97,13 +97,18 @@ Repo ini dua bahasa. Pembagiannya sudah terbentuk dan harus dijaga:
   tambahan ratusan baris ke berkas yang sudah besar.
 - Berkas yang **sudah** melewati batas — jangan ditambah lagi kecuali
   beberapa baris penyambung (rute, tombol menu, satu callback):
-  `seed.js` 858, `HrOverview.jsx` 634, `Sidebar.jsx` 497, `DataContext.jsx` 495,
-  `agendaStorage.js` 475, `DivisionWorkspace.jsx` 466, `DocumentUploadModal.jsx` 405.
+  `seed.js` 858, `HrOverview.jsx` 634, `Sidebar.jsx` 520, `DataContext.jsx` 495,
+  `agendaStorage.js` 475, `DivisionWorkspace.jsx` 473, `DocumentUploadModal.jsx` 405.
   Kalau sebuah tugas harus mengubah banyak di sana, keluarkan bagian yang
   diubah ke modul baru dulu, dalam commit terpisah.
 - Halaman yang harus muat satu layar memakai varian Tailwind `fit:` (desktop
-  ≥ 1360×600) dan `tall:` (tinggi ≥ 900) dari `tailwind.config.js`, bukan
-  angka tinggi tetap. Di bawah `fit` halaman boleh di-scroll (ponsel, tablet).
+  ≥ 1360×600), `fitwide:` (≥ 1440×600), dan `tall:` (tinggi ≥ 900) dari
+  `tailwind.config.js`, bukan angka tinggi tetap. Di bawah `fit` halaman boleh
+  di-scroll (ponsel, tablet).
+- **Jangan** memakai varian `min-[…px]:` / `max-[…px]:`: tidak didukung bila
+  `screens` berisi objek (build hanya memberi peringatan, kelasnya diam-diam
+  hilang). Tambahkan screen bernama di `tailwind.config.js`. Jangan pula merakit
+  nama kelas dari variabel (`${X}:grid`) — Tailwind tidak bisa menemukannya.
 - Animasi angka dan grafik memakai `useAnimatedProgress` / `useCountUp`
   (`components/budget/dashboard/useAnimatedProgress.js`) yang sudah menghormati
   `prefers-reduced-motion`. Jangan menambah library animasi.
@@ -174,6 +179,33 @@ Saat menambah fitur:
 - Realtime: tabel baru yang perlu sinkron harus ditambahkan ke publikasi
   `supabase_realtime` dan didengarkan di kanal `dashboard-data-sync` (`DataContext`).
 
+## Master Data Anggaran (Subbagian Keuangan)
+
+Sumber angka tunggal untuk Dashboard Keuangan dan menu Belanja Pegawai (51),
+Belanja Barang (52), Belanja Modal (53).
+
+- **Masukan**: "Laporan Realisasi SP2D — Fa Detail 16 Segmen, Akun Based" (Excel
+  cetakan aplikasi resmi), diunggah administrator di `/dashboard/master-anggaran`
+  dengan pilihan Tahun Anggaran + Bulan. Tanpa approval.
+- **Parser**: `src/lib/budgetReportParser.js` (murni, tanpa import lokal, bisa diuji
+  dengan Node terhadap berkas asli). Baris akun = kode `^5\d{5}$`; tujuh angka dibaca
+  menurut urutan (posisi kolom bergeser karena sel gabungan). Berkas **ditolak** bila
+  jumlah seluruh akun ≠ baris `JUMLAH SELURUHNYA` atau lalu + ini ≠ s.d. periode.
+- **Penyimpanan**: tabel `budget_reports` (satu baris per `fiscal_year`, unggahan
+  berikutnya menimpa) + log `budget_report_uploads`; ringkasan 51/52/53 juga ditulis ke
+  `budget_snapshots` agar menu lama sama. SQL: `supabase/anggaran-master.sql`.
+- **State**: `src/context/BudgetReportContext.jsx` (`useBudgetReports`): TA aktif,
+  pemilih TA, realtime, `saveReport`.
+- **Korelasi**: Dashboard = `reportToBudget(laporan)` = jumlah grup 51 + 52 + 53;
+  menu akun = `buildAccountModel(laporan, '51'|'52'|'53')`. Keduanya dari laporan yang
+  sama, jadi total tiga menu akun selalu = total dashboard. Jangan menghitung ulang
+  dari sumber lain.
+- Saklar `USE_NEW_FINANCE_DASHBOARD` dan `USE_NEW_ACCOUNT_VIEWS` (`src/lib/tampilan.js`)
+  mengembalikan tampilan lama tanpa menghapus kode.
+- Uji wajib bila parser/master data diubah: skrip Node terhadap berkas asli (total =
+  JUMLAH SELURUHNYA, 51 = 60,77 %, 52 = 46,41 %, 53 sisa Rp1.004 untuk laporan Oktober 2026)
+  dan uji berkas rusak harus ditolak.
+
 ## Alur kerja per perubahan
 
 1. Baca berkas yang akan diubah dan pemanggilnya. Ikuti gaya berkas itu.
@@ -182,10 +214,14 @@ Saat menambah fitur:
 4. `npm run build` lulus.
 5. Uji manual di browser: alur yang diubah **dan** alur lama di sekitarnya
    (mis. ubah dashboard → cek juga unggah berkas, sidebar, Dashboard lama).
-   Cek lebar 1440 px, 1920 px, dan ponsel (390 px).
-6. Commit kecil per langkah logis, pesan Conventional Commits bahasa Indonesia.
-7. Push branch → cek preview Vercel → gabung ke `main` setelah disetujui.
-8. Bila ada SQL baru, tulis di deskripsi PR: berkas mana yang harus dijalankan
+6. **Uji responsif wajib** di lima ukuran viewport: 1920×945, 1536×730,
+   1366×657 (laptop umum), 1280×620, dan ponsel 390×844. Dashboard dan halaman
+   ringkasan harus muat satu layar tanpa scroll di ukuran `fit` (≥ 1360×600),
+   tanpa teks terpotong, tanpa kartu yang isinya meluap, dan tanpa scroll
+   horizontal halaman. Di bawah `fit` boleh scroll, tetapi tetap rapi bertumpuk.
+7. Commit kecil per langkah logis, pesan Conventional Commits bahasa Indonesia.
+8. Push branch → cek preview Vercel → gabung ke `main` setelah disetujui.
+9. Bila ada SQL baru, tulis di deskripsi PR: berkas mana yang harus dijalankan
    di SQL Editor Supabase dan urutannya.
 
 ## Temuan terbuka (audit 2026-10-03, belum diperbaiki)
@@ -196,7 +232,7 @@ satu per satu dalam branch tersendiri.
 
 | # | Tingkat | Temuan | Lokasi |
 |---|---|---|---|
-| 1 | Kritis | Pengguna bisa mengubah `role`/`division_id` miliknya sendiri jadi admin: kebijakan update `profiles` tidak membatasi kolom | `supabase/schema.sql` kebijakan "Users can update their profile"; `AuthContext.updateProfile` |
+| 1 | Kritis | Pengguna bisa mengubah `role`/`division_id` miliknya sendiri jadi admin. **Perbaikan sudah ditulis** (`supabase/perbaikan-profil-peran.sql` + `updateProfile` membuang kolom itu); tertutup setelah owner menjalankan SQL-nya | `supabase/schema.sql`; `AuthContext.updateProfile` |
 | 2 | Tinggi | Kata sandi tersimpan polos di localStorage (`bpk-dashboard-last-login`) dan tidak dihapus saat logout | `AuthContext.jsx` `rememberLogin` |
 | 3 | Tinggi | `xlsx@0.18.5` punya advisory prototype pollution + ReDoS, tanpa perbaikan di npm (versi aman hanya dari CDN SheetJS) | `package.json` |
 | 4 | Sedang | Peran `viewer` tidak ditegakkan di RLS maupun klien; pemilik konten bisa menyetujui kontennya sendiri | `supabase/policies.sql` |
