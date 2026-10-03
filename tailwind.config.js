@@ -4,6 +4,12 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      // fit: layar desktop yang cukup lebar dan tinggi untuk Dashboard Anggaran
+      // satu layar tanpa scroll. tall: layar yang cukup tinggi untuk ukuran penuh.
+      screens: {
+        fit: { raw: '(min-width: 1360px) and (min-height: 600px)' },
+        tall: { raw: '(min-width: 1360px) and (min-height: 900px)' }
+      },
       colors: {
         navy: {
           DEFAULT: '#003366',
