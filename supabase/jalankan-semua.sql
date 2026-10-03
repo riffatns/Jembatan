@@ -363,6 +363,22 @@ create policy "Finance and admin can update budget snapshots"
 
 
 -- ----------------------------------------------------------------------------
+-- 5b. Realtime anggaran
+-- ----------------------------------------------------------------------------
+-- Dashboard Anggaran ikut berubah begitu admin mengunggah berkas anggaran baru,
+-- tanpa pengguna lain perlu memuat ulang halaman. Sama dengan anggaran-realtime.sql.
+
+do $do$
+begin
+  alter publication supabase_realtime add table public.budget_snapshots;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
 -- 6. Penamaan bidang
 -- ----------------------------------------------------------------------------
 -- Yang diperbaiki: nama bidang di basis data disamakan dengan yang dipakai
@@ -549,4 +565,10 @@ union all
 select 'Angka bidang (public.division_metrics)',
        case when to_regclass('public.division_metrics') is not null
        then 'OK' else 'BELUM' end
+union all
+select 'Realtime anggaran (budget_snapshots)',
+       case when exists (
+         select 1 from pg_publication_tables
+         where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'budget_snapshots'
+       ) then 'OK' else 'BELUM' end
 order by 1;
