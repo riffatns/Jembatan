@@ -8,15 +8,20 @@ import {
   FileText,
   GraduationCap,
   LoaderCircle,
+  PencilLine,
   Star,
   TrendingDown,
   User,
   UserRound,
   Users
 } from 'lucide-react'
+import { Button } from '../ui/button'
+import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { hasDocumentFile, resolveDocumentFileUrl } from '../../lib/documentStorage'
 import { parseExcelABK } from '../../lib/parseExcelABK'
+import { formatWaktuMetrik, loadMetrics } from '../../lib/metricStorage'
+import { HrDataModal } from './HrDataModal'
 import {
   AGENDA_STATUSES,
   agendaCoversDate,
@@ -69,10 +74,24 @@ function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon, kosong = f
 
 export function HrOverview({ divisionId }) {
   const { documents, agendaEvents } = useData()
+  const { user, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [memuat, setMemuat] = useState(true)
   const [galat, setGalat] = useState('')
+  const [metrik, setMetrik] = useState(null)
+  const [formTerbuka, setFormTerbuka] = useState(false)
+  const [kabar, setKabar] = useState(null)
+
+  const bolehMengisi = isAdmin || (user?.division || user?.division_id) === divisionId
+
+  useEffect(() => {
+    let dibatalkan = false
+    loadMetrics(divisionId)
+      .then((hasil) => { if (!dibatalkan) setMetrik(hasil) })
+      .catch(() => { if (!dibatalkan) setMetrik(null) })
+    return () => { dibatalkan = true }
+  }, [divisionId])
 
   // Angka pegawai tidak disimpan di basis data - sumbernya berkas bezetting
   // yang diunggah di layanan Bezetting. Yang dibaca selalu dokumen terbaru,
@@ -125,21 +144,54 @@ export function HrOverview({ divisionId }) {
     )
   }, [agendaEvents, divisionId])
 
+  // Isian form menang atas angka dari berkas: diisi lebih sengaja dan biasanya
+  // lebih baru. Yang tidak diisi tetap memakai angka berkasnya.
+  const isian = metrik?.nilai || {}
+  const pakai = (kunci, dariBerkas) => (isian[kunci] ?? null) !== null ? isian[kunci] : dariBerkas
+  const sumber = (kunci) => ((isian[kunci] ?? null) !== null ? 'form' : 'berkas')
+
   const total = data?.total
-  const standar = total?.standar ?? 0
-  const riil = total?.riil ?? 0
-  const kekurangan = Math.abs(total?.selisih ?? 0)
+  // Dibedakan antara "belum ada angkanya" dan "angkanya nol". Kalau form baru
+  // diisi satu kolom, sisanya tidak boleh tampil sebagai 0 - tidak ada yang
+  // pernah menyatakan jumlahnya nol. Yang belum ada tampil sebagai garis.
+  const angkaRiil = pakai('totalPegawai', total?.riil ?? null)
+  const angkaStandar = pakai('kebutuhanAbk', total?.standar ?? null)
+  const adaRiil = angkaRiil !== null && angkaRiil !== undefined
+  const adaStandar = angkaStandar !== null && angkaStandar !== undefined
+  const riil = adaRiil ? angkaRiil : 0
+  const standar = adaStandar ? angkaStandar : 0
+  const kekurangan = Math.max(0, standar - riil)
   const ketersediaan = standar ? Math.round((riil / standar) * 100) : 0
 
   const rekap = data?.rekap
-  const golongan = useMemo(() => {
-    if (!rekap?.golongan?.length) return []
-    return rekap.golongan.map((item, index) => ({
-      ...item,
-      warna: WARNA_GOLONGAN[item.nama] || WARNA_CADANGAN[index % WARNA_CADANGAN.length],
-      persen: rekap.total ? (item.jumlah / rekap.total) * 100 : 0
-    }))
-  }, [rekap])
+  // Komposisi disusun dari isian form bila ada, kalau tidak dari rekap berkas.
+  // Keduanya tidak dicampur per golongan supaya persentasenya tetap berjumlah
+  // seratus - mencampur angka dua periode akan menghasilkan total yang aneh.
+  const komposisi = useMemo(() => {
+    const dariForm = ['PNS', 'TTT', 'OB']
+      .map((nama) => ({ nama, jumlah: isian[nama.toLowerCase()] }))
+      .filter((item) => item.jumlah !== null && item.jumlah !== undefined)
+
+    const sumberGolongan = dariForm.length ? dariForm : rekap?.golongan || []
+    const laki = isian.laki ?? rekap?.laki ?? null
+    const perempuan = isian.perempuan ?? rekap?.perempuan ?? null
+    const totalGolongan = sumberGolongan.reduce((jumlah, item) => jumlah + (item.jumlah || 0), 0)
+    const totalOrang = totalGolongan || ((laki || 0) + (perempuan || 0))
+
+    if (!totalOrang) return null
+
+    return {
+      golongan: sumberGolongan.map((item, index) => ({
+        ...item,
+        warna: WARNA_GOLONGAN[item.nama] || WARNA_CADANGAN[index % WARNA_CADANGAN.length],
+        persen: totalOrang ? ((item.jumlah || 0) / totalOrang) * 100 : 0
+      })),
+      laki,
+      perempuan,
+      total: totalOrang,
+      dariForm: dariForm.length > 0
+    }
+  }, [rekap, isian])
 
   // Angka cuti dan diklat tidak ada di sheet ABK maupun rekap - keduanya diisi
   // manual sebagai baris label dan nilai pada sheet "JUMLAH SDM". Dicari lewat
@@ -147,8 +199,13 @@ export function HrOverview({ divisionId }) {
   // berbeda. Kalau belum ada barisnya, kartunya tampil kosong, bukan nol -
   // "belum diisi" dan "tidak ada yang cuti" dua hal yang berbeda.
   const angka = (pola) => (data?.daftarAngka || []).find((item) => pola.test(item.label))
-  const cuti = angka(/cuti/i)
-  const diklat = angka(/diklat|pelatihan/i)
+  const dariDaftar = (kunci, pola) => {
+    if ((isian[kunci] ?? null) !== null) return { nilai: isian[kunci], label: 'Diisi lewat form' }
+    const ketemu = angka(pola)
+    return ketemu ? { nilai: ketemu.nilai, label: ketemu.label } : null
+  }
+  const cuti = dariDaftar('cutiAktif', /cuti/i)
+  const diklat = dariDaftar('diklatBerjalan', /diklat|pelatihan/i)
 
   // Unit yang kekurangan orang paling banyak. Menggantikan daftar "jabatan
   // prioritas" yang tidak punya sumber data: ini dihitung dari selisih pada
@@ -170,30 +227,101 @@ export function HrOverview({ divisionId }) {
     )
   }
 
-  if (!dokumenBezetting || galat) {
+  const formModal = (
+    <HrDataModal
+      open={formTerbuka}
+      onOpenChange={setFormTerbuka}
+      divisionId={divisionId}
+      awal={metrik}
+      onTersimpan={(record, { shared, message }) => {
+        setMetrik(record)
+        setKabar(
+          shared
+            ? { nada: 'sukses', teks: 'Data tersimpan dan terlihat oleh semua pengguna.' }
+            : {
+                nada: 'ingat',
+                teks: message
+                  ? `Data tersimpan di browser ini, tetapi gagal dikirim ke server: ${message}`
+                  : 'Data tersimpan di browser ini saja. Jalankan supabase/jalankan-semua.sql agar terlihat oleh semua pengguna.'
+              }
+        )
+      }}
+    />
+  )
+
+  // Isian form saja sudah cukup untuk menampilkan dashboard - berkas bezetting
+  // tidak wajib ada lebih dulu.
+  const adaIsian = Object.keys(isian).length > 0
+
+  if ((!dokumenBezetting && !adaIsian) || (galat && !adaIsian)) {
     return (
-      <div className="rounded-[24px] border border-dashed border-slate-300 bg-white p-8 text-center">
-        <FileSpreadsheet className="mx-auto h-10 w-10 text-slate-300" />
-        <h2 className="mt-3 text-lg font-bold text-[#233b84]">Data pegawai belum tersedia</h2>
-        <p className="mx-auto mt-1 max-w-xl text-sm text-slate-500">
-          {galat
-            ? galat
-            : 'Unggah berkas bezetting pada layanan Bezetting. Angka di halaman ini dibaca langsung dari sheet ABK dan Rekap Jenis Klmn pada berkas itu, jadi begitu berkasnya diperbarui, tampilan ini ikut berubah.'}
-        </p>
-      </div>
+      <>
+        <div className="rounded-[24px] border border-dashed border-slate-300 bg-white p-8 text-center">
+          <FileSpreadsheet className="mx-auto h-10 w-10 text-slate-300" />
+          <h2 className="mt-3 text-lg font-bold text-[#233b84]">Data pegawai belum tersedia</h2>
+          <p className="mx-auto mt-1 max-w-xl text-sm text-slate-500">
+            {galat
+              ? galat
+              : 'Unggah berkas bezetting pada layanan Bezetting, atau isi langsung lewat form di bawah. Angka dari berkas dibaca otomatis; yang tidak ada di berkas bisa diketik sendiri.'}
+          </p>
+          {bolehMengisi && (
+            <Button variant="teal" className="mt-4 rounded-full px-5" onClick={() => setFormTerbuka(true)}>
+              <PencilLine className="h-4 w-4" /> Isi Data SDM
+            </Button>
+          )}
+        </div>
+        {formModal}
+      </>
     )
   }
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          {metrik?.diperbaruiPada
+            ? `Sebagian angka diisi lewat form${metrik.diperbaruiOleh ? ` oleh ${metrik.diperbaruiOleh}` : ''}, ${formatWaktuMetrik(metrik.diperbaruiPada)}.`
+            : 'Seluruh angka dibaca dari berkas bezetting terbaru.'}
+          {metrik?.catatan ? ` ${metrik.catatan}` : ''}
+        </p>
+        {bolehMengisi && (
+          <Button variant="outline" className="rounded-full px-4" onClick={() => setFormTerbuka(true)}>
+            <PencilLine className="h-4 w-4" /> Perbarui Data
+          </Button>
+        )}
+      </div>
+
+      {kabar && (
+        <div
+          className={`flex items-start justify-between gap-3 rounded-2xl px-4 py-3 text-sm ring-1 ${
+            kabar.nada === 'sukses'
+              ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
+              : 'bg-amber-50 text-amber-900 ring-amber-200'
+          }`}
+        >
+          <p className="min-w-0">{kabar.teks}</p>
+          <button type="button" onClick={() => setKabar(null)} className="shrink-0 cursor-pointer font-semibold underline">
+            Tutup
+          </button>
+        </div>
+      )}
+
+      {formModal}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kartu
           label="Total Pegawai"
           nilai={riil}
-          keterangan="Jumlah riil pada berkas bezetting"
+          keterangan={
+            adaRiil
+              ? sumber('totalPegawai') === 'form'
+                ? 'Diisi lewat form'
+                : 'Jumlah riil pada berkas bezetting'
+              : 'Belum ada angkanya'
+          }
           persen={ketersediaan}
           warna="#2563eb"
           ikon={Users}
+          kosong={!adaRiil}
         />
         <Kartu
           label="Cuti Aktif"
@@ -214,17 +342,18 @@ export function HrOverview({ divisionId }) {
           kosong={!diklat}
         />
         <Kartu
-          label="Ketersediaan Formasi"
+          label="Ketersediaan"
           nilai={`${ketersediaan}%`}
-          keterangan={`${riil} dari ${standar} formasi`}
+          keterangan={adaRiil && adaStandar ? `${riil} dari ${standar} formasi` : 'Belum ada angka formasinya'}
           persen={ketersediaan}
           warna="#16a34a"
           ikon={AlertTriangle}
+          kosong={!adaRiil || !adaStandar}
         />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        {golongan.length > 0 && (
+        {komposisi && (
           <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-6">
             <div className="flex items-start gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eff5ff] text-[#1f63d3]">
@@ -241,7 +370,7 @@ export function HrOverview({ divisionId }) {
                 aria-hidden="true"
                 className="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-full"
                 style={{
-                  background: `conic-gradient(${golongan
+                  background: `conic-gradient(${komposisi.golongan
                     .reduce(
                       (hasil, item) => {
                         const akhir = hasil.posisi + item.persen
@@ -254,14 +383,18 @@ export function HrOverview({ divisionId }) {
                     .bagian.join(', ')})`
                 }}
               >
+                {/* Bukan "Total Pegawai": angka ini jumlah golongan yang terdata,
+                    yang tidak selalu sama dengan jumlah riil di kartu atas -
+                    sumbernya dua sheet berbeda. Diberi nama lain supaya dua
+                    angka berbeda tidak tampil dengan label yang sama. */}
                 <div className="absolute inset-[22px] flex flex-col items-center justify-center rounded-full bg-white">
-                  <span className="text-2xl font-bold tabular-nums text-[#233b84]">{rekap.total}</span>
-                  <span className="text-[11px] leading-tight text-slate-500">Total Pegawai</span>
+                  <span className="text-2xl font-bold tabular-nums text-[#233b84]">{komposisi.total}</span>
+                  <span className="text-[11px] leading-tight text-slate-500">Pegawai Terdata</span>
                 </div>
               </div>
 
               <dl className="min-w-0 flex-1 space-y-2.5">
-                {golongan.map((item) => (
+                {komposisi.golongan.map((item) => (
                   <div key={item.nama} className="flex items-center justify-between gap-3">
                     <dt className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
                       <span
@@ -282,8 +415,8 @@ export function HrOverview({ divisionId }) {
 
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
               {[
-                { label: 'Laki-laki', nilai: rekap.laki, warna: '#2563eb', ikon: User },
-                { label: 'Perempuan', nilai: rekap.perempuan, warna: '#db2777', ikon: UserRound }
+                { label: 'Laki-laki', nilai: komposisi.laki ?? 0, warna: '#2563eb', ikon: User },
+                { label: 'Perempuan', nilai: komposisi.perempuan ?? 0, warna: '#db2777', ikon: UserRound }
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-3 rounded-2xl bg-[#f8fbff] px-4 py-3">
                   <span
@@ -297,7 +430,7 @@ export function HrOverview({ divisionId }) {
                     <p className="flex items-baseline gap-2">
                       <span className="text-xl font-bold tabular-nums text-[#233b84]">{item.nilai}</span>
                       <span className="text-xs tabular-nums text-slate-400">
-                        {rekap.total ? Math.round((item.nilai / rekap.total) * 100) : 0}%
+                        {komposisi.total ? Math.round((item.nilai / komposisi.total) * 100) : 0}%
                       </span>
                     </p>
                   </div>
@@ -325,33 +458,39 @@ export function HrOverview({ divisionId }) {
             {[
               {
                 label: 'Pegawai Aktif',
-                nilai: riil,
-                sisi: riil && rekap?.total ? `${Math.round((riil / rekap.total) * 100)}%` : '100%',
-                keterangan: 'dari total pegawai',
+                nilai: adaRiil ? riil : '–',
+                sisi: adaRiil
+                  ? riil && komposisi?.total
+                    ? `${Math.round((riil / komposisi.total) * 100)}%`
+                    : '100%'
+                  : '',
+                keterangan: adaRiil ? 'dari total pegawai' : 'belum ada angkanya',
                 warna: '#16a34a',
                 ikon: Users
               },
               {
                 label: 'Kebutuhan ABK',
-                nilai: standar,
-                sisi: '100%',
-                keterangan: 'total formasi',
+                nilai: adaStandar ? standar : '–',
+                sisi: adaStandar ? '100%' : '',
+                keterangan: adaStandar ? 'total formasi' : 'belum ada angkanya',
                 warna: '#2563eb',
                 ikon: FileText
               },
               {
                 label: 'Kekurangan Pegawai',
-                nilai: kekurangan,
-                sisi: `${standar ? Math.round((kekurangan / standar) * 100) : 0}%`,
-                keterangan: 'dari kebutuhan ABK',
+                nilai: adaRiil && adaStandar ? kekurangan : '–',
+                sisi: adaRiil && adaStandar ? `${standar ? Math.round((kekurangan / standar) * 100) : 0}%` : '',
+                keterangan: adaRiil && adaStandar ? 'dari kebutuhan ABK' : 'perlu dua angka di atas',
                 warna: '#dc2626',
                 ikon: AlertTriangle
               },
               {
+                // Hitungan per unit hanya ada kalau berkas bezettingnya terbaca.
+                // Isian form tidak memuat rinciannya.
                 label: 'Unit Kekurangan',
-                nilai: unitKurang,
+                nilai: data?.rows?.length ? unitKurang : '–',
                 sisi: '',
-                keterangan: 'perlu tindak lanjut',
+                keterangan: data?.rows?.length ? 'perlu tindak lanjut' : 'perlu berkas bezetting',
                 warna: '#7c3aed',
                 ikon: Star
               }
@@ -367,7 +506,13 @@ export function HrOverview({ divisionId }) {
                   <span className="block truncate text-sm font-medium" style={{ color: item.warna }}>
                     {item.label}
                   </span>
-                  <span className="block text-xl font-bold tabular-nums text-[#233b84]">{item.nilai}</span>
+                  <span
+                    className={`block text-xl font-bold tabular-nums ${
+                      item.nilai === '–' ? 'text-slate-300' : 'text-[#233b84]'
+                    }`}
+                  >
+                    {item.nilai}
+                  </span>
                 </dt>
                 <dd className="shrink-0 text-right">
                   {item.sisi ? (
