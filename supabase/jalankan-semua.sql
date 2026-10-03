@@ -379,6 +379,111 @@ $do$;
 
 
 -- ----------------------------------------------------------------------------
+-- 5c. Master Data Anggaran (laporan realisasi SP2D per akun)
+-- ----------------------------------------------------------------------------
+-- Satu laporan per tahun anggaran, diunggah administrator lewat menu Master
+-- Data. Sama dengan anggaran-master.sql.
+
+create table if not exists public.budget_reports (
+  id uuid primary key default gen_random_uuid(),
+  fiscal_year integer not null unique,
+  period_month integer not null check (period_month between 1 and 12),
+  period_label text,
+  satker text,
+  accounts jsonb not null default '[]'::jsonb,
+  groups jsonb not null default '{}'::jsonb,
+  totals jsonb not null default '{}'::jsonb,
+  source_file_name text,
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  uploaded_by_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Riwayat setiap unggahan: siapa, kapan, berkas apa, totalnya berapa.
+create table if not exists public.budget_report_uploads (
+  id uuid primary key default gen_random_uuid(),
+  fiscal_year integer not null,
+  period_month integer not null check (period_month between 1 and 12),
+  source_file_name text,
+  account_count integer not null default 0,
+  totals jsonb not null default '{}'::jsonb,
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  uploaded_by_name text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.budget_reports enable row level security;
+alter table public.budget_report_uploads enable row level security;
+
+drop policy if exists "Authenticated users can read budget reports" on public.budget_reports;
+drop policy if exists "Admins can insert budget reports" on public.budget_reports;
+drop policy if exists "Admins can update budget reports" on public.budget_reports;
+drop policy if exists "Authenticated users can read budget report uploads" on public.budget_report_uploads;
+drop policy if exists "Admins can insert budget report uploads" on public.budget_report_uploads;
+
+-- Semua yang login boleh membaca: angka ini tampil di dashboard dan menu akun.
+create policy "Authenticated users can read budget reports"
+  on public.budget_reports for select to authenticated using (true);
+
+-- Hanya administrator yang boleh mengubah master data. Tidak ada kebijakan
+-- delete: menghapus laporan hanya lewat SQL Editor.
+create policy "Admins can insert budget reports"
+  on public.budget_reports for insert to authenticated
+  with check (public.current_profile_role() = 'admin');
+
+create policy "Admins can update budget reports"
+  on public.budget_reports for update to authenticated
+  using (public.current_profile_role() = 'admin')
+  with check (public.current_profile_role() = 'admin');
+
+create policy "Authenticated users can read budget report uploads"
+  on public.budget_report_uploads for select to authenticated using (true);
+
+create policy "Admins can insert budget report uploads"
+  on public.budget_report_uploads for insert to authenticated
+  with check (public.current_profile_role() = 'admin' and uploaded_by = auth.uid());
+
+-- Dashboard dan menu akun yang sedang terbuka ikut berubah begitu laporan baru disimpan.
+do $do$
+begin
+  alter publication supabase_realtime add table public.budget_reports;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
+-- 5d. Kunci peran dan bidang pada profil
+-- ----------------------------------------------------------------------------
+-- Pengguna tidak bisa lagi menjadikan dirinya admin atau pindah bidang sendiri.
+-- Sama dengan perbaikan-profil-peran.sql.
+
+create or replace function public.protect_profile_role()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null and coalesce(public.current_profile_role(), '') <> 'admin' then
+    new.role := old.role;
+    new.division_id := old.division_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_role on public.profiles;
+
+create trigger protect_profile_role
+  before update on public.profiles
+  for each row execute function public.protect_profile_role();
+
+
+-- ----------------------------------------------------------------------------
 -- 6. Penamaan bidang
 -- ----------------------------------------------------------------------------
 -- Yang diperbaiki: nama bidang di basis data disamakan dengan yang dipakai
@@ -565,6 +670,16 @@ union all
 select 'Angka bidang (public.division_metrics)',
        case when to_regclass('public.division_metrics') is not null
        then 'OK' else 'BELUM' end
+union all
+select 'Master data anggaran (public.budget_reports)',
+       case when to_regclass('public.budget_reports') is not null
+             and to_regclass('public.budget_report_uploads') is not null
+       then 'OK' else 'BELUM' end
+union all
+select 'Kunci peran profil (trigger protect_profile_role)',
+       case when exists (
+         select 1 from pg_trigger where tgname = 'protect_profile_role' and not tgisinternal
+       ) then 'OK' else 'BELUM' end
 union all
 select 'Realtime anggaran (budget_snapshots)',
        case when exists (
