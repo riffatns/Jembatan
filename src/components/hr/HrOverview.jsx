@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   ArrowRight,
+  BarChart3,
   CalendarDays,
   FileSpreadsheet,
   FileText,
@@ -37,15 +38,23 @@ const HARI_KE_DEPAN = 7
 const WARNA_GOLONGAN = { PNS: '#2563eb', TTT: '#7c3aed', OB: '#0ea5e9' }
 const WARNA_CADANGAN = ['#16a34a', '#f59e0b', '#64748b']
 
-// Susunannya mengikuti rancangan: ikon bulat di kiri, judul di sebelahnya,
-// angka besar di bawahnya, lalu keterangan, dan bilah dengan persentasenya di
-// ujung kanan. Angka maupun panjang bilahnya dihitung dari data, bukan nilai
-// tetap - persentase di rancangan hanya contoh tampilan.
-function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon, kosong = false }) {
-  const terbatas = kosong ? 0 : Math.max(0, Math.min(100, Math.round(persen)))
-
+// Ikon bulat di kiri, judul di sebelahnya, angka besar di bawahnya, lalu satu
+// baris keterangan.
+//
+// Bilah persentase sebelumnya ada di sini dan sudah dilepas. Pada kartu seperti
+// Cuti Aktif angkanya menyesatkan - "7%" di situ persentase terhadap seluruh
+// pegawai, yang bukan pertanyaan yang sedang dijawab kartu itu. Persentase kini
+// hanya tampil di kartu yang memang isinya persentase, sebagai angka utamanya,
+// dengan pembagiannya diterangkan di baris keterangan.
+//
+// keterangan menjelaskan arti angkanya dan selalu tampil. sumber menjelaskan
+// asal angkanya dan ikut saklar global - dua hal berbeda, jadi dipisah.
+function Kartu({ label, nilai, keterangan, sumber, warna, ikon: Ikon, kosong = false }) {
   return (
     <div className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+      {/* Judul boleh turun ke baris kedua. Tingginya tetap dikuasai ikon 36px,
+          jadi dua baris pun kartunya tidak ikut memanjang - dan judul panjang
+          seperti "Ketersediaan Formasi" tidak perlu dipotong. */}
       <div className="flex items-center gap-2.5">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
@@ -53,7 +62,7 @@ function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon, kosong = f
         >
           <Ikon className="h-4 w-4" />
         </span>
-        <p className="min-w-0 truncate text-sm font-semibold text-[#233b84]">{label}</p>
+        <p className="min-w-0 text-sm font-semibold leading-tight text-[#233b84]">{label}</p>
       </div>
 
       <p
@@ -61,14 +70,10 @@ function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon, kosong = f
       >
         {kosong ? '–' : nilai}
       </p>
-      {TAMPILKAN_SUMBER_ANGKA && <p className="mt-0.5 text-xs text-slate-500">{keterangan}</p>}
-
-      <div className="mt-3 flex items-center gap-2">
-        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full" style={{ width: `${terbatas}%`, backgroundColor: warna }} />
-        </div>
-        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-400">{terbatas}%</span>
-      </div>
+      <p className="mt-1 text-xs text-slate-500">{keterangan}</p>
+      {TAMPILKAN_SUMBER_ANGKA && sumber ? (
+        <p className="mt-0.5 text-[11px] text-slate-400">{sumber}</p>
+      ) : null}
     </div>
   )
 }
@@ -320,14 +325,14 @@ export function HrOverview({ divisionId }) {
         <Kartu
           label="Total Pegawai"
           nilai={riil}
-          keterangan={
+          keterangan={adaRiil ? 'Pegawai aktif saat ini' : 'Belum ada angkanya'}
+          sumber={
             adaRiil
               ? sumber('totalPegawai') === 'form'
                 ? 'Diisi lewat form'
                 : 'Jumlah riil pada berkas bezetting'
-              : 'Belum ada angkanya'
+              : ''
           }
-          persen={ketersediaan}
           warna="#2563eb"
           ikon={Users}
           kosong={!adaRiil}
@@ -335,8 +340,8 @@ export function HrOverview({ divisionId }) {
         <Kartu
           label="Cuti Aktif"
           nilai={cuti?.nilai ?? 0}
-          keterangan={cuti ? cuti.label : 'Belum ada barisnya di berkas bezetting'}
-          persen={cuti && riil ? (cuti.nilai / riil) * 100 : 0}
+          keterangan={cuti ? 'Sedang menjalani cuti' : 'Belum ada datanya'}
+          sumber={cuti ? cuti.label : 'Belum ada barisnya di berkas bezetting'}
           warna="#7c3aed"
           ikon={UserRound}
           kosong={!cuti}
@@ -344,19 +349,21 @@ export function HrOverview({ divisionId }) {
         <Kartu
           label="Diklat Berjalan"
           nilai={diklat?.nilai ?? 0}
-          keterangan={diklat ? diklat.label : 'Belum ada barisnya di berkas bezetting'}
-          persen={diklat && riil ? (diklat.nilai / riil) * 100 : 0}
+          keterangan={diklat ? 'Sedang mengikuti diklat' : 'Belum ada datanya'}
+          sumber={diklat ? diklat.label : 'Belum ada barisnya di berkas bezetting'}
           warna="#f97316"
           ikon={GraduationCap}
           kosong={!diklat}
         />
+        {/* Satu-satunya kartu yang angka utamanya persentase, jadi keterangannya
+            menyebut pembagiannya - "45 dari 85 formasi" - supaya pembaca tahu
+            53 persen itu datang dari mana tanpa membuka panel lain. */}
         <Kartu
-          label="Ketersediaan"
+          label="Ketersediaan Formasi"
           nilai={`${ketersediaan}%`}
           keterangan={adaRiil && adaStandar ? `${riil} dari ${standar} formasi` : 'Belum ada angka formasinya'}
-          persen={ketersediaan}
           warna="#16a34a"
-          ikon={AlertTriangle}
+          ikon={BarChart3}
           kosong={!adaRiil || !adaStandar}
         />
       </div>
