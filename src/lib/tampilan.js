@@ -9,3 +9,7 @@
 // Kodenya sengaja tidak dihapus, hanya dilewati, supaya bisa dihidupkan lagi
 // tanpa menulis ulang: ubah nilai di bawah menjadi true.
 export const TAMPILKAN_SUMBER_ANGKA = false
+
+// Dashboard Subbagian Keuangan memakai Dashboard Anggaran yang baru. Dashboard
+// lama tidak dihapus, hanya disembunyikan: ubah menjadi false untuk kembali.
+export const USE_NEW_FINANCE_DASHBOARD = true

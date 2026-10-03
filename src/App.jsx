@@ -5,7 +5,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout'
 
 const Landing = lazy(() => import('./pages/Landing'))
 const TransitionToDashboard = lazy(() => import('./pages/TransitionToDashboard'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
+const DashboardHome = lazy(() => import('./pages/DashboardHome'))
 const DivisionWorkspace = lazy(() => import('./pages/DivisionWorkspace'))
 const Approvals = lazy(() => import('./pages/Approvals'))
 const Profile = lazy(() => import('./pages/Profile'))
@@ -52,7 +52,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/dashboard/division/:divisionId" element={<DivisionWorkspace />} />
           <Route path="/dashboard/division/:divisionId/bezetting/:documentId" element={<KondisiPegawaiPage />} />
           <Route path="/division/:divisionId" element={<LegacyDivisionRedirect />} />
