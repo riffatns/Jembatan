@@ -18,3 +18,8 @@ export const USE_NEW_FINANCE_DASHBOARD = true
 // akun dari Master Data Anggaran. Tampilan lama (angka + daftar dokumen) tidak
 // dihapus: ubah menjadi false untuk kembali. Bidang lain tidak terpengaruh.
 export const USE_NEW_ACCOUNT_VIEWS = true
+
+// Menu Bezetting di Bidang SDM memakai tampilan dari Master Data SDM, dan
+// sidebar SDM mengikuti pola Keuangan. Tampilan lama tidak dihapus: ubah
+// menjadi false untuk kembali.
+export const USE_NEW_HR_VIEWS = true

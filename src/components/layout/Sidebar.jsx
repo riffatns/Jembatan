@@ -28,8 +28,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { cn } from '../../lib/utils'
 import { AGENDA_CATEGORY_ID } from '../../lib/agendaStorage'
-import { getServiceContent } from '../../data/serviceContent'
-import { USE_NEW_ACCOUNT_VIEWS } from '../../lib/tampilan'
+import { MASTER_DATA_ROUTES, getDivisionSidebar } from '../../data/sidebarConfig'
 
 const LEGACY_ICONS = {
   Users,
@@ -99,7 +98,7 @@ function DivisionItemIcon({ divisionId, categoryId, className }) {
   return <Icon className={className} />
 }
 
-const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/anggaran', '/dashboard/master-anggaran', '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
+const SECTION_ROUTES = ['/dashboard/kalender', '/dashboard/anggaran', ...MASTER_DATA_ROUTES, '/dashboard/monitoring', '/dashboard/laporan', '/dashboard/panduan']
 
 // Blok merek di kiri atas sekaligus jalan kembali ke pemilihan bidang.
 //
@@ -177,12 +176,11 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
   const division = getDocumentDivision(divisionId)
   const categories = getDocumentCategories(divisionId)
   const punyaArsip = categories.some((category) => category.id === 'arsip')
-  const usesAccountViews = USE_NEW_ACCOUNT_VIEWS && divisionId === 'finance'
+  // Bidang yang sudah memakai Master Data (Keuangan, SDM): lihat data/sidebarConfig.js.
+  const sidebarConfig = getDivisionSidebar(divisionId)
   // Keuangan hanya menampilkan menu akun 51/52/53; Realisasi Anggaran dan Sisa
   // Anggaran sudah digantikan Dashboard dan Master Data (tidak dihapus).
-  const visibleCategories = usesAccountViews
-    ? categories.filter((category) => getServiceContent(category.id).budgetCode)
-    : categories
+  const visibleCategories = categories.filter(sidebarConfig.categoryFilter)
   const storageKey = `bpk-dashboard-active-category-${divisionId}`
   const [activeCategoryId, setActiveCategoryId] = useState(() => {
     // Kategori tersimpan bisa menunjuk layanan yang kini disembunyikan.
@@ -265,7 +263,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
             const ActiveIcon = DIVISION_ICON_MAP[divisionId]?.[category.id] || FileText
             const isActive = !isDashboardRoute && !isSectionRoute && activeCategoryId === category.id
             // Menu akun Keuangan tidak lagi berisi dokumen, jadi tanpa hitungan dokumen.
-            const isAccountMenu = usesAccountViews
+            const isAccountMenu = sidebarConfig.hideCountFor(category)
             return (
               <SidebarNavButton
                 key={category.id}
@@ -279,17 +277,17 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           })}
         </div>
 
-        {usesAccountViews && user?.role === 'admin' && (
+        {sidebarConfig.masterData && user?.role === 'admin' && (
           <div className="mt-5 border-t border-white/10 pt-4">
             <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Master Data</p>
             <div className="mt-3 space-y-1.5">
               <SidebarNavButton
                 icon={Database}
-                label="Master Data Anggaran"
-                isActive={currentPath === '/dashboard/master-anggaran'}
+                label={sidebarConfig.masterData.label}
+                isActive={currentPath === sidebarConfig.masterData.path}
                 onClick={() => {
                   sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
-                  navigate('/dashboard/master-anggaran')
+                  navigate(sidebarConfig.masterData.path)
                 }}
               />
             </div>
@@ -298,7 +296,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
 
         {/* Keuangan tidak memakai Monitoring (Kalender Bersama) dan kotak
             Integrasi Aplikasi; keduanya hanya disembunyikan untuk bidang ini. */}
-        {!usesAccountViews && (
+        {!sidebarConfig.hideMonitoring && (
         <div className="mt-5 border-t border-white/10 pt-4">
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Monitoring</p>
           <div className="mt-3 space-y-1.5">
@@ -355,7 +353,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           </div>
         </div>
 
-        {!usesAccountViews && (
+        {!sidebarConfig.hideIntegration && (
           <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/65">Integrasi Aplikasi</p>
             <div className="mt-3 rounded-xl bg-[#14376b] p-3">

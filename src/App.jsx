@@ -13,6 +13,7 @@ const KondisiPegawaiPage = lazy(() => import('./pages/KondisiPegawaiPage'))
 const SharedCalendar = lazy(() => import('./pages/SharedCalendar'))
 const BudgetDashboard = lazy(() => import('./pages/BudgetDashboard'))
 const BudgetMasterData = lazy(() => import('./pages/BudgetMasterData'))
+const HrMasterData = lazy(() => import('./pages/HrMasterData'))
 const ServiceMonitoring = lazy(() => import('./pages/ServiceMonitoring'))
 const Reports = lazy(() => import('./pages/Reports'))
 const SystemGuide = lazy(() => import('./pages/SystemGuide'))
@@ -59,6 +60,14 @@ export default function App() {
           <Route path="/division/:divisionId" element={<LegacyDivisionRedirect />} />
           <Route path="/dashboard/kalender" element={<SharedCalendar />} />
           <Route path="/dashboard/anggaran" element={<BudgetDashboard />} />
+          <Route
+            path="/dashboard/master-sdm"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <HrMasterData />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard/master-anggaran"
             element={
