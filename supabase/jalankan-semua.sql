@@ -426,8 +426,8 @@ drop policy if exists "Admins can insert budget report uploads" on public.budget
 create policy "Authenticated users can read budget reports"
   on public.budget_reports for select to authenticated using (true);
 
--- Hanya administrator yang boleh mengubah master data. Tidak ada kebijakan
--- delete: menghapus laporan hanya lewat SQL Editor.
+-- Hanya administrator yang boleh mengubah master data. Izin hapus ada di
+-- bagian 5c-2 (per TA) dan 5c-3 (per unggahan).
 create policy "Admins can insert budget reports"
   on public.budget_reports for insert to authenticated
   with check (public.current_profile_role() = 'admin');
@@ -477,6 +477,22 @@ exception
   when duplicate_object then null;
 end
 $do$;
+
+
+-- ----------------------------------------------------------------------------
+-- 5c-3. Versi unggahan Master Data Anggaran
+-- ----------------------------------------------------------------------------
+-- Setiap unggahan menyimpan isi laporannya; menghapus unggahan yang aktif
+-- mengembalikan data TA ke unggahan sebelumnya. Sama dengan anggaran-master-versi.sql.
+
+alter table public.budget_report_uploads
+  add column if not exists report jsonb;
+
+drop policy if exists "Admins can delete budget report uploads" on public.budget_report_uploads;
+
+create policy "Admins can delete budget report uploads"
+  on public.budget_report_uploads for delete to authenticated
+  using (public.current_profile_role() = 'admin');
 
 
 -- ----------------------------------------------------------------------------
@@ -704,6 +720,15 @@ select 'Hapus master data anggaran (kebijakan delete)',
        case when exists (
          select 1 from pg_policies
          where schemaname = 'public' and tablename = 'budget_reports' and cmd = 'DELETE'
+       ) then 'OK' else 'BELUM' end
+union all
+select 'Versi unggahan master data (budget_report_uploads.report)',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'budget_report_uploads' and column_name = 'report'
+       ) and exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'budget_report_uploads' and cmd = 'DELETE'
        ) then 'OK' else 'BELUM' end
 union all
 select 'Kunci peran profil (trigger protect_profile_role)',

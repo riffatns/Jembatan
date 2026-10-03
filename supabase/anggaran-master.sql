@@ -48,8 +48,8 @@ drop policy if exists "Admins can insert budget report uploads" on public.budget
 create policy "Authenticated users can read budget reports"
   on public.budget_reports for select to authenticated using (true);
 
--- Hanya administrator yang boleh mengubah master data. Tidak ada kebijakan
--- delete: menghapus laporan hanya lewat SQL Editor.
+-- Hanya administrator yang boleh mengubah master data. Izin hapus ada di
+-- anggaran-master-hapus.sql (per TA) dan anggaran-master-versi.sql (per unggahan).
 create policy "Admins can insert budget reports"
   on public.budget_reports for insert to authenticated
   with check (public.current_profile_role() = 'admin');

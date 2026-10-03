@@ -126,7 +126,8 @@ perluas modulnya (tanpa mengubah perilaku pemakai lama), jangan menyalin.
 | Tabel/daftar data (cari, urut, halaman) | `src/components/data-table/DataTable.jsx` (+ `useDataTable.js`, `TablePagination.jsx`) | Pencarian realtime di semua kolom ala DataTables, klik judul untuk urut, 20 baris/halaman, tinggi mengikuti isi. Kolom: `{ key, label, align, width, value(row), text(row), render(row), title(row) }`. Contoh: `components/budget/accounts/AccountDetailTable.jsx`. **Semua tabel data baru wajib memakai ini.** |
 | Ikon | `src/components/icons/DuotoneIcons.jsx` | Duotone, tanpa garis tepi. Ikon baru ditambahkan di sini. |
 | Gaya kartu & judul | `src/components/ui/cardStyles.js` (`CARD_CLASS`, `CARD_TITLE_CLASS`, `LABEL_CLASS`) | Sudah termasuk varian `fit:`/`tall:`. |
-| Tombol, dialog, input dasar | `src/components/ui/*` (`Button` varian `teal`/`outline`/`destructive`, `Dialog`) | Konfirmasi hapus memakai `Dialog`, bukan `window.confirm`. |
+| Tombol, dialog, input dasar | `src/components/ui/*` (`Button` varian `teal`/`outline`/`destructive`, `Dialog`) | Dasar untuk komponen di bawah. |
+| Konfirmasi aksi berisiko (hapus, kosongkan) | `src/components/ui/ConfirmDialog.jsx` | Props `open`, `title`, `description` (sebutkan akibatnya pada data), `confirmLabel`, `busy`, `onCancel`, `onConfirm`. Jangan `window.confirm`. |
 | Kepala halaman dashboard | `src/components/budget/dashboard/BudgetDashboardHeader.jsx` | Props `title`, `subtitle`, `icon`, pemilih TA (`years`, `fiscalYear`, `onFiscalYearChange`), `showYearPicker`. |
 | Tooltip grafik | `src/components/charts/ChartTooltip.jsx` (`useChartTooltip`) | Isi berupa node React; mendukung tetikus dan keyboard. |
 | Animasi angka & grafik | `src/hooks/useAnimatedProgress.js` (`useAnimatedProgress`, `useCountUp`) | Menghormati `prefers-reduced-motion`. |
@@ -213,8 +214,14 @@ Belanja Barang (52), Belanja Modal (53).
   menurut urutan (posisi kolom bergeser karena sel gabungan). Berkas **ditolak** bila
   jumlah seluruh akun ≠ baris `JUMLAH SELURUHNYA` atau lalu + ini ≠ s.d. periode.
 - **Penyimpanan**: tabel `budget_reports` (satu baris per `fiscal_year`, unggahan
-  berikutnya menimpa) + log `budget_report_uploads`; ringkasan 51/52/53 juga ditulis ke
-  `budget_snapshots` agar menu lama sama. SQL: `supabase/anggaran-master.sql`.
+  berikutnya menimpa) + riwayat `budget_report_uploads`; ringkasan 51/52/53 juga ditulis ke
+  `budget_snapshots` agar menu lama sama. SQL: `supabase/anggaran-master.sql`,
+  `anggaran-master-hapus.sql`, `anggaran-master-versi.sql` (semuanya juga di `jalankan-semua.sql`).
+- **Versi**: setiap baris riwayat (`action = 'upload'`) menyimpan isi laporan (`report`).
+  Versi aktif = unggahan terbaru TA itu (`src/lib/budgetReportVersions.js`). Hapus versi aktif
+  -> data kembali ke unggahan sebelumnya, atau kosong bila tidak ada; hapus versi lama -> angka
+  tetap. Hapus per TA mengosongkan data dan dicatat `action = 'delete'`. Operasi Supabase ada di
+  `src/lib/budgetReportRemote.js`; delete selalu menghitung baris terhapus (RLS yang menolak = 0 baris).
 - **State**: `src/context/BudgetReportContext.jsx` (`useBudgetReports`): TA aktif,
   pemilih TA, realtime, `saveReport`.
 - **Korelasi**: Dashboard = `reportToBudget(laporan)` = jumlah grup 51 + 52 + 53;

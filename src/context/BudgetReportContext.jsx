@@ -1,16 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
-import { toRemoteBudget } from '../lib/budgetStorage'
 import {
   loadStoredReports,
   mapRemoteReport,
   mapRemoteUpload,
   periodLabel,
-  reportToBudget,
+  reportSnapshot,
   saveStoredReports,
-  toRemoteReport,
   toRemoteUpload
 } from '../lib/budgetReportStorage'
+import { activeUploadIds, previousVersion, reportFromVersion } from '../lib/budgetReportVersions'
+import { applyReport, deleteActiveReport, deleteUploadRow, fetchLatestVersion, insertUploadLog } from '../lib/budgetReportRemote'
 import { useAuth } from './AuthContext'
 import { useData } from './DataContext'
 
@@ -41,7 +41,7 @@ export function BudgetReportProvider({ children }) {
       .from('budget_report_uploads')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(100)
     if (!error) setUploads(data.map(mapRemoteUpload))
   }, [user])
 
@@ -89,22 +89,19 @@ export function BudgetReportProvider({ children }) {
     selectFiscalYear(fiscalYear)
 
     if (!isSupabaseConfigured || !user?.id) {
-      setUploads((current) => [{ id: `local-${Date.now()}`, ...report, accountCount: report.accounts.length, createdAt: report.updatedAt }, ...current])
+      setUploads((current) => [{ id: `local-${Date.now()}`, action: 'upload', ...report, report: reportSnapshot(report), accountCount: report.accounts.length, createdAt: report.updatedAt }, ...current])
       return { shared: false, message: 'Mode lokal: laporan hanya tersimpan di browser ini.' }
     }
 
-    const { error } = await supabase.from('budget_reports').upsert(toRemoteReport(report, user), { onConflict: 'fiscal_year' })
-    if (error) return { shared: false, message: error.message }
+    const applied = await applyReport(report, user)
+    if (applied.error) return { shared: false, message: applied.error.message }
 
-    // Ringkasan 51/52/53 juga ditulis ke budget_snapshots supaya menu lama
-    // (Realisasi Anggaran, Sisa Anggaran) membaca angka yang sama.
-    const [snapshotResult, uploadResult] = await Promise.all([
-      supabase.from('budget_snapshots').upsert(toRemoteBudget(reportToBudget(report)), { onConflict: 'fiscal_year' }),
-      supabase.from('budget_report_uploads').insert(toRemoteUpload(report, user))
-    ])
+    // Riwayat menyimpan isi laporan supaya bisa dikembalikan bila versi
+    // berikutnya dihapus.
+    const uploadResult = await insertUploadLog(toRemoteUpload(report, user))
     refreshBudget().catch(() => {})
     refreshUploads().catch(() => {})
-    const followUpError = snapshotResult.error || uploadResult.error
+    const followUpError = applied.followUpError || uploadResult.error
     return { shared: true, message: followUpError ? `Laporan tersimpan, tetapi: ${followUpError.message}` : null }
   }, [user, refreshBudget, refreshUploads, selectFiscalYear])
 
@@ -127,16 +124,56 @@ export function BudgetReportProvider({ children }) {
 
     // RLS yang menolak delete tidak memberi galat, hanya 0 baris; karena itu
     // baris yang terhapus diminta kembali dan dihitung.
-    const { data, error } = await supabase.from('budget_reports').delete().eq('fiscal_year', fiscalYear).select('fiscal_year')
-    if (error) return { ok: false, message: error.message }
-    if (!data?.length) {
+    const removed = await deleteActiveReport(fiscalYear)
+    if (removed.error) return { ok: false, message: removed.error.message }
+    if (!removed.deleted) {
       return { ok: false, message: 'Database menolak penghapusan. Jalankan supabase/anggaran-master-hapus.sql di SQL Editor, lalu coba lagi.' }
     }
     removeLocally()
-    await supabase.from('budget_report_uploads').insert(toRemoteUpload({ ...report, accounts: [], totals: {} }, user, 'delete'))
+    await insertUploadLog(toRemoteUpload({ ...report, accounts: [], totals: {} }, user, 'delete'))
     refreshUploads().catch(() => {})
     return { ok: true }
   }, [reports, user, refreshUploads])
+
+  const activeIds = useMemo(() => activeUploadIds(uploads, reports), [uploads, reports])
+
+  // Menghapus satu unggahan (versi). Bila itu versi aktif, data TA kembali ke
+  // unggahan sebelumnya; bila tidak ada, TA itu kosong. Versi lama: hanya
+  // barisnya yang hilang. Hasil: { ok, outcome: 'restored' | 'emptied' | 'removed', restored }.
+  const deleteUpload = useCallback(async (upload) => {
+    const wasActive = activeIds.has(upload.id)
+    const remote = isSupabaseConfigured && user?.id && !String(upload.id).startsWith('local-')
+
+    if (remote) {
+      const removed = await deleteUploadRow(upload.id)
+      if (removed.error) return { ok: false, message: removed.error.message }
+      if (!removed.deleted) {
+        return { ok: false, message: 'Database menolak penghapusan. Jalankan supabase/anggaran-master-versi.sql di SQL Editor, lalu coba lagi.' }
+      }
+    }
+    setUploads((current) => current.filter((row) => row.id !== upload.id))
+    if (!wasActive) return { ok: true, outcome: 'removed' }
+
+    const previous = remote ? await fetchLatestVersion(upload.fiscalYear) : previousVersion(uploads, upload)
+    if (previous) {
+      const restored = reportFromVersion(previous)
+      setReports((current) => ({ ...current, [upload.fiscalYear]: restored }))
+      if (remote) {
+        const applied = await applyReport(restored, user)
+        if (applied.error) return { ok: false, message: applied.error.message }
+        refreshBudget().catch(() => {})
+      }
+      return { ok: true, outcome: 'restored', restored }
+    }
+
+    setReports((current) => {
+      const next = { ...current }
+      delete next[upload.fiscalYear]
+      return next
+    })
+    if (remote) await deleteActiveReport(upload.fiscalYear)
+    return { ok: true, outcome: 'emptied' }
+  }, [activeIds, uploads, user, refreshBudget])
 
   const value = {
     reports,
@@ -148,7 +185,9 @@ export function BudgetReportProvider({ children }) {
     uploads,
     refreshUploads,
     saveReport,
-    deleteReport
+    deleteReport,
+    activeUploadIds: activeIds,
+    deleteUpload
   }
 
   return <BudgetReportContext.Provider value={value}>{children}</BudgetReportContext.Provider>

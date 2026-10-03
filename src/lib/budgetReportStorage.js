@@ -53,8 +53,24 @@ export function toRemoteReport(report, user) {
     totals: report.totals,
     source_file_name: report.sourceFileName,
     uploaded_by: user.id,
-    uploaded_by_name: user.name || null,
+    uploaded_by_name: report.uploadedByName || user.name || null,
     updated_at: report.updatedAt
+  }
+}
+
+// Isi laporan yang disimpan di setiap baris riwayat unggah, supaya data TA bisa
+// dikembalikan ke unggahan sebelumnya bila unggahan terbaru dihapus.
+export function reportSnapshot(report) {
+  return {
+    fiscalYear: report.fiscalYear,
+    periodMonth: report.periodMonth,
+    periodLabel: report.periodLabel,
+    satker: report.satker,
+    accounts: report.accounts,
+    groups: report.groups,
+    totals: report.totals,
+    sourceFileName: report.sourceFileName,
+    uploadedByName: report.uploadedByName
   }
 }
 
@@ -63,6 +79,7 @@ export function toRemoteUpload(report, user, action = 'upload') {
     // Kolom action baru ada setelah anggaran-master-hapus.sql; unggahan biasa
     // memakai nilai bawaan 'upload' supaya tetap jalan sebelum SQL itu dijalankan.
     ...(action !== 'upload' && { action }),
+    ...(action === 'upload' && { report: reportSnapshot(report) }),
     fiscal_year: report.fiscalYear,
     period_month: report.periodMonth,
     source_file_name: report.sourceFileName,
@@ -83,6 +100,7 @@ export function mapRemoteUpload(row) {
     accountCount: row.account_count,
     totals: row.totals || {},
     uploadedByName: row.uploaded_by_name,
+    report: row.report || null,
     createdAt: row.created_at
   }
 }

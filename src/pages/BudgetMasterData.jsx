@@ -6,7 +6,8 @@ import { BudgetDashboardHeader } from '../components/budget/dashboard/BudgetDash
 import { MasterUploadForm } from '../components/budget/master/MasterUploadForm'
 import { MasterReportPreview } from '../components/budget/master/MasterReportPreview'
 import { MasterUploadHistory } from '../components/budget/master/MasterUploadHistory'
-import { MasterDeleteDialog } from '../components/budget/master/MasterDeleteDialog'
+import { useMasterDeletion } from '../components/budget/master/useMasterDeletion'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_FILE = /\.(xlsx|xls)$/i
@@ -15,7 +16,7 @@ const ALLOWED_FILE = /\.(xlsx|xls)$/i
 // laporan realisasi SP2D membentuk angka Dashboard Keuangan dan menu akun
 // 51/52/53 untuk tahun anggaran yang dipilih.
 export default function BudgetMasterData() {
-  const { reports, years, uploads, refreshUploads, refreshReports, saveReport, deleteReport } = useBudgetReports()
+  const { reports, years, uploads, activeUploadIds, refreshUploads, refreshReports, saveReport, deleteReport, deleteUpload } = useBudgetReports()
   const [file, setFile] = useState(null)
   const [parsed, setParsed] = useState(null)
   const [error, setError] = useState(null)
@@ -24,9 +25,7 @@ export default function BudgetMasterData() {
   const [saved, setSaved] = useState(null)
   const [fiscalYear, setFiscalYear] = useState(() => new Date().getFullYear())
   const [periodMonth, setPeriodMonth] = useState(() => new Date().getMonth() + 1)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteNotice, setDeleteNotice] = useState(null)
+  const deletion = useMasterDeletion({ deleteReport, deleteUpload, activeIds: activeUploadIds, uploads, onDeleted: () => setSaved(null) })
 
   useEffect(() => {
     sessionStorage.setItem('bpk-dashboard-selected-division', 'finance')
@@ -38,7 +37,7 @@ export default function BudgetMasterData() {
     setSaved(null)
     setParsed(null)
     setError(null)
-    setDeleteNotice(null)
+    deletion.clearNotice()
     if (!nextFile) return
     setFile(nextFile)
     if (!ALLOWED_FILE.test(nextFile.name)) return setError('Berkas harus berformat Excel (.xlsx atau .xls).')
@@ -91,28 +90,11 @@ export default function BudgetMasterData() {
     }
   }
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    const year = deleteTarget.fiscalYear
-    try {
-      const result = await deleteReport(year)
-      setDeleteNotice(result.ok
-        ? { ok: true, text: `Data TA ${year} dihapus. Dashboard dan menu akun TA ${year} kini kosong.` }
-        : { ok: false, text: result.message })
-      if (result.ok) setSaved(null)
-    } catch (deleteError) {
-      setDeleteNotice({ ok: false, text: deleteError.message || 'Gagal menghapus data.' })
-    } finally {
-      setDeleting(false)
-      setDeleteTarget(null)
-    }
-  }
-
   return (
-    <div className="flex flex-col gap-4 text-[#12305f] fit:h-[calc(100dvh-4rem)] fit:gap-2.5 tall:gap-3">
+    <div className="flex flex-col gap-4 text-[#12305f] fit:gap-2.5 tall:gap-3">
       <BudgetDashboardHeader title="MASTER DATA ANGGARAN" icon={IconTableList} showYearPicker={false} />
-      <section className="grid gap-4 fit:min-h-0 fit:grid-cols-[minmax(0,0.6fr)_minmax(0,1.7fr)] fit:flex-1 fit:gap-2.5 tall:gap-3">
+      {/* Riwayat tumbuh mengikuti jumlah unggahan, jadi halaman ini boleh di-scroll. */}
+      <section className="grid items-start gap-4 fit:grid-cols-[minmax(0,0.6fr)_minmax(0,1.7fr)] fit:gap-2.5 tall:gap-3">
         <MasterUploadForm
           file={file}
           parsing={parsing}
@@ -127,14 +109,29 @@ export default function BudgetMasterData() {
           canSave={Boolean(parsed) && !parsing}
           notices={notices}
         />
-        <div className="flex min-w-0 flex-col gap-4 fit:min-h-0 fit:gap-2.5 tall:gap-3">
+        <div className="flex min-w-0 flex-col gap-4 fit:gap-2.5 tall:gap-3">
           <MasterReportPreview parsed={parsed} fiscalYear={fiscalYear} periodMonth={periodMonth} />
-          <div className="grid fit:min-h-0 fit:flex-1 fit:grid-rows-[minmax(0,1fr)]">
-            <MasterUploadHistory reports={reports} years={years} uploads={uploads} onDelete={setDeleteTarget} notice={deleteNotice} />
-          </div>
+          <MasterUploadHistory
+            reports={reports}
+            years={years}
+            uploads={uploads}
+            activeIds={activeUploadIds}
+            onDeleteYear={deletion.askYear}
+            onDeleteUpload={deletion.askUpload}
+            notice={deletion.notice}
+          />
         </div>
       </section>
-      <MasterDeleteDialog report={deleteTarget} deleting={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <ConfirmDialog
+        open={Boolean(deletion.dialog)}
+        title={deletion.dialog?.title}
+        description={deletion.dialog?.description}
+        confirmLabel={deletion.dialog?.confirmLabel}
+        busyLabel="Menghapus..."
+        busy={deletion.busy}
+        onCancel={deletion.cancel}
+        onConfirm={deletion.confirm}
+      />
     </div>
   )
 }
