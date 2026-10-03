@@ -13,7 +13,7 @@ const COLUMN_MISSING = 'PGRST204'
 export async function insertUploadLog(row) {
   const result = await supabase.from('budget_report_uploads').insert(row)
   if (result.error?.code !== COLUMN_MISSING) return result
-  const { report: _report, action: _action, ...legacyRow } = row
+  const { report: _report, action: _action, source_file_path: _path, ...legacyRow } = row
   return supabase.from('budget_report_uploads').insert(legacyRow)
 }
 

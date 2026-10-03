@@ -4,7 +4,11 @@ import { supabase } from './supabaseClient'
 // RLS yang menolak delete tidak memberi galat, hanya 0 baris; karena itu
 // delete meminta baris yang terhapus dan menghitungnya.
 
-const VERSION_COLUMNS = 'id, dataset, action, period_month, period_year, period_label, payload, source_file_name, uploaded_by_name, created_at'
+const LEGACY_COLUMNS = 'id, dataset, action, period_month, period_year, period_label, payload, source_file_name, uploaded_by_name, created_at'
+// source_file_path ada setelah master-berkas.sql; sebelum itu dibaca tanpa kolom ini.
+const VERSION_COLUMNS = `${LEGACY_COLUMNS}, source_file_path`
+const COLUMN_UNKNOWN = ['42703', 'PGRST204']
+const isColumnUnknown = (error) => COLUMN_UNKNOWN.includes(error?.code)
 const MAX_VERSIONS = 100
 
 export function mapRemoteVersion(row) {
@@ -17,18 +21,22 @@ export function mapRemoteVersion(row) {
     periodLabel: row.period_label,
     payload: row.payload || {},
     sourceFileName: row.source_file_name,
+    sourceFilePath: row.source_file_path || null,
     uploadedByName: row.uploaded_by_name,
     createdAt: row.created_at
   }
 }
 
-export async function fetchVersions(dataset) {
-  const { data, error } = await supabase
-    .from('master_dataset_versions')
-    .select(VERSION_COLUMNS)
-    .eq('dataset', dataset)
-    .order('created_at', { ascending: false })
-    .limit(MAX_VERSIONS)
+// key = nama dataset ('hr-bezetting'), atau awalan kelompok berakhiran ':'
+// ('hr-diklat:') untuk memuat semua dataset per periode sekaligus.
+export async function fetchVersions(key) {
+  const select = (columns) => {
+    const query = supabase.from('master_dataset_versions').select(columns)
+    const filtered = key.endsWith(':') ? query.like('dataset', `${key}%`) : query.eq('dataset', key)
+    return filtered.order('created_at', { ascending: false }).limit(MAX_VERSIONS)
+  }
+  let { data, error } = await select(VERSION_COLUMNS)
+  if (isColumnUnknown(error)) ({ data, error } = await select(LEGACY_COLUMNS))
   if (error) return { error }
   return { error: null, versions: data.map(mapRemoteVersion) }
 }
@@ -40,21 +48,23 @@ export async function fetchPrivatePayload(versionId) {
   return data.payload
 }
 
-export async function insertVersion({ dataset, action, period, payload, privatePayload, ownerDivision, fileName, user }) {
+export async function insertVersion({ dataset, action, period, payload, privatePayload, ownerDivision, fileName, filePath, user }) {
+  const row = {
+    dataset,
+    action,
+    period_month: period?.month || null,
+    period_year: period?.year || null,
+    period_label: period?.label || null,
+    payload: payload || {},
+    source_file_name: fileName || null,
+    ...(filePath && { source_file_path: filePath }),
+    uploaded_by: user.id,
+    uploaded_by_name: user.name || null
+  }
   const { data, error } = await supabase
     .from('master_dataset_versions')
-    .insert({
-      dataset,
-      action,
-      period_month: period?.month || null,
-      period_year: period?.year || null,
-      period_label: period?.label || null,
-      payload: payload || {},
-      source_file_name: fileName || null,
-      uploaded_by: user.id,
-      uploaded_by_name: user.name || null
-    })
-    .select(VERSION_COLUMNS)
+    .insert(row)
+    .select(filePath ? VERSION_COLUMNS : LEGACY_COLUMNS)
     .single()
   if (error) return { error }
 
@@ -65,7 +75,11 @@ export async function insertVersion({ dataset, action, period, payload, privateP
       owner_division: ownerDivision,
       payload: privatePayload
     })
-    if (result.error) return { error: null, version: mapRemoteVersion(data), privateError: result.error }
+    // Atomik: tanpa data rinci, versi umum yang baru dibuat dibatalkan lagi.
+    if (result.error) {
+      await supabase.from('master_dataset_versions').delete().eq('id', data.id)
+      return { error: result.error }
+    }
   }
   return { error: null, version: mapRemoteVersion(data) }
 }

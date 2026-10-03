@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { IconUpload } from '../icons/DuotoneIcons'
 
-// Kotak pilih/seret berkas Excel untuk halaman Master Data. Validasi jenis
-// dan ukuran dilakukan pemanggil (lihat validateExcelFile).
-export function FileDropzone({ id, file, onFile, hint, accept = '.xlsx,.xls' }) {
+// Kotak pilih/seret berkas untuk halaman Master Data (bawaan Excel). Validasi
+// jenis dan ukuran dilakukan pemanggil (validateExcelFile / validatePdfFile).
+export function FileDropzone({ id, file, onFile, hint, accept = '.xlsx,.xls', label = 'Pilih atau seret berkas Excel' }) {
   const [dragging, setDragging] = useState(false)
 
   return (
@@ -15,9 +15,19 @@ export function FileDropzone({ id, file, onFile, hint, accept = '.xlsx,.xls' }) 
       className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-5 text-center transition-colors fit:py-4 ${dragging ? 'border-[#2f7fe8] bg-[#eef4fd]' : 'border-[#c9d6ea] bg-[#f8fbff] hover:border-[#2f7fe8]'}`}
     >
       <IconUpload className="h-9 w-9 text-[#2f7fe8]" />
-      <span className="text-sm font-bold text-[#12305f]">{file ? file.name : 'Pilih atau seret berkas Excel'}</span>
+      <span className="text-sm font-bold text-[#12305f]">{file ? file.name : label}</span>
       {hint && <span className="text-xs text-[#7a8aa8]">{hint}</span>}
-      <input id={id} type="file" accept={accept} className="sr-only" onChange={(event) => onFile(event.target.files?.[0])} />
+      {/* value dikosongkan agar memilih berkas yang sama sekali lagi tetap terbaca. */}
+      <input
+        id={id}
+        type="file"
+        accept={accept}
+        className="sr-only"
+        onChange={(event) => {
+          onFile(event.target.files?.[0])
+          event.target.value = ''
+        }}
+      />
     </label>
   )
 }
@@ -30,4 +40,18 @@ export function validateExcelFile(file) {
   if (!ALLOWED_FILE.test(file?.name || '')) return 'Berkas harus berformat Excel (.xlsx atau .xls).'
   if (file.size > MAX_FILE_SIZE) return 'Ukuran berkas melebihi 5 MB.'
   return null
+}
+
+const PDF_TYPES = ['application/pdf', 'application/x-pdf', '']
+
+// Pemeriksaan awal PDF: ekstensi, MIME, dan ukuran. Isi (tanda %PDF-) dicek
+// dengan isPdfSignature setelah berkas dibaca.
+export function validatePdfFile(file) {
+  if (!/\.pdf$/i.test(file?.name || '') || !PDF_TYPES.includes(file.type || '')) return 'Berkas harus berformat PDF (.pdf) dari aplikasi sumber.'
+  if (file.size > MAX_FILE_SIZE) return 'Ukuran berkas melebihi 5 MB.'
+  return null
+}
+
+export function isPdfSignature(bytes) {
+  return bytes?.length > 5 && String.fromCharCode(...bytes.slice(0, 5)) === '%PDF-'
 }

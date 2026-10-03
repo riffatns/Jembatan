@@ -163,7 +163,9 @@ function normalizeEmployee(record) {
   }
 }
 
-export function parseEmployeeRows(rows) {
+// Baris judul dan kolom terakhir yang boleh dibaca ("TMT Jabatan Tertentu").
+// Dipakai juga oleh bezettingSanitizer.js supaya batasnya selalu sama.
+export function findEmployeeColumns(rows) {
   const headerIndex = rows.findIndex((row) => {
     const text = row.map(clean).join('|').toLowerCase()
     return text.includes('nama lengkap') && text.includes('jenis kelamin')
@@ -173,6 +175,15 @@ export function parseEmployeeRows(rows) {
   const labels = columnLabels(rows[headerIndex], rows[headerIndex + 1] || [])
   const lastIndex = labels.findIndex((label) => LAST_KEPT_COLUMN.test(label.split(' · ')[0]))
   if (lastIndex === -1) throw new Error('Kolom "TMT Jabatan Tertentu" tidak ditemukan pada sheet Lengkap_PBD.')
+  return { headerIndex, labels, lastIndex }
+}
+
+export function isEmployeeSheet(name) {
+  return EMPLOYEE_SHEET.test(String(name).trim())
+}
+
+export function parseEmployeeRows(rows) {
+  const { headerIndex, labels, lastIndex } = findEmployeeColumns(rows)
 
   const employees = []
   const details = []
@@ -205,7 +216,7 @@ export async function parseBezettingWorkbook(source) {
   const XLSX = await import('xlsx')
   const workbook = XLSX.read(await toArrayBuffer(source), { type: 'array', cellDates: true })
   const abkName = workbook.SheetNames.find((name) => ABK_SHEET.test(name.trim()))
-  const employeeName = workbook.SheetNames.find((name) => EMPLOYEE_SHEET.test(name.trim()))
+  const employeeName = workbook.SheetNames.find(isEmployeeSheet)
   if (!abkName) throw new Error('Sheet "ABK" tidak ditemukan. Pastikan berkasnya Bezetting Pegawai.')
   if (!employeeName) throw new Error('Sheet "Lengkap_PBD" (daftar pegawai) tidak ditemukan.')
 

@@ -578,6 +578,47 @@ $do$;
 
 
 -- ----------------------------------------------------------------------------
+-- 5c-5. Berkas asli unggahan Master Data (unduh ulang)
+-- ----------------------------------------------------------------------------
+-- Bucket privat 'master-files', hanya admin. Bezetting disimpan sebagai salinan
+-- bersih (kolom setelah TMT Jabatan Tertentu dikosongkan di browser).
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'master-files', 'master-files', false, 5242880,
+  array[
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel'
+  ]
+)
+on conflict (id) do update
+  set public = false,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Admins can read master files" on storage.objects;
+drop policy if exists "Admins can upload master files" on storage.objects;
+drop policy if exists "Admins can delete master files" on storage.objects;
+
+create policy "Admins can read master files"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'master-files' and public.current_profile_role() = 'admin');
+
+create policy "Admins can upload master files"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'master-files' and public.current_profile_role() = 'admin');
+
+create policy "Admins can delete master files"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'master-files' and public.current_profile_role() = 'admin');
+
+-- Lokasi berkas per versi; kosong untuk versi lama dan baris kosongkan/hapus TA.
+alter table public.budget_report_uploads add column if not exists source_file_path text;
+alter table public.master_dataset_versions add column if not exists source_file_path text;
+
+
+-- ----------------------------------------------------------------------------
 -- 5d. Kunci peran dan bidang pada profil
 -- ----------------------------------------------------------------------------
 -- Pengguna tidak bisa lagi menjadikan dirinya admin atau pindah bidang sendiri.
@@ -840,4 +881,17 @@ select 'Realtime anggaran (budget_snapshots)',
          select 1 from pg_publication_tables
          where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'budget_snapshots'
        ) then 'OK' else 'BELUM' end
+union all
+select 'Berkas asli master data (bucket master-files)',
+       case when exists (select 1 from storage.buckets where id = 'master-files' and public = false)
+             and exists (
+               select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'master_dataset_versions' and column_name = 'source_file_path'
+             )
+             and exists (
+               select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'budget_report_uploads' and column_name = 'source_file_path'
+             )
+             and exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'Admins can read master files')
+       then 'OK' else 'BELUM' end
 order by 1;

@@ -11,6 +11,7 @@ import {
 } from '../lib/budgetReportStorage'
 import { activeUploadIds, previousVersion, reportFromVersion } from '../lib/budgetReportVersions'
 import { applyReport, deleteActiveReport, deleteUploadRow, fetchLatestVersion, insertUploadLog } from '../lib/budgetReportRemote'
+import { removeMasterFile, storeMasterFile } from '../lib/masterFileStorage'
 import { useAuth } from './AuthContext'
 import { useData } from './DataContext'
 
@@ -71,8 +72,10 @@ export function BudgetReportProvider({ children }) {
   }, [])
 
   // Menyimpan laporan hasil parseBudgetReport untuk TA dan bulan pilihan admin.
-  // Unggahan berikutnya untuk TA yang sama menimpa laporan TA itu.
-  const saveReport = useCallback(async (parsed, { fiscalYear, periodMonth, fileName }) => {
+  // Unggahan berikutnya untuk TA yang sama menimpa laporan TA itu. Berkas asli
+  // (sourceFile) disimpan agar bisa diunduh ulang; bila gagal, laporan tetap tersimpan.
+  const saveReport = useCallback(async (parsed, { fiscalYear, periodMonth, fileName, sourceFile }) => {
+    const stored = sourceFile ? await storeMasterFile(`anggaran/${fiscalYear}`, sourceFile, fileName) : {}
     const report = {
       fiscalYear,
       periodMonth,
@@ -82,6 +85,7 @@ export function BudgetReportProvider({ children }) {
       groups: parsed.groups,
       totals: parsed.totals,
       sourceFileName: fileName,
+      sourceFilePath: stored.path || null,
       uploadedByName: user?.name || null,
       updatedAt: new Date().toISOString()
     }
@@ -94,15 +98,20 @@ export function BudgetReportProvider({ children }) {
     }
 
     const applied = await applyReport(report, user)
-    if (applied.error) return { shared: false, message: applied.error.message }
+    if (applied.error) {
+      removeMasterFile(stored.path)
+      return { shared: false, message: applied.error.message }
+    }
 
     // Riwayat menyimpan isi laporan supaya bisa dikembalikan bila versi
     // berikutnya dihapus.
     const uploadResult = await insertUploadLog(toRemoteUpload(report, user))
     refreshBudget().catch(() => {})
     refreshUploads().catch(() => {})
-    const followUpError = applied.followUpError || uploadResult.error
-    return { shared: true, message: followUpError ? `Laporan tersimpan, tetapi: ${followUpError.message}` : null }
+    const followUpError = applied.followUpError || uploadResult.error || stored.error
+    if (uploadResult.error) removeMasterFile(stored.path)
+    const fileNote = stored.error ? ' (berkas asli belum bisa disimpan untuk diunduh ulang; jalankan supabase/jalankan-semua.sql)' : ''
+    return { shared: true, message: followUpError ? `Laporan tersimpan, tetapi: ${followUpError.message}${fileNote}` : null }
   }, [user, refreshBudget, refreshUploads, selectFiscalYear])
 
   // Mengosongkan data satu TA. Dashboard dan menu akun TA itu kembali kosong
@@ -118,7 +127,7 @@ export function BudgetReportProvider({ children }) {
 
     if (!isSupabaseConfigured || !user?.id) {
       removeLocally()
-      setUploads((current) => [{ id: `local-${Date.now()}`, action: 'delete', ...report, accountCount: 0, createdAt: new Date().toISOString() }, ...current])
+      setUploads((current) => [{ id: `local-${Date.now()}`, action: 'delete', ...report, sourceFilePath: null, accountCount: 0, createdAt: new Date().toISOString() }, ...current])
       return { ok: true }
     }
 
@@ -152,6 +161,7 @@ export function BudgetReportProvider({ children }) {
       }
     }
     setUploads((current) => current.filter((row) => row.id !== upload.id))
+    if (upload.action === 'upload') removeMasterFile(upload.sourceFilePath)
     if (!wasActive) return { ok: true, outcome: 'removed' }
 
     const previous = remote ? await fetchLatestVersion(upload.fiscalYear) : previousVersion(uploads, upload)

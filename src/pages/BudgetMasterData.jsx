@@ -78,7 +78,7 @@ export default function BudgetMasterData() {
     if (!parsed) return
     setSaving(true)
     try {
-      const result = await saveReport(parsed, { fiscalYear, periodMonth, fileName: file?.name || null })
+      const result = await saveReport(parsed, { fiscalYear, periodMonth, fileName: file?.name || null, sourceFile: file })
       const text = result.shared
         ? `Tersimpan. Dashboard dan menu akun TA ${fiscalYear} kini memakai laporan s.d. ${MONTH_NAMES[periodMonth - 1]}.${result.message ? ` ${result.message}` : ''}`
         : result.message || 'Laporan belum tersimpan ke server.'

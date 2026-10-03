@@ -3,6 +3,8 @@ import { MONTH_NAMES } from '../../../lib/budgetReportParser'
 import { IconTrash } from '../../icons/DuotoneIcons'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { DataTable } from '../../data-table/DataTable'
+import { VersionActions } from '../../master-data/VersionActions'
+import { useSourceDownload } from '../../master-data/useSourceDownload'
 
 export function formatTime(value) {
   if (!value) return '-'
@@ -12,7 +14,6 @@ export function formatTime(value) {
 }
 
 const BADGES = {
-  upload: 'bg-[#e6eefb] text-[#1d5fd0]',
   delete: 'bg-[#fde2e2] text-[#c0262d]',
   active: 'bg-[#dcf5e8] text-[#0b7a4f]'
 }
@@ -36,33 +37,37 @@ function DeleteButton({ label, onClick }) {
 }
 
 // Data aktif per tahun anggaran (hapus per TA) dan riwayat setiap unggahan
-// (hapus per unggahan; unggahan aktif ditandai).
+// (unduh berkas asli dan hapus per unggahan; unggahan aktif ditandai).
 export function MasterUploadHistory({ reports, years, uploads, activeIds, onDeleteYear, onDeleteUpload, notice }) {
+  const source = useSourceDownload()
   const columns = [
     { key: 'createdAt', label: 'Waktu', value: (row) => new Date(row.createdAt).getTime() || 0, text: (row) => formatTime(row.createdAt) },
-    {
-      key: 'action',
-      label: 'Aksi',
-      text: (row) => (row.action === 'delete' ? 'Hapus TA' : 'Unggah'),
-      render: (row) => <Badge tone={row.action === 'delete' ? 'delete' : 'upload'}>{row.action === 'delete' ? 'Hapus TA' : 'Unggah'}</Badge>
-    },
     { key: 'period', label: 'TA / Bulan', value: (row) => row.fiscalYear * 100 + row.periodMonth, text: (row) => `${row.fiscalYear} / ${MONTH_NAMES[row.periodMonth - 1]}` },
     { key: 'sourceFileName', label: 'Berkas', className: 'max-w-[220px] truncate', title: (row) => row.sourceFileName, text: (row) => row.sourceFileName || '-' },
     { key: 'uploadedByName', label: 'Oleh', text: (row) => row.uploadedByName || '-' },
     {
       key: 'status',
       label: 'Status',
-      value: (row) => (activeIds.has(row.id) ? 1 : 0),
-      text: (row) => (activeIds.has(row.id) ? 'Aktif' : ''),
-      render: (row) => (activeIds.has(row.id) ? <Badge tone="active">Aktif</Badge> : null)
+      value: (row) => (activeIds.has(row.id) ? 2 : row.action === 'delete' ? 1 : 0),
+      text: (row) => (activeIds.has(row.id) ? 'Aktif' : row.action === 'delete' ? 'Hapus TA' : ''),
+      render: (row) => (activeIds.has(row.id) ? <Badge tone="active">Aktif</Badge> : row.action === 'delete' ? <Badge tone="delete">Hapus TA</Badge> : null)
     },
     {
-      key: 'delete',
-      label: '',
+      key: 'actions',
+      label: 'Aksi',
       sortable: false,
       align: 'right',
       text: () => '',
-      render: (row) => <DeleteButton label={`Hapus unggahan ${formatTime(row.createdAt)}`} onClick={() => onDeleteUpload(row)} />
+      render: (row) => (
+        <VersionActions
+          row={row}
+          label={`unggahan ${formatTime(row.createdAt)}`}
+          hasFile={row.action !== 'delete'}
+          downloading={source.busyId === row.id}
+          onDownload={source.download}
+          onDelete={onDeleteUpload}
+        />
+      )
     }
   ]
 
@@ -86,6 +91,7 @@ export function MasterUploadHistory({ reports, years, uploads, activeIds, onDele
         }) : <p className="text-sm text-slate-500">Belum ada master data. Dashboard dan menu akun masih kosong.</p>}
       </div>
 
+      {source.notice && <p className="rounded-xl bg-[#fde2e2] px-3 py-2 text-[13px] text-[#c0262d]">{source.notice.text}</p>}
       {notice && (
         <p className={`rounded-xl px-3 py-2 text-[13px] ${notice.ok ? 'bg-[#dcf5e8] text-[#0b7a4f]' : 'bg-[#fde2e2] text-[#c0262d]'}`}>{notice.text}</p>
       )}

@@ -153,6 +153,15 @@ export function IconUpload(props) {
   )
 }
 
+export function IconDownload(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <path opacity={BACK} d="M4 15a1 1 0 0 1 1 1v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2a1 1 0 1 1 2 0v2a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2a1 1 0 0 1 1-1Z" />
+      <path d="M12 3a1.2 1.2 0 0 1 1.2 1.2v7.9l2.45-2.45a1.2 1.2 0 1 1 1.7 1.7l-4.5 4.5a1.2 1.2 0 0 1-1.7 0l-4.5-4.5a1.2 1.2 0 1 1 1.7-1.7l2.45 2.45V4.2A1.2 1.2 0 0 1 12 3Z" />
+    </DuotoneSvg>
+  )
+}
+
 export function IconTrash(props) {
   return (
     <DuotoneSvg {...props}>
@@ -234,6 +243,43 @@ export function IconSearch(props) {
     <DuotoneSvg {...props}>
       <circle opacity={BACK} cx="10.5" cy="10.5" r="7.5" />
       <path d="M10.5 5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Zm-7.5 5.5a7.5 7.5 0 1 1 13.5 4.5l4.2 4.2a1.2 1.2 0 0 1-1.7 1.7l-4.2-4.2A7.5 7.5 0 0 1 3 10.5Z" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconPlay(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <rect opacity={BACK} x="2" y="2" width="20" height="20" rx="6" />
+      <path d="M9.5 7.6a1 1 0 0 1 1.5-.86l6.2 3.9a1 1 0 0 1 0 1.72L11 16.26a1 1 0 0 1-1.5-.86Z" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconBook(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <path opacity={BACK} d="M12 5.6C10.2 4.3 7.6 3.6 4.5 3.5A1.5 1.5 0 0 0 3 5v12.6a1.4 1.4 0 0 0 1.4 1.4c2.9.1 5.4.8 7.6 2.2Z" />
+      <path d="M12 5.6c1.8-1.3 4.4-2 7.5-2.1A1.5 1.5 0 0 1 21 5v12.6a1.4 1.4 0 0 1-1.4 1.4c-2.9.1-5.4.8-7.6 2.2Z" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconGlobe(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <circle opacity={BACK} cx="12" cy="12" r="10" />
+      <path d="M12 2c2.4 2.5 3.7 6.2 3.7 10s-1.3 7.5-3.7 10c-2.4-2.5-3.7-6.2-3.7-10S9.6 4.5 12 2Zm0 2.9c-1.3 1.9-2 4.4-2 7.1s.7 5.2 2 7.1c1.3-1.9 2-4.4 2-7.1s-.7-5.2-2-7.1Z" />
+      <path d="M2.6 9h18.8v1.6H2.6Zm0 4.4h18.8V15H2.6Z" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconClock(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <circle opacity={BACK} cx="12" cy="12" r="10" />
+      <path d="M12 6a1 1 0 0 1 1 1v4.6l3 1.8a1 1 0 1 1-1 1.7l-3.5-2.1A1 1 0 0 1 11 12V7a1 1 0 0 1 1-1Z" />
     </DuotoneSvg>
   )
 }
