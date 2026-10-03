@@ -128,7 +128,7 @@ perluas modulnya (tanpa mengubah perilaku pemakai lama), jangan menyalin.
 | Gaya kartu & judul | `src/components/ui/cardStyles.js` (`CARD_CLASS`, `CARD_TITLE_CLASS`, `LABEL_CLASS`) | Sudah termasuk varian `fit:`/`tall:`. |
 | Tombol, dialog, input dasar | `src/components/ui/*` (`Button` varian `teal`/`outline`/`destructive`, `Dialog`) | Dasar untuk komponen di bawah. |
 | Konfirmasi aksi berisiko (hapus, kosongkan) | `src/components/ui/ConfirmDialog.jsx` | Props `open`, `title`, `description` (sebutkan akibatnya pada data), `confirmLabel`, `busy`, `onCancel`, `onConfirm`. Jangan `window.confirm`. |
-| Kepala halaman dashboard | `src/components/budget/dashboard/BudgetDashboardHeader.jsx` | Props `title`, `subtitle`, `icon`, pemilih TA (`years`, `fiscalYear`, `onFiscalYearChange`), `showYearPicker`. |
+| Kepala halaman dashboard | `src/components/budget/dashboard/BudgetDashboardHeader.jsx` | Props `title`, `subtitle`, `icon`, pemilih TA (`years`, `fiscalYear`, `onFiscalYearChange`), `showYearPicker`, `actions` (kontrol tambahan di kanan, mis. pemilih triwulan). |
 | Tooltip grafik | `src/components/charts/ChartTooltip.jsx` (`useChartTooltip`) | Isi berupa node React; mendukung tetikus dan keyboard. |
 | Animasi angka & grafik | `src/hooks/useAnimatedProgress.js` (`useAnimatedProgress`, `useCountUp`) | Menghormati `prefers-reduced-motion`. |
 | Ukuran elemen (grafik responsif) | `src/hooks/useElementSize.js` | ResizeObserver; teks SVG tetap ukuran asli. |
@@ -136,9 +136,13 @@ perluas modulnya (tanpa mengubah perilaku pemakai lama), jangan menyalin.
 | Data anggaran Keuangan | `src/context/BudgetReportContext.jsx` (`useBudgetReports`) | Sumber tunggal dashboard & menu akun (lihat bagian Master Data). |
 | Keadaan kosong master data | `src/components/budget/MasterDataEmptyState.jsx` | Tombol ke Master Data hanya untuk admin. |
 | Grafik donat / kolom / batang horizontal | `src/components/charts/DonutChart.jsx`, `ColumnChart.jsx`, `BarList.jsx` | Generik, beranimasi, tooltip; sumbu dari `src/lib/chartAxis.js` (`buildAxis`). |
-| Master Data berversi (tanpa tahun) | `src/context/MasterDatasetContext.jsx` (`useMasterDataset(dataset, { ownerDivision, loadDetails })`) | Lihat bagian "Master Data generik". |
-| Unggah berkas Excel | `src/components/master-data/FileDropzone.jsx` (+ `validateExcelFile`) | Pilih/seret, maks. 5 MB, .xlsx/.xls. |
-| Riwayat versi + hapus/kosongkan | `src/components/master-data/VersionHistory.jsx`, `useVersionDeletion.js` | Status Aktif, rollback, pesan akibat di `ConfirmDialog`. |
+| Master Data berversi (tanpa tahun) | `src/context/MasterDatasetContext.jsx` (`useMasterDataset(dataset, { ownerDivision, loadDetails })`, `useMasterDatasetGroup(prefix)` untuk dataset per periode) | Lihat bagian "Master Data generik". Aturan versi murni di `src/lib/masterDatasetVersions.js`. |
+| Unggah berkas Excel / PDF | `src/components/master-data/FileDropzone.jsx` (+ `validateExcelFile`, `validatePdfFile`, `isPdfSignature`) | Pilih/seret, maks. 5 MB; props `accept`, `label`. Berkas yang sama bisa dipilih ulang. |
+| Riwayat versi + hapus/kosongkan | `src/components/master-data/VersionHistory.jsx`, `useVersionDeletion.js` | Status Aktif/Dikosongkan, rollback, pesan akibat di `ConfirmDialog`. |
+| Kolom Aksi riwayat (unduh berkas asli, hapus) | `src/components/master-data/VersionActions.jsx` + `useSourceDownload.js` | Ikon saja (aria-label + title). Berkas di `src/lib/masterFileStorage.js` (bucket privat `master-files`, admin). |
+| Tabel bergaris dari PDF teks | `src/lib/pdfTable.js` (`readPdfTablePages`, `rowLinesForColumn`, `columnOf`, `cellText`) + `src/lib/pdfjsLoader.js` | pdf.js disuntikkan pemanggil (browser: `loadPdfjs()` malas; Node: build legacy), `isEvalSupported: false`. |
+| Kalender bulan | `src/components/calendar/MonthCalendar.jsx` (+ `src/lib/calendarLayout.js`) | Bilah berhari-hari per minggu, lajur mengikuti tinggi, "+N" bisa dipilih, `event.priority` untuk kegiatan panjang, slot `title`/`aside`. |
+| Kartu KPI & filter pilihan | `KpiCard` (`components/hr/bezetting/BezettingKpiCards.jsx`), `FilterSelect` (`BezettingFilters.jsx`, opsi teks atau `{ value, label }`, `inset`) | Dipakai Bezetting dan Kalender Diklat. |
 | Sidebar per bidang | `src/data/sidebarConfig.js` (`getDivisionSidebar`) | Layanan tampil, hitungan, Monitoring/Integrasi, tautan Master Data. |
 | Satu layar tanpa scroll | screen Tailwind `fit`, `fitwide`, `tall` (`tailwind.config.js`) | Lihat Aturan 2. |
 
@@ -245,10 +249,16 @@ Untuk data bidang yang tidak dipilah per tahun anggaran (contoh: Bezetting SDM).
 Data Keuangan tetap memakai `BudgetReportContext` (per TA).
 
 - **Tabel**: `master_dataset_versions` (`dataset`, `action` upload/clear, `payload`, periode, berkas,
-  pengunggah) dan `master_dataset_private` (data rinci, RLS: admin atau `owner_division`).
-  SQL: `supabase/master-dataset.sql` (juga di `jalankan-semua.sql`).
+  `source_file_path`, pengunggah) dan `master_dataset_private` (data rinci, RLS: admin atau `owner_division`).
+  SQL: `supabase/master-dataset.sql` + `supabase/master-berkas.sql` (keduanya juga di `jalankan-semua.sql`).
 - **Aturan**: data aktif = versi terbaru dataset; `clear` = dikosongkan; hapus versi terbaru =
-  rollback otomatis ke versi sebelumnya. Unggah/hapus hanya admin, tanpa approval.
+  rollback otomatis ke versi sebelumnya; hanya satu versi aktif. Unggah/hapus hanya admin, tanpa approval.
+  Simpan data rinci gagal = versi umum dibatalkan (atomik); daftar versi diambil ulang sebelum dan sesudah hapus.
+- **Dataset per periode**: nama `awalan:periode` (mis. `hr-diklat:2026-TW4`); tiap periode punya versi aktif,
+  rollback, dan kosongkan sendiri; `useMasterDatasetGroup('hr-diklat:')` memuat semuanya sekaligus.
+- **Berkas asli**: setiap unggahan (juga Master Data Anggaran) menyimpan berkasnya di bucket privat
+  `master-files` (hanya admin, maks. 5 MB, Excel/PDF) agar bisa diunduh ulang dari kolom Aksi riwayat.
+  Gagal menyimpan berkas tidak membatalkan data (pesan ditampilkan); hapus versi ikut menghapus berkasnya.
 - **Dataset**: `hr-bezetting` (Bidang SDM) — parser `src/lib/bezettingParser.js` (sheet `ABK` +
   `Lengkap_PBD`, rekonsiliasi jumlah per tingkat ABK), model `components/hr/bezetting/bezettingModel.js`,
   halaman `src/pages/HrMasterData.jsx` (`/dashboard/master-sdm`) dan menu Bezetting (`BezettingPage`).
@@ -256,8 +266,19 @@ Data Keuangan tetap memakai `BudgetReportContext` (per TA).
   BPJS, Taspen, keluarga tidak pernah dibaca). Kolom umum (nama, unit, jabatan, golongan,
   pendidikan, L/P, rentang usia) di `payload`; kolom rinci (NIP, email, tanggal lahir, agama, SK, ...)
   hanya di `master_dataset_private`. Data rinci tidak pernah ditulis ke localStorage, log, atau `public/`.
+- Berkas Bezetting yang disimpan untuk diunduh ulang adalah **salinan bersih** (`src/lib/bezettingSanitizer.js`):
+  di Lengkap_PBD semua kolom sesudah "TMT Jabatan Tertentu" dikosongkan; batas kolom memakai
+  `findEmployeeColumns` yang sama dengan parser. Hasil parsing salinan harus identik dengan aslinya.
 - Uji wajib bila parser diubah: Node terhadap berkas asli (85/45/−40, 52,9 %, L29/P16, S1 38/S2 6/D4 1),
-  tidak ada kolom terlarang di keluaran, berkas rusak ditolak.
+  tidak ada kolom terlarang di keluaran, berkas rusak ditolak, salinan bersih tanpa NIK/HP/BPJS.
+- **Dataset `hr-diklat:<tahun>-TW<n>`** (Kalender Diklat per triwulan): masukan **hanya PDF** Kaldik dari aplikasi
+  sumber. Parser `src/lib/kaldikParser.js` membaca grid vektor (10 kolom: garis penuh = program, garis parsial =
+  tahap) lewat `pdfTable.js`; tanggal bebas lewat `src/lib/kaldikDates.js` (tidak terbaca = TBA, tidak ditebak).
+  **Ditolak** bila bukan PDF (ekstensi + MIME + `%PDF-` + 5 MB), judul "Triwulan … Tahun …" tidak ada, grid bukan
+  10 kolom, nomor urut per jenis tidak berurutan, atau program tanpa nama/metode/penyelenggara. Model menu
+  `components/hr/diklat/diklatModel.js` (gabung triwulan tanpa duplikat, status menurut tanggal hari ini).
+  Uji wajib: Node terhadap PDF TW IV 2026 (41 program = 2/2/12/2/20/3, tahap 8/8/6/6, JP 905/908 hanya di
+  program, Internasional SL/DL/KL, TBA hanya #3) + PDF terpotong/tanpa judul/bukan PDF ditolak.
 
 ## Alur kerja per perubahan
 
