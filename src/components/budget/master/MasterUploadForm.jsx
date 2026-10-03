@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { MONTH_NAMES } from '../../../lib/budgetReportParser'
-import { IconUpload } from '../../icons/DuotoneIcons'
+import { FileDropzone } from '../../master-data/FileDropzone'
 import { Button } from '../../ui/button'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 
@@ -15,24 +14,11 @@ function yearOptions(...extra) {
 // Formulir unggah: berkas, Tahun Anggaran, dan Bulan. Keduanya terisi dari
 // kepala laporan dan tetap bisa diubah administrator.
 export function MasterUploadForm({ file, parsing, saving, error, fiscalYear, periodMonth, onFile, onYear, onMonth, onSave, canSave, notices }) {
-  const [dragging, setDragging] = useState(false)
-
   return (
     <div className={`${CARD_CLASS} gap-3`}>
       <h2 className={CARD_TITLE_CLASS}>Unggah Laporan Realisasi</h2>
 
-      <label
-        htmlFor="master-file"
-        onDragOver={(event) => { event.preventDefault(); setDragging(true) }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => { event.preventDefault(); setDragging(false); onFile(event.dataTransfer.files?.[0]) }}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-5 text-center transition-colors fit:py-4 ${dragging ? 'border-[#2f7fe8] bg-[#eef4fd]' : 'border-[#c9d6ea] bg-[#f8fbff] hover:border-[#2f7fe8]'}`}
-      >
-        <IconUpload className="h-9 w-9 text-[#2f7fe8]" />
-        <span className="text-sm font-bold text-[#12305f]">{file ? file.name : 'Pilih atau seret berkas Excel'}</span>
-        <span className="text-xs text-[#7a8aa8]">Laporan Realisasi SP2D — Akun Based (.xlsx/.xls, maks. 5 MB)</span>
-        <input id="master-file" type="file" accept=".xlsx,.xls" className="sr-only" onChange={(event) => onFile(event.target.files?.[0])} />
-      </label>
+      <FileDropzone id="master-file" file={file} onFile={onFile} hint="Laporan Realisasi SP2D — Akun Based (.xlsx/.xls, maks. 5 MB)" />
 
       <div className="grid grid-cols-2 items-end gap-3">
         <div className="min-w-0">

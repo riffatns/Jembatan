@@ -496,6 +496,88 @@ create policy "Admins can delete budget report uploads"
 
 
 -- ----------------------------------------------------------------------------
+-- 5c-4. Master Data generik berversi (Bidang SDM: bezetting)
+-- ----------------------------------------------------------------------------
+-- Versi terbaru per dataset = data aktif; hapus versi terbaru = rollback.
+-- Data rinci pegawai di tabel privat (admin + bidang pemilik). Sama dengan
+-- master-dataset.sql.
+
+create table if not exists public.master_dataset_versions (
+  id uuid primary key default gen_random_uuid(),
+  dataset text not null,
+  action text not null default 'upload' check (action in ('upload', 'clear')),
+  period_month integer check (period_month between 1 and 12),
+  period_year integer,
+  period_label text,
+  payload jsonb not null default '{}'::jsonb,
+  source_file_name text,
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  uploaded_by_name text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists master_dataset_versions_dataset_idx
+  on public.master_dataset_versions (dataset, created_at desc);
+
+create table if not exists public.master_dataset_private (
+  version_id uuid primary key references public.master_dataset_versions(id) on delete cascade,
+  dataset text not null,
+  owner_division text not null references public.divisions(id) on delete cascade,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.master_dataset_versions enable row level security;
+alter table public.master_dataset_private enable row level security;
+
+drop policy if exists "Authenticated users can read master dataset versions" on public.master_dataset_versions;
+drop policy if exists "Admins can insert master dataset versions" on public.master_dataset_versions;
+drop policy if exists "Admins can delete master dataset versions" on public.master_dataset_versions;
+drop policy if exists "Owner division can read master dataset private" on public.master_dataset_private;
+drop policy if exists "Admins can insert master dataset private" on public.master_dataset_private;
+drop policy if exists "Admins can delete master dataset private" on public.master_dataset_private;
+
+-- Ringkasan dan data umum dibaca semua yang login (tampil di menu bidang).
+create policy "Authenticated users can read master dataset versions"
+  on public.master_dataset_versions for select to authenticated using (true);
+
+-- Hanya administrator yang mengunggah dan menghapus master data, tanpa approval.
+create policy "Admins can insert master dataset versions"
+  on public.master_dataset_versions for insert to authenticated
+  with check (public.current_profile_role() = 'admin' and uploaded_by = auth.uid());
+
+create policy "Admins can delete master dataset versions"
+  on public.master_dataset_versions for delete to authenticated
+  using (public.current_profile_role() = 'admin');
+
+-- Data rinci: admin, atau pegawai bidang pemilik data (mis. SDM untuk bezetting).
+create policy "Owner division can read master dataset private"
+  on public.master_dataset_private for select to authenticated
+  using (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = owner_division
+  );
+
+create policy "Admins can insert master dataset private"
+  on public.master_dataset_private for insert to authenticated
+  with check (public.current_profile_role() = 'admin');
+
+create policy "Admins can delete master dataset private"
+  on public.master_dataset_private for delete to authenticated
+  using (public.current_profile_role() = 'admin');
+
+-- Menu yang sedang terbuka ikut berubah begitu versi baru disimpan atau dihapus.
+do $do$
+begin
+  alter publication supabase_realtime add table public.master_dataset_versions;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
 -- 5d. Kunci peran dan bidang pada profil
 -- ----------------------------------------------------------------------------
 -- Pengguna tidak bisa lagi menjadikan dirinya admin atau pindah bidang sendiri.
@@ -730,6 +812,23 @@ select 'Versi unggahan master data (budget_report_uploads.report)',
          select 1 from pg_policies
          where schemaname = 'public' and tablename = 'budget_report_uploads' and cmd = 'DELETE'
        ) then 'OK' else 'BELUM' end
+union all
+select 'Master data generik (public.master_dataset_versions)',
+       case when to_regclass('public.master_dataset_versions') is not null
+             and exists (
+               select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'master_dataset_versions' and cmd = 'DELETE'
+             )
+       then 'OK' else 'BELUM' end
+union all
+select 'Data rinci terbatas (public.master_dataset_private)',
+       case when to_regclass('public.master_dataset_private') is not null
+             and exists (
+               select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'master_dataset_private'
+                 and cmd = 'SELECT' and qual like '%owner_division%'
+             )
+       then 'OK' else 'BELUM' end
 union all
 select 'Kunci peran profil (trigger protect_profile_role)',
        case when exists (

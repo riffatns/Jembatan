@@ -163,3 +163,77 @@ export function IconTrash(props) {
     </DuotoneSvg>
   )
 }
+
+export function IconUsers(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <circle opacity={BACK} cx="17" cy="8" r="3" />
+      <path opacity={BACK} d="M15.2 13.1a6 6 0 0 1 7.3 5.6c0 .7-.6 1.3-1.3 1.3h-3.6a7.8 7.8 0 0 0-2.4-6.9Z" />
+      <circle cx="9" cy="7.5" r="3.8" />
+      <path d="M1.5 19.4a7.5 7.5 0 0 1 15 0c0 .9-.7 1.6-1.6 1.6H3.1c-.9 0-1.6-.7-1.6-1.6Z" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconAlert(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <path opacity={BACK} d="M10.3 3.6a2 2 0 0 1 3.4 0l8.2 14.2a2 2 0 0 1-1.7 3H3.8a2 2 0 0 1-1.7-3Z" />
+      <rect x="10.8" y="8.5" width="2.4" height="6.5" rx="1.2" />
+      <circle cx="12" cy="17.6" r="1.4" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconGraduation(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <path opacity={BACK} d="M6 11.5v4.2c0 1.5 2.7 3.3 6 3.3s6-1.8 6-3.3v-4.2l-6 3Z" />
+      <path d="M11.2 3.4a1.8 1.8 0 0 1 1.6 0l9.4 4.9c.7.4.7 1.4 0 1.8l-9.4 4.9a1.8 1.8 0 0 1-1.6 0L1.8 10.1a1 1 0 0 1 0-1.8Z" />
+      <rect x="20" y="9.5" width="1.6" height="6" rx="0.8" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconBuilding(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <path opacity={BACK} d="M5 4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v17H5Z" />
+      <path d="M16 9h2a2 2 0 0 1 2 2v10h-4Z" />
+      <rect x="8" y="6" width="2" height="2" rx="0.5" />
+      <rect x="11.5" y="6" width="2" height="2" rx="0.5" />
+      <rect x="8" y="10" width="2" height="2" rx="0.5" />
+      <rect x="11.5" y="10" width="2" height="2" rx="0.5" />
+      <rect x="9" y="15" width="3.5" height="6" rx="0.6" />
+      <rect x="3" y="20" width="18" height="2" rx="1" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconMale(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <circle cx="12" cy="4.5" r="2.5" />
+      <path opacity={BACK} d="M9.5 8h5a2 2 0 0 1 2 2v4.5a1 1 0 0 1-1 1h-.5V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5.5h-.5a1 1 0 0 1-1-1V10a2 2 0 0 1 2-2Z" />
+      <rect x="11.2" y="15.5" width="1.6" height="6.5" rx="0.8" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconFemale(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <circle cx="12" cy="4.5" r="2.5" />
+      <path opacity={BACK} d="M10.2 8h3.6a2 2 0 0 1 1.9 1.4l2.1 6.8a1 1 0 0 1-1 1.3H15V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-3.5H7.2a1 1 0 0 1-1-1.3l2.1-6.8A2 2 0 0 1 10.2 8Z" />
+    </DuotoneSvg>
+  )
+}
+
+export function IconSearch(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <circle opacity={BACK} cx="10.5" cy="10.5" r="7.5" />
+      <path d="M10.5 5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Zm-7.5 5.5a7.5 7.5 0 1 1 13.5 4.5l4.2 4.2a1.2 1.2 0 0 1-1.7 1.7l-4.2-4.2A7.5 7.5 0 0 1 3 10.5Z" />
+    </DuotoneSvg>
+  )
+}
