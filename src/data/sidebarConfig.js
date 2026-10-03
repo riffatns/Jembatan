@@ -19,6 +19,8 @@ const DIVISION_SIDEBAR = {
   },
   hr: {
     enabled: USE_NEW_HR_VIEWS,
+    // MCU tidak dipakai: disembunyikan dari menu, datanya tidak dihapus.
+    categoryFilter: (category) => category.id !== 'mcu',
     hideCountFor: (category) => ['bezetting', 'diklat'].includes(category.id),
     hideMonitoring: true,
     hideIntegration: true,
