@@ -5,24 +5,19 @@ import { SERIES_COLORS } from './budgetDashboardModel'
 import { ChartTooltip, useChartTooltip } from './ChartTooltip'
 import { useCountUp } from './useAnimatedProgress'
 
-// Di kartu lebar ikon besar berdiri di kiri. Di kartu sempit (lima kartu
-// sebaris di layar laptop) ikon mengecil dan pindah ke samping label, supaya
-// angka Rupiah penuh mendapat seluruh lebar kartu.
-const WIDE_CARD = 'min-[1600px]'
+// Ikon kecil di samping label, supaya angka Rupiah penuh mendapat seluruh
+// lebar kartu walau lima kartu berjajar di layar laptop.
 
 function MoneyCard({ icon: Icon, label, value, note, color }) {
   const shownValue = useCountUp(value)
 
   return (
     <div className={`${CARD_CLASS} col-span-2 !flex-row items-center gap-3.5 lg:col-span-1`}>
-      <span className={`hidden h-[58px] w-[58px] shrink-0 place-items-center rounded-full text-white ${WIDE_CARD}:grid`} style={{ backgroundColor: color }}>
-        <Icon className="h-7 w-7" />
-      </span>
       {/* Lebar teks diukur sebagai container: angka Rupiah penuh mengecil
           mengikuti lebar kartu, bukan terpotong. */}
       <div className="min-w-0 flex-1" style={{ containerType: 'inline-size' }}>
         <p className={`${LABEL_CLASS} flex items-center gap-2`}>
-          <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-white ${WIDE_CARD}:hidden`} style={{ backgroundColor: color }}>
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: color }}>
             <Icon className="h-4 w-4" />
           </span>
           {label}

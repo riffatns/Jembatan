@@ -15,7 +15,7 @@ function AbsorptionBar({ percent, bold, progress }) {
 
 const HEAD_CELL = 'border-r border-white/15 px-3 py-[9px] text-center text-[13.5px] font-semibold text-white last:border-r-0 fit:px-2 fit:py-1.5 fit:text-[13px]'
 const BODY_CELL =
-  'whitespace-nowrap border-r border-t border-[#e1e8f4] px-3 py-2 text-center text-sm tabular-nums text-[#12305f] last:border-r-0 fit:px-1.5 fit:py-1 fit:text-[13px] min-[1440px]:fit:px-2 tall:py-1.5 tall:text-sm'
+  'whitespace-nowrap border-r border-t border-[#e1e8f4] px-3 py-2 text-center text-sm tabular-nums text-[#12305f] last:border-r-0 fit:px-1.5 fit:py-1 fit:text-[13px] fitwide:px-2 tall:py-1.5 tall:text-sm'
 const TOTAL_CELL = `${BODY_CELL} text-[15px] fit:text-[13.5px] tall:text-[15px]`
 
 export function BudgetDetailTable({ rows, total, absorption }) {

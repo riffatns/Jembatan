@@ -8,6 +8,7 @@ export default {
       // satu layar tanpa scroll. tall: layar yang cukup tinggi untuk ukuran penuh.
       screens: {
         fit: { raw: '(min-width: 1360px) and (min-height: 600px)' },
+        fitwide: { raw: '(min-width: 1440px) and (min-height: 600px)' },
         tall: { raw: '(min-width: 1360px) and (min-height: 900px)' }
       },
       colors: {
