@@ -301,7 +301,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   }
 
   // Keuangan: menu akun 51/52/53 menampilkan angka Master Data Anggaran saja.
-  if (USE_NEW_ACCOUNT_VIEWS && divisionId === 'finance' && serviceContent.budgetCode) {
+  // Layanan Keuangan lain (Realisasi/Sisa Anggaran) sudah digantikan Dashboard.
+  if (USE_NEW_ACCOUNT_VIEWS && divisionId === 'finance') {
+    if (!serviceContent.budgetCode) return <Navigate to="/dashboard" replace />
     return <AccountBudgetPage key={serviceContent.budgetCode} groupCode={serviceContent.budgetCode} />
   }
 

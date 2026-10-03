@@ -178,6 +178,11 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
   const categories = getDocumentCategories(divisionId)
   const punyaArsip = categories.some((category) => category.id === 'arsip')
   const usesAccountViews = USE_NEW_ACCOUNT_VIEWS && divisionId === 'finance'
+  // Keuangan hanya menampilkan menu akun 51/52/53; Realisasi Anggaran dan Sisa
+  // Anggaran sudah digantikan Dashboard dan Master Data (tidak dihapus).
+  const visibleCategories = usesAccountViews
+    ? categories.filter((category) => getServiceContent(category.id).budgetCode)
+    : categories
   const storageKey = `bpk-dashboard-active-category-${divisionId}`
   const [activeCategoryId, setActiveCategoryId] = useState(() => {
     // Kategori tersimpan bisa menunjuk layanan yang kini disembunyikan.
@@ -256,11 +261,11 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
 
         <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Layanan</p>
         <div className="mt-3 space-y-1.5">
-          {categories.map((category) => {
+          {visibleCategories.map((category) => {
             const ActiveIcon = DIVISION_ICON_MAP[divisionId]?.[category.id] || FileText
             const isActive = !isDashboardRoute && !isSectionRoute && activeCategoryId === category.id
             // Menu akun Keuangan tidak lagi berisi dokumen, jadi tanpa hitungan dokumen.
-            const isAccountMenu = usesAccountViews && Boolean(getServiceContent(category.id).budgetCode)
+            const isAccountMenu = usesAccountViews
             return (
               <SidebarNavButton
                 key={category.id}
