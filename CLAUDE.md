@@ -69,6 +69,18 @@ Repo ini dua bahasa. Pembagiannya sudah terbentuk dan harus dijaga:
   (`formatRupiah`, `formatBillion`, `formatPercent`, `formatAbsorption`).
   Pakai itu, jangan menulis formatter baru.
 
+### Ikon
+
+- Ikon baru **wajib** SVG duotone dari `src/components/icons/DuotoneIcons.jsx`:
+  bentuk terisi (`fill="currentColor"`), lapisan belakang opasitas 0,35,
+  **tanpa garis tepi (stroke/outline) dan tanpa bingkai/border** di sekitarnya.
+  Warna ikut `text-*` induknya; latar bulat berwarna boleh, garis lingkar tidak.
+- Ikon yang belum ada ditambahkan ke berkas itu dengan grid 24×24 yang sama
+  dan nama `Icon<Nama>` (`IconDatabase`, `IconChartBars`). Jangan menggambar
+  ikon SVG sebaris di dalam komponen.
+- `lucide-react` (ikon bergaris) tetap dipakai di kode lama dan tidak diganti
+  massal. Dalam satu komponen jangan mencampur ikon lucide dengan ikon duotone.
+
 ## Aturan 2 — Batas ukuran dan modularitas
 
 | Ukuran | Batas |
@@ -85,10 +97,16 @@ Repo ini dua bahasa. Pembagiannya sudah terbentuk dan harus dijaga:
   tambahan ratusan baris ke berkas yang sudah besar.
 - Berkas yang **sudah** melewati batas — jangan ditambah lagi kecuali
   beberapa baris penyambung (rute, tombol menu, satu callback):
-  `seed.js` 858, `HrOverview.jsx` 634, `Sidebar.jsx` 517, `DataContext.jsx` 495,
+  `seed.js` 858, `HrOverview.jsx` 634, `Sidebar.jsx` 497, `DataContext.jsx` 495,
   `agendaStorage.js` 475, `DivisionWorkspace.jsx` 466, `DocumentUploadModal.jsx` 405.
   Kalau sebuah tugas harus mengubah banyak di sana, keluarkan bagian yang
   diubah ke modul baru dulu, dalam commit terpisah.
+- Halaman yang harus muat satu layar memakai varian Tailwind `fit:` (desktop
+  ≥ 1360×600) dan `tall:` (tinggi ≥ 900) dari `tailwind.config.js`, bukan
+  angka tinggi tetap. Di bawah `fit` halaman boleh di-scroll (ponsel, tablet).
+- Animasi angka dan grafik memakai `useAnimatedProgress` / `useCountUp`
+  (`components/budget/dashboard/useAnimatedProgress.js`) yang sudah menghormati
+  `prefers-reduced-motion`. Jangan menambah library animasi.
 - Cek cepat sebelum commit:
   `find src -name '*.js*' | xargs wc -l | sort -rn | awk '$1>300'`
 
