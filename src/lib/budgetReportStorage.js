@@ -58,8 +58,11 @@ export function toRemoteReport(report, user) {
   }
 }
 
-export function toRemoteUpload(report, user) {
+export function toRemoteUpload(report, user, action = 'upload') {
   return {
+    // Kolom action baru ada setelah anggaran-master-hapus.sql; unggahan biasa
+    // memakai nilai bawaan 'upload' supaya tetap jalan sebelum SQL itu dijalankan.
+    ...(action !== 'upload' && { action }),
     fiscal_year: report.fiscalYear,
     period_month: report.periodMonth,
     source_file_name: report.sourceFileName,
@@ -73,6 +76,7 @@ export function toRemoteUpload(report, user) {
 export function mapRemoteUpload(row) {
   return {
     id: row.id,
+    action: row.action || 'upload',
     fiscalYear: row.fiscal_year,
     periodMonth: row.period_month,
     sourceFileName: row.source_file_name,

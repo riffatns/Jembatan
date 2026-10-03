@@ -152,3 +152,14 @@ export function IconUpload(props) {
     </DuotoneSvg>
   )
 }
+
+export function IconTrash(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <path opacity={BACK} d="M5 7h14l-1.1 12.2A2 2 0 0 1 15.9 21H8.1a2 2 0 0 1-2-1.8Z" />
+      <path d="M9.5 3h5a1 1 0 0 1 1 1v1H19a1 1 0 1 1 0 2H5a1 1 0 0 1 0-2h3.5V4a1 1 0 0 1 1-1Z" />
+      <rect x="9.25" y="10" width="1.8" height="7" rx="0.9" />
+      <rect x="12.95" y="10" width="1.8" height="7" rx="0.9" />
+    </DuotoneSvg>
+  )
+}

@@ -456,6 +456,30 @@ $do$;
 
 
 -- ----------------------------------------------------------------------------
+-- 5c-2. Hapus data Master Data Anggaran per tahun anggaran
+-- ----------------------------------------------------------------------------
+-- Administrator bisa mengosongkan data satu TA. Sama dengan anggaran-master-hapus.sql.
+
+drop policy if exists "Admins can delete budget reports" on public.budget_reports;
+
+create policy "Admins can delete budget reports"
+  on public.budget_reports for delete to authenticated
+  using (public.current_profile_role() = 'admin');
+
+alter table public.budget_report_uploads
+  add column if not exists action text not null default 'upload';
+
+do $do$
+begin
+  alter table public.budget_report_uploads
+    add constraint budget_report_uploads_action_check check (action in ('upload', 'delete'));
+exception
+  when duplicate_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
 -- 5d. Kunci peran dan bidang pada profil
 -- ----------------------------------------------------------------------------
 -- Pengguna tidak bisa lagi menjadikan dirinya admin atau pindah bidang sendiri.
@@ -675,6 +699,12 @@ select 'Master data anggaran (public.budget_reports)',
        case when to_regclass('public.budget_reports') is not null
              and to_regclass('public.budget_report_uploads') is not null
        then 'OK' else 'BELUM' end
+union all
+select 'Hapus master data anggaran (kebijakan delete)',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'budget_reports' and cmd = 'DELETE'
+       ) then 'OK' else 'BELUM' end
 union all
 select 'Kunci peran profil (trigger protect_profile_role)',
        case when exists (

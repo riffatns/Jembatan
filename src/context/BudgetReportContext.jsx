@@ -108,6 +108,36 @@ export function BudgetReportProvider({ children }) {
     return { shared: true, message: followUpError ? `Laporan tersimpan, tetapi: ${followUpError.message}` : null }
   }, [user, refreshBudget, refreshUploads, selectFiscalYear])
 
+  // Mengosongkan data satu TA. Dashboard dan menu akun TA itu kembali kosong
+  // sampai laporan baru diunggah; riwayat unggah tetap ada.
+  const deleteReport = useCallback(async (fiscalYear) => {
+    const report = reports[fiscalYear]
+    if (!report) return { ok: false, message: `Tidak ada data TA ${fiscalYear}.` }
+    const removeLocally = () => setReports((current) => {
+      const next = { ...current }
+      delete next[fiscalYear]
+      return next
+    })
+
+    if (!isSupabaseConfigured || !user?.id) {
+      removeLocally()
+      setUploads((current) => [{ id: `local-${Date.now()}`, action: 'delete', ...report, accountCount: 0, createdAt: new Date().toISOString() }, ...current])
+      return { ok: true }
+    }
+
+    // RLS yang menolak delete tidak memberi galat, hanya 0 baris; karena itu
+    // baris yang terhapus diminta kembali dan dihitung.
+    const { data, error } = await supabase.from('budget_reports').delete().eq('fiscal_year', fiscalYear).select('fiscal_year')
+    if (error) return { ok: false, message: error.message }
+    if (!data?.length) {
+      return { ok: false, message: 'Database menolak penghapusan. Jalankan supabase/anggaran-master-hapus.sql di SQL Editor, lalu coba lagi.' }
+    }
+    removeLocally()
+    await supabase.from('budget_report_uploads').insert(toRemoteUpload({ ...report, accounts: [], totals: {} }, user, 'delete'))
+    refreshUploads().catch(() => {})
+    return { ok: true }
+  }, [reports, user, refreshUploads])
+
   const value = {
     reports,
     years,
@@ -117,7 +147,8 @@ export function BudgetReportProvider({ children }) {
     refreshReports,
     uploads,
     refreshUploads,
-    saveReport
+    saveReport,
+    deleteReport
   }
 
   return <BudgetReportContext.Provider value={value}>{children}</BudgetReportContext.Provider>
