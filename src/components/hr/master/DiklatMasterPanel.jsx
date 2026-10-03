@@ -3,6 +3,7 @@ import { useMasterDatasetGroup } from '../../../context/MasterDatasetContext'
 import { parseKaldikPdf } from '../../../lib/kaldikParser'
 import { loadPdfjs } from '../../../lib/pdfjsLoader'
 import { FileDropzone, isPdfSignature, validatePdfFile } from '../../master-data/FileDropzone'
+import { UploadProgress } from '../../master-data/UploadProgress'
 import { Button } from '../../ui/button'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { DIKLAT_PREFIX, buildDiklatPayload, diklatDatasetName, quarterLabel } from '../diklat/diklatModel'
@@ -15,15 +16,29 @@ const NOTICE = {
   warning: 'bg-[#fff6ea] text-[#9a4d00]'
 }
 
+const SAVE_STAGES = {
+  file: { label: 'Mengunggah berkas PDF asli...', detail: 'Disimpan agar bisa diunduh ulang dari riwayat.', progress: null },
+  data: { label: 'Menyimpan data triwulan...', detail: 'Setelah ini menu Kalender Diklat langsung memakai data baru.', progress: null }
+}
+
 // Membaca dan memvalidasi PDF Kaldik di browser. Melempar Error bila ditolak.
-async function readKaldik(file) {
+// onStage menerima { label, detail, progress } untuk penanda kemajuan.
+async function readKaldik(file, onStage) {
   const invalid = validatePdfFile(file)
   if (invalid) throw new Error(invalid)
+  onStage({ label: 'Memeriksa berkas...', detail: file.name, progress: 0.05 })
   const bytes = new Uint8Array(await file.arrayBuffer())
   if (!isPdfSignature(bytes)) throw new Error('Isi berkas bukan PDF yang sah.')
+  onStage({ label: 'Menyiapkan pembaca PDF...', detail: file.name, progress: 0.1 })
   const pdfjs = await loadPdfjs()
   // pdf.js memindahkan buffer ke worker, jadi yang dikirim salinannya.
-  return parseKaldikPdf(pdfjs, bytes.slice())
+  return parseKaldikPdf(pdfjs, bytes.slice(), {
+    onProgress: (page, total) => onStage({
+      label: `Membaca tabel halaman ${page} dari ${total}...`,
+      detail: 'Memeriksa grid, nomor urut, dan tanggal setiap program.',
+      progress: 0.1 + (0.85 * page) / total
+    })
+  })
 }
 
 // Tab Kalender Diklat di Master Data SDM. Satu PDF Kaldik = satu triwulan
@@ -34,7 +49,7 @@ export function DiklatMasterPanel() {
   const [file, setFile] = useState(null)
   const [parsed, setParsed] = useState(null)
   const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
+  const [stage, setStage] = useState(null)
   const [saved, setSaved] = useState(null)
   const [selected, setSelected] = useState(null)
 
@@ -42,13 +57,13 @@ export function DiklatMasterPanel() {
     setSaved(null); setParsed(null); setError(null)
     if (!nextFile) return
     setFile(nextFile)
-    setBusy(true)
+    setStage({ label: 'Memeriksa berkas...', detail: nextFile.name, progress: 0 })
     try {
-      setParsed(await readKaldik(nextFile))
+      setParsed(await readKaldik(nextFile, setStage))
     } catch (parseError) {
       setError(parseError.message || 'PDF tidak dapat dibaca.')
     } finally {
-      setBusy(false)
+      setStage(null)
     }
   }
 
@@ -57,10 +72,10 @@ export function DiklatMasterPanel() {
 
   const handleSave = async () => {
     if (!parsed) return
-    setBusy(true)
+    setStage(SAVE_STAGES.data)
     const { period, payload } = buildDiklatPayload(parsed)
-    const result = await group.upload(target, { period, payload, fileName: file?.name || null, sourceFile: file })
-    setBusy(false)
+    const result = await group.upload(target, { period, payload, fileName: file?.name || null, sourceFile: file, onStage: (key) => setStage(SAVE_STAGES[key]) })
+    setStage(null)
     if (result.ok) setSelected(target)
     setSaved(result.ok
       ? { tone: 'ok', text: `Tersimpan. Menu Kalender Diklat kini memakai ${period.label} (${parsed.programs.length} program).${result.message ? ` ${result.message}` : ''}${result.shared ? '' : ' (mode lokal)'}` }
@@ -75,6 +90,7 @@ export function DiklatMasterPanel() {
           id="diklat-master-file"
           file={file}
           onFile={handleFile}
+          disabled={Boolean(stage)}
           accept=".pdf,application/pdf"
           label="Pilih atau seret PDF Kaldik"
           hint="PDF Kalender Pelatihan per triwulan dari aplikasi sumber (.pdf, maks. 5 MB)"
@@ -84,13 +100,13 @@ export function DiklatMasterPanel() {
             Disimpan sebagai <b className="text-[#12305f]">{quarterLabel(parsed.quarter, parsed.year)}</b> (dibaca dari judul PDF).
           </p>
         )}
-        {busy && <p className="text-sm text-[#3f557d]">Memproses berkas...</p>}
+        <UploadProgress stage={stage} />
         {error && <p className={`rounded-xl px-3 py-2 text-sm font-medium ${NOTICE.error}`}>{error}</p>}
         {saved && <p className={`rounded-xl px-3 py-2 text-[13px] ${NOTICE[saved.tone]}`}>{saved.text}</p>}
         {replacing && !saved && (
           <p className={`rounded-xl px-3 py-2 text-[13px] ${NOTICE.warning}`}>Data aktif {replacing.periodLabel} akan digantikan; versi lama tetap bisa dikembalikan.</p>
         )}
-        <Button variant="teal" onClick={handleSave} disabled={!parsed || busy || Boolean(saved?.tone === 'ok')} className="mt-2 shrink-0 rounded-full">Simpan & Terapkan</Button>
+        <Button variant="teal" onClick={handleSave} disabled={!parsed || Boolean(stage) || Boolean(saved?.tone === 'ok')} className="mt-2 shrink-0 rounded-full">{stage && parsed ? 'Menyimpan...' : 'Simpan & Terapkan'}</Button>
         <p className="text-xs leading-snug text-[#7a8aa8]">
           Hanya PDF Kaldik asli. Berkas ditolak bila judul triwulan, grid tabel, atau nomor urut tidak cocok; tanggal yang belum pasti ditandai TBA, tidak ditebak.
         </p>

@@ -118,8 +118,9 @@ function appendContinuation(program, page, items) {
   add('objective', COL.objective); add('criteria', COL.criteria); add('organizer', COL.organizer); add('method', COL.method)
 }
 
-export async function parseKaldikPdf(pdfjs, data) {
-  const pages = await readPdfTablePages(pdfjs, data)
+// onProgress(halaman, jumlahHalaman) opsional, untuk penanda kemajuan di layar.
+export async function parseKaldikPdf(pdfjs, data, { onProgress } = {}) {
+  const pages = await readPdfTablePages(pdfjs, data, onProgress)
   if (!pages.length) throw new Error('PDF tidak memiliki halaman.')
   const { title, quarter, year } = readTitle(pages[0])
   const programs = []

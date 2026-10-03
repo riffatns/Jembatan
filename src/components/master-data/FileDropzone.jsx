@@ -3,7 +3,8 @@ import { IconUpload } from '../icons/DuotoneIcons'
 
 // Kotak pilih/seret berkas untuk halaman Master Data (bawaan Excel). Validasi
 // jenis dan ukuran dilakukan pemanggil (validateExcelFile / validatePdfFile).
-export function FileDropzone({ id, file, onFile, hint, accept = '.xlsx,.xls', label = 'Pilih atau seret berkas Excel' }) {
+// disabled: selama berkas diproses, supaya tidak ada dua berkas berjalan bersamaan.
+export function FileDropzone({ id, file, onFile, hint, accept = '.xlsx,.xls', label = 'Pilih atau seret berkas Excel', disabled = false }) {
   const [dragging, setDragging] = useState(false)
 
   return (
@@ -11,8 +12,9 @@ export function FileDropzone({ id, file, onFile, hint, accept = '.xlsx,.xls', la
       htmlFor={id}
       onDragOver={(event) => { event.preventDefault(); setDragging(true) }}
       onDragLeave={() => setDragging(false)}
-      onDrop={(event) => { event.preventDefault(); setDragging(false); onFile(event.dataTransfer.files?.[0]) }}
-      className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-5 text-center transition-colors fit:py-4 ${dragging ? 'border-[#2f7fe8] bg-[#eef4fd]' : 'border-[#c9d6ea] bg-[#f8fbff] hover:border-[#2f7fe8]'}`}
+      onDrop={(event) => { event.preventDefault(); setDragging(false); if (!disabled) onFile(event.dataTransfer.files?.[0]) }}
+      aria-disabled={disabled}
+      className={`flex flex-col ${disabled ? 'pointer-events-none cursor-wait opacity-60' : 'cursor-pointer'} items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-5 text-center transition-colors fit:py-4 ${dragging ? 'border-[#2f7fe8] bg-[#eef4fd]' : 'border-[#c9d6ea] bg-[#f8fbff] hover:border-[#2f7fe8]'}`}
     >
       <IconUpload className="h-9 w-9 text-[#2f7fe8]" />
       <span className="text-sm font-bold text-[#12305f]">{file ? file.name : label}</span>
@@ -22,6 +24,7 @@ export function FileDropzone({ id, file, onFile, hint, accept = '.xlsx,.xls', la
         id={id}
         type="file"
         accept={accept}
+        disabled={disabled}
         className="sr-only"
         onChange={(event) => {
           onFile(event.target.files?.[0])

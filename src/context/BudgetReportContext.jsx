@@ -74,7 +74,9 @@ export function BudgetReportProvider({ children }) {
   // Menyimpan laporan hasil parseBudgetReport untuk TA dan bulan pilihan admin.
   // Unggahan berikutnya untuk TA yang sama menimpa laporan TA itu. Berkas asli
   // (sourceFile) disimpan agar bisa diunduh ulang; bila gagal, laporan tetap tersimpan.
-  const saveReport = useCallback(async (parsed, { fiscalYear, periodMonth, fileName, sourceFile }) => {
+  // onStage('file' | 'data') memberi tahu tahap yang sedang berjalan (penanda kemajuan).
+  const saveReport = useCallback(async (parsed, { fiscalYear, periodMonth, fileName, sourceFile, onStage }) => {
+    if (sourceFile) onStage?.('file')
     const stored = sourceFile ? await storeMasterFile(`anggaran/${fiscalYear}`, sourceFile, fileName) : {}
     const report = {
       fiscalYear,
@@ -97,6 +99,7 @@ export function BudgetReportProvider({ children }) {
       return { shared: false, message: 'Mode lokal: laporan hanya tersimpan di browser ini.' }
     }
 
+    onStage?.('data')
     const applied = await applyReport(report, user)
     if (applied.error) {
       removeMasterFile(stored.path)

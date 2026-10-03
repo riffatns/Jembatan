@@ -283,3 +283,13 @@ export function IconClock(props) {
     </DuotoneSvg>
   )
 }
+
+// Penanda proses; pakai bersama animate-spin.
+export function IconSpinner(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <path opacity={BACK} d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z" />
+      <path d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7Z" />
+    </DuotoneSvg>
+  )
+}

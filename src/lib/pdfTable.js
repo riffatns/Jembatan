@@ -35,7 +35,8 @@ function mergeSegments(segments) {
   })
 }
 
-export async function readPdfTablePages(pdfjs, data) {
+// onPage(nomor, jumlah) dipanggil setiap satu halaman selesai dibaca (penanda kemajuan).
+export async function readPdfTablePages(pdfjs, data, onPage) {
   const task = pdfjs.getDocument({ data, isEvalSupported: false, verbosity: 0 })
   const doc = await task.promise
   const pages = []
@@ -57,6 +58,7 @@ export async function readPdfTablePages(pdfjs, data) {
         return { text: item.str, x0, x1: x0 + item.width, top: baseline - size * 0.8, bottom: baseline, cx: x0 + item.width / 2, cy: baseline - size * 0.35 }
       })
     pages.push({ number, height, columns: vertical, horizontal, items })
+    onPage?.(number, doc.numPages)
   }
   await task.destroy()
   return pages

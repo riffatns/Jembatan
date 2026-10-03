@@ -42,6 +42,24 @@
   .animate-fade-in {
     animation: fadeIn 0.2s ease-out;
   }
+  /* Bilah kemajuan tanpa angka (UploadProgress) saat lama proses tidak diketahui. */
+  .animate-progress-slide {
+    animation: progressSlide 1.2s ease-in-out infinite;
+  }
+  @keyframes progressSlide {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-progress-slide {
+      animation: none;
+      transform: none;
+    }
+  }
   @keyframes fadeIn {
     from {
       opacity: 0;

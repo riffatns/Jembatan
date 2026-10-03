@@ -6,6 +6,7 @@ import { BEZETTING_DATASET, HR_DIVISION_ID, buildBezettingPayloads } from '../be
 import { HrMasterPreview } from './HrMasterPreview'
 import { IconTrash } from '../../icons/DuotoneIcons'
 import { FileDropzone, validateExcelFile } from '../../master-data/FileDropzone'
+import { UploadProgress } from '../../master-data/UploadProgress'
 import { VersionHistory } from '../../master-data/VersionHistory'
 import { useVersionDeletion } from '../../master-data/useVersionDeletion'
 import { Button } from '../../ui/button'
@@ -19,13 +20,21 @@ const YEARS = [currentYear + 1, currentYear, currentYear - 1, currentYear - 2]
 // Tab Bezetting di Master Data SDM. Satu unggahan berkas Bezetting yang lolos
 // validasi menjadi satu-satunya data aktif menu Bezetting Pegawai (tanpa tahun).
 // Berkas yang disimpan untuk diunduh ulang adalah salinan bersih (bezettingSanitizer).
+const STAGES = {
+  read: { label: 'Membaca berkas Bezetting...', detail: 'Mencocokkan sheet ABK dengan daftar pegawai Lengkap_PBD.', progress: null },
+  clean: { label: 'Menyiapkan salinan bersih...', detail: 'Kolom NIK, HP, BPJS, Taspen, dan keluarga dikosongkan.', progress: null },
+  file: { label: 'Mengunggah salinan berkas...', detail: 'Disimpan agar bisa diunduh ulang dari riwayat.', progress: null },
+  data: { label: 'Menyimpan data SDM...', detail: 'Setelah ini menu Bezetting Pegawai langsung memakai data baru.', progress: null }
+}
+
 export function BezettingMasterPanel() {
   const dataset = useMasterDataset(BEZETTING_DATASET, { ownerDivision: HR_DIVISION_ID })
   const deletion = useVersionDeletion({ versions: dataset.versions, deleteVersion: dataset.deleteVersion, clear: dataset.clear, dataLabel: 'data SDM' })
   const [file, setFile] = useState(null)
   const [parsed, setParsed] = useState(null)
   const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
+  const [stage, setStage] = useState(null)
+  const busy = Boolean(stage)
   const [saved, setSaved] = useState(null)
   const [periodMonth, setPeriodMonth] = useState(() => new Date().getMonth() + 1)
   const [periodYear, setPeriodYear] = useState(currentYear)
@@ -36,7 +45,7 @@ export function BezettingMasterPanel() {
     setFile(nextFile)
     const invalid = validateExcelFile(nextFile)
     if (invalid) return setError(invalid)
-    setBusy(true)
+    setStage(STAGES.read)
     try {
       const result = await parseBezettingWorkbook(nextFile)
       setParsed(result)
@@ -45,17 +54,18 @@ export function BezettingMasterPanel() {
     } catch (parseError) {
       setError(parseError.message || 'Berkas tidak dapat dibaca.')
     } finally {
-      setBusy(false)
+      setStage(null)
     }
   }
 
   const handleSave = async () => {
     if (!parsed) return
-    setBusy(true)
+    setStage(STAGES.clean)
     const { period, payload, privatePayload } = buildBezettingPayloads(parsed, { periodMonth, periodYear })
     const copy = await sanitizeBezettingWorkbook(file, file?.name).catch(() => null)
-    const result = await dataset.upload({ period, payload, privatePayload, fileName: copy?.fileName || file?.name || null, sourceFile: copy?.blob })
-    setBusy(false)
+    const onStage = (key) => setStage(STAGES[key])
+    const result = await dataset.upload({ period, payload, privatePayload, fileName: copy?.fileName || file?.name || null, sourceFile: copy?.blob, onStage })
+    setStage(null)
     setSaved(result.ok
       ? { ok: true, text: `Tersimpan. Menu Bezetting Pegawai kini memakai data ${period.label}.${result.message ? ` ${result.message}` : ''}${result.shared ? '' : ' (mode lokal)'}` }
       : { ok: false, text: result.message })
@@ -68,7 +78,7 @@ export function BezettingMasterPanel() {
       <section className="grid items-start gap-4 fit:grid-cols-[minmax(0,0.62fr)_minmax(0,1.7fr)] fit:gap-2.5">
         <div className={`${CARD_CLASS} gap-3`}>
           <h2 className={CARD_TITLE_CLASS}>Unggah Bezetting Pegawai</h2>
-          <FileDropzone id="hr-master-file" file={file} onFile={handleFile} hint="Berkas Bezetting berisi sheet ABK dan Lengkap_PBD (.xlsx/.xls, maks. 5 MB)" />
+          <FileDropzone id="hr-master-file" file={file} onFile={handleFile} disabled={busy} hint="Berkas Bezetting berisi sheet ABK dan Lengkap_PBD (.xlsx/.xls, maks. 5 MB)" />
           <div className="grid grid-cols-2 items-end gap-3">
             <div className="min-w-0">
               <label htmlFor="hr-period-month" className="mb-1 block whitespace-nowrap text-xs font-semibold text-[#3f557d]">Bulan Data</label>
@@ -83,7 +93,7 @@ export function BezettingMasterPanel() {
               </select>
             </div>
           </div>
-          {busy && <p className="text-sm text-[#3f557d]">Memproses berkas...</p>}
+          <UploadProgress stage={stage} />
           {error && <p className="rounded-xl bg-[#fde2e2] px-3 py-2 text-sm font-medium text-[#c0262d]">{error}</p>}
           {saved && <p className={`rounded-xl px-3 py-2 text-[13px] ${saved.ok ? 'bg-[#dcf5e8] text-[#0b7a4f]' : 'bg-[#fde2e2] text-[#c0262d]'}`}>{saved.text}</p>}
           {parsed && dataset.active && !saved && (

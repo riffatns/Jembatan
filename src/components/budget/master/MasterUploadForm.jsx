@@ -1,5 +1,6 @@
 import { MONTH_NAMES } from '../../../lib/budgetReportParser'
 import { FileDropzone } from '../../master-data/FileDropzone'
+import { UploadProgress } from '../../master-data/UploadProgress'
 import { Button } from '../../ui/button'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 
@@ -13,12 +14,12 @@ function yearOptions(...extra) {
 
 // Formulir unggah: berkas, Tahun Anggaran, dan Bulan. Keduanya terisi dari
 // kepala laporan dan tetap bisa diubah administrator.
-export function MasterUploadForm({ file, parsing, saving, error, fiscalYear, periodMonth, onFile, onYear, onMonth, onSave, canSave, notices }) {
+export function MasterUploadForm({ file, parsing, stage, saving, error, fiscalYear, periodMonth, onFile, onYear, onMonth, onSave, canSave, notices }) {
   return (
     <div className={`${CARD_CLASS} gap-3`}>
       <h2 className={CARD_TITLE_CLASS}>Unggah Laporan Realisasi</h2>
 
-      <FileDropzone id="master-file" file={file} onFile={onFile} hint="Laporan Realisasi SP2D — Akun Based (.xlsx/.xls, maks. 5 MB)" />
+      <FileDropzone id="master-file" file={file} onFile={onFile} disabled={parsing || saving} hint="Laporan Realisasi SP2D — Akun Based (.xlsx/.xls, maks. 5 MB)" />
 
       <div className="grid grid-cols-2 items-end gap-3">
         <div className="min-w-0">
@@ -35,7 +36,7 @@ export function MasterUploadForm({ file, parsing, saving, error, fiscalYear, per
         </div>
       </div>
 
-      {parsing && <p className="text-sm text-[#3f557d]">Membaca dan mencocokkan berkas...</p>}
+      <UploadProgress stage={stage} />
       {error && <p className="rounded-xl bg-[#fde2e2] px-3 py-2 text-sm font-medium text-[#c0262d]">{error}</p>}
       {notices.map((notice) => (
         <p key={notice.text} className={`rounded-xl px-3 py-2 text-[13px] ${notice.tone === 'success' ? 'bg-[#dcf5e8] text-[#0b7a4f]' : 'bg-[#fff6ea] text-[#9a4d00]'}`}>

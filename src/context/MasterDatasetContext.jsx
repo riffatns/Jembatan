@@ -93,8 +93,11 @@ export function MasterDatasetProvider({ children }) {
 
   // sourceFile = berkas yang disimpan untuk diunduh ulang (Bezetting: salinan bersih).
   // Gagal menyimpan berkas tidak membatalkan data; gagal menyimpan data membuang berkasnya.
-  const addVersion = useCallback(async (dataset, { action = 'upload', period, payload, privatePayload, ownerDivision, fileName, sourceFile }) => {
+  // onStage('file' | 'data') memberi tahu tahap yang sedang berjalan (penanda kemajuan).
+  const addVersion = useCallback(async (dataset, { action = 'upload', period, payload, privatePayload, ownerDivision, fileName, sourceFile, onStage }) => {
+    if (sourceFile) onStage?.('file')
     const stored = sourceFile ? await storeMasterFile(`dataset/${dataset.replace(':', '/')}`, sourceFile, fileName) : {}
+    onStage?.('data')
     const fileNote = stored.error ? 'Berkas asli belum bisa disimpan untuk diunduh ulang (jalankan supabase/jalankan-semua.sql).' : null
     if (!remote) {
       const version = {

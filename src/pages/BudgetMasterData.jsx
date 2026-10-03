@@ -15,6 +15,12 @@ const ALLOWED_FILE = /\.(xlsx|xls)$/i
 // Master Data Anggaran (khusus administrator, tanpa approval). Satu unggahan
 // laporan realisasi SP2D membentuk angka Dashboard Keuangan dan menu akun
 // 51/52/53 untuk tahun anggaran yang dipilih.
+const STAGES = {
+  read: { label: 'Membaca laporan realisasi...', detail: 'Mencocokkan setiap akun dengan baris JUMLAH SELURUHNYA.', progress: null },
+  file: { label: 'Mengunggah berkas Excel asli...', detail: 'Disimpan agar bisa diunduh ulang dari riwayat.', progress: null },
+  data: { label: 'Menyimpan laporan...', detail: 'Dashboard dan menu akun langsung memakai angka baru.', progress: null }
+}
+
 export default function BudgetMasterData() {
   const { reports, years, uploads, activeUploadIds, refreshUploads, refreshReports, saveReport, deleteReport, deleteUpload } = useBudgetReports()
   const [file, setFile] = useState(null)
@@ -23,6 +29,7 @@ export default function BudgetMasterData() {
   const [parsing, setParsing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(null)
+  const [stage, setStage] = useState(null)
   const [fiscalYear, setFiscalYear] = useState(() => new Date().getFullYear())
   const [periodMonth, setPeriodMonth] = useState(() => new Date().getMonth() + 1)
   const deletion = useMasterDeletion({ deleteReport, deleteUpload, activeIds: activeUploadIds, uploads, onDeleted: () => setSaved(null) })
@@ -44,6 +51,7 @@ export default function BudgetMasterData() {
     if (nextFile.size > MAX_FILE_SIZE) return setError('Ukuran berkas melebihi 5 MB.')
 
     setParsing(true)
+    setStage(STAGES.read)
     try {
       const result = await parseBudgetReport(nextFile)
       setParsed(result)
@@ -53,6 +61,7 @@ export default function BudgetMasterData() {
       setError(parseError.message || 'Berkas tidak dapat dibaca.')
     } finally {
       setParsing(false)
+      setStage(null)
     }
   }
 
@@ -77,8 +86,9 @@ export default function BudgetMasterData() {
   const handleSave = async () => {
     if (!parsed) return
     setSaving(true)
+    setStage(STAGES.data)
     try {
-      const result = await saveReport(parsed, { fiscalYear, periodMonth, fileName: file?.name || null, sourceFile: file })
+      const result = await saveReport(parsed, { fiscalYear, periodMonth, fileName: file?.name || null, sourceFile: file, onStage: (key) => setStage(STAGES[key]) })
       const text = result.shared
         ? `Tersimpan. Dashboard dan menu akun TA ${fiscalYear} kini memakai laporan s.d. ${MONTH_NAMES[periodMonth - 1]}.${result.message ? ` ${result.message}` : ''}`
         : result.message || 'Laporan belum tersimpan ke server.'
@@ -87,6 +97,7 @@ export default function BudgetMasterData() {
       setSaved({ shared: false, text: saveError.message || 'Gagal menyimpan laporan.' })
     } finally {
       setSaving(false)
+      setStage(null)
     }
   }
 
@@ -98,6 +109,7 @@ export default function BudgetMasterData() {
         <MasterUploadForm
           file={file}
           parsing={parsing}
+          stage={stage}
           saving={saving}
           error={error}
           fiscalYear={fiscalYear}
