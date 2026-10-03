@@ -123,7 +123,7 @@ perluas modulnya (tanpa mengubah perilaku pemakai lama), jangan menyalin.
 
 | Kebutuhan | Modul | Catatan |
 |---|---|---|
-| Tabel/daftar data (cari, urut, halaman) | `src/components/data-table/DataTable.jsx` (+ `useDataTable.js`, `TablePagination.jsx`) | Pencarian realtime di semua kolom ala DataTables, klik judul untuk urut, 20 baris/halaman, tinggi mengikuti isi. Kolom: `{ key, label, align, width, value(row), text(row), render(row), title(row) }`. Contoh: `components/budget/accounts/AccountDetailTable.jsx`. **Semua tabel data baru wajib memakai ini.** |
+| Tabel/daftar data (cari, urut, halaman) | `src/components/data-table/DataTable.jsx` (+ `useDataTable.js`, `TablePagination.jsx`) | Pencarian realtime di semua kolom ala DataTables, klik judul untuk urut, 20 baris/halaman, tinggi mengikuti isi. Opsi `searchable`, `paginated`, `dense`. Kolom: `{ key, label, align, width, value(row), text(row), render(row), title(row) }`. Contoh: `components/budget/accounts/AccountDetailTable.jsx`. **Semua tabel data baru wajib memakai ini.** |
 | Ikon | `src/components/icons/DuotoneIcons.jsx` | Duotone, tanpa garis tepi. Ikon baru ditambahkan di sini. |
 | Gaya kartu & judul | `src/components/ui/cardStyles.js` (`CARD_CLASS`, `CARD_TITLE_CLASS`, `LABEL_CLASS`) | Sudah termasuk varian `fit:`/`tall:`. |
 | Tombol, dialog, input dasar | `src/components/ui/*` (`Button` varian `teal`/`outline`/`destructive`, `Dialog`) | Dasar untuk komponen di bawah. |
@@ -135,6 +135,11 @@ perluas modulnya (tanpa mengubah perilaku pemakai lama), jangan menyalin.
 | Format Rupiah & persen | `src/lib/budgetFormat.js` | `formatRupiah`, `formatBillion`, `formatBillionFirst`, `formatCompactRupiah`, `formatTableBillion`, `formatPercent`, `formatAbsorption`. |
 | Data anggaran Keuangan | `src/context/BudgetReportContext.jsx` (`useBudgetReports`) | Sumber tunggal dashboard & menu akun (lihat bagian Master Data). |
 | Keadaan kosong master data | `src/components/budget/MasterDataEmptyState.jsx` | Tombol ke Master Data hanya untuk admin. |
+| Grafik donat / kolom / batang horizontal | `src/components/charts/DonutChart.jsx`, `ColumnChart.jsx`, `BarList.jsx` | Generik, beranimasi, tooltip; sumbu dari `src/lib/chartAxis.js` (`buildAxis`). |
+| Master Data berversi (tanpa tahun) | `src/context/MasterDatasetContext.jsx` (`useMasterDataset(dataset, { ownerDivision, loadDetails })`) | Lihat bagian "Master Data generik". |
+| Unggah berkas Excel | `src/components/master-data/FileDropzone.jsx` (+ `validateExcelFile`) | Pilih/seret, maks. 5 MB, .xlsx/.xls. |
+| Riwayat versi + hapus/kosongkan | `src/components/master-data/VersionHistory.jsx`, `useVersionDeletion.js` | Status Aktif, rollback, pesan akibat di `ConfirmDialog`. |
+| Sidebar per bidang | `src/data/sidebarConfig.js` (`getDivisionSidebar`) | Layanan tampil, hitungan, Monitoring/Integrasi, tautan Master Data. |
 | Satu layar tanpa scroll | screen Tailwind `fit`, `fitwide`, `tall` (`tailwind.config.js`) | Lihat Aturan 2. |
 
 ## Aturan 3 — Keamanan dulu
@@ -233,6 +238,26 @@ Belanja Barang (52), Belanja Modal (53).
 - Uji wajib bila parser/master data diubah: skrip Node terhadap berkas asli (total =
   JUMLAH SELURUHNYA, 51 = 60,77 %, 52 = 46,41 %, 53 sisa Rp1.004 untuk laporan Oktober 2026)
   dan uji berkas rusak harus ditolak.
+
+## Master Data generik (dataset berversi, tanpa tahun)
+
+Untuk data bidang yang tidak dipilah per tahun anggaran (contoh: Bezetting SDM).
+Data Keuangan tetap memakai `BudgetReportContext` (per TA).
+
+- **Tabel**: `master_dataset_versions` (`dataset`, `action` upload/clear, `payload`, periode, berkas,
+  pengunggah) dan `master_dataset_private` (data rinci, RLS: admin atau `owner_division`).
+  SQL: `supabase/master-dataset.sql` (juga di `jalankan-semua.sql`).
+- **Aturan**: data aktif = versi terbaru dataset; `clear` = dikosongkan; hapus versi terbaru =
+  rollback otomatis ke versi sebelumnya. Unggah/hapus hanya admin, tanpa approval.
+- **Dataset**: `hr-bezetting` (Bidang SDM) — parser `src/lib/bezettingParser.js` (sheet `ABK` +
+  `Lengkap_PBD`, rekonsiliasi jumlah per tingkat ABK), model `components/hr/bezetting/bezettingModel.js`,
+  halaman `src/pages/HrMasterData.jsx` (`/dashboard/master-sdm`) dan menu Bezetting (`BezettingPage`).
+- **Data pribadi pegawai**: kolom Lengkap_PBD dibaca hanya sampai "TMT Jabatan Tertentu" (NIK, HP,
+  BPJS, Taspen, keluarga tidak pernah dibaca). Kolom umum (nama, unit, jabatan, golongan,
+  pendidikan, L/P, rentang usia) di `payload`; kolom rinci (NIP, email, tanggal lahir, agama, SK, ...)
+  hanya di `master_dataset_private`. Data rinci tidak pernah ditulis ke localStorage, log, atau `public/`.
+- Uji wajib bila parser diubah: Node terhadap berkas asli (85/45/−40, 52,9 %, L29/P16, S1 38/S2 6/D4 1),
+  tidak ada kolom terlarang di keluaran, berkas rusak ditolak.
 
 ## Alur kerja per perubahan
 
