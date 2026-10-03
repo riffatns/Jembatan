@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { BarChart3, Database, FileText, PieChart } from 'lucide-react'
 import { SERVICE_CONTENT } from '../../data/serviceContent'
 import { SERVICE_META } from '../../data/serviceMeta'
+import { TAMPILKAN_SUMBER_ANGKA } from '../../lib/tampilan'
 
 const SERI = [
   { kunci: 'pagu', label: 'Pagu', warna: '#2563eb' },
@@ -126,7 +127,7 @@ export function BudgetOverview({ budget }) {
               Pagu, realisasi, dan sisa per jenis belanja &middot; tahun {budget.fiscalYear || '-'}
             </p>
           </div>
-          {formatTanggal(budget.updatedAt) && (
+          {TAMPILKAN_SUMBER_ANGKA && formatTanggal(budget.updatedAt) && (
             <p className="text-xs text-slate-400">Diperbarui {formatTanggal(budget.updatedAt)}</p>
           )}
         </div>

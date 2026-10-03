@@ -21,6 +21,7 @@ import { useData } from '../../context/DataContext'
 import { hasDocumentFile, resolveDocumentFileUrl } from '../../lib/documentStorage'
 import { parseExcelABK } from '../../lib/parseExcelABK'
 import { formatWaktuMetrik, loadMetrics } from '../../lib/metricStorage'
+import { TAMPILKAN_SUMBER_ANGKA } from '../../lib/tampilan'
 import { HrDataModal } from './HrDataModal'
 import {
   AGENDA_STATUSES,
@@ -60,7 +61,7 @@ function Kartu({ label, nilai, keterangan, persen, warna, ikon: Ikon, kosong = f
       >
         {kosong ? '–' : nilai}
       </p>
-      <p className="mt-0.5 text-xs text-slate-500">{keterangan}</p>
+      {TAMPILKAN_SUMBER_ANGKA && <p className="mt-0.5 text-xs text-slate-500">{keterangan}</p>}
 
       <div className="mt-3 flex items-center gap-2">
         <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
@@ -275,15 +276,23 @@ export function HrOverview({ divisionId }) {
     )
   }
 
+  const asalAngka = metrik?.diperbaruiPada
+    ? `Sebagian angka diisi lewat form${metrik.diperbaruiOleh ? ` oleh ${metrik.diperbaruiOleh}` : ''}, ${formatWaktuMetrik(metrik.diperbaruiPada)}.`
+    : 'Seluruh angka dibaca dari berkas bezetting terbaru.'
+  const keteranganSumber = [TAMPILKAN_SUMBER_ANGKA ? asalAngka : '', metrik?.catatan || '']
+    .filter(Boolean)
+    .join(' ')
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">
-          {metrik?.diperbaruiPada
-            ? `Sebagian angka diisi lewat form${metrik.diperbaruiOleh ? ` oleh ${metrik.diperbaruiOleh}` : ''}, ${formatWaktuMetrik(metrik.diperbaruiPada)}.`
-            : 'Seluruh angka dibaca dari berkas bezetting terbaru.'}
-          {metrik?.catatan ? ` ${metrik.catatan}` : ''}
-        </p>
+      {/* Keterangan asal angka ikut saklar global. Catatan yang diketik sendiri
+          lewat form bukan keterangan sistem, jadi tetap tampil. */}
+      <div
+        className={`flex flex-wrap items-center gap-3 ${
+          keteranganSumber ? 'justify-between' : 'justify-end'
+        }`}
+      >
+        {keteranganSumber ? <p className="text-sm text-slate-500">{keteranganSumber}</p> : null}
         {bolehMengisi && (
           <Button variant="outline" className="rounded-full px-4" onClick={() => setFormTerbuka(true)}>
             <PencilLine className="h-4 w-4" /> Perbarui Data
