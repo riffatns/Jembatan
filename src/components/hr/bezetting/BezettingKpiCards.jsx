@@ -8,7 +8,8 @@ const TONES = {
   green: { icon: 'bg-[#dcf5e8] text-[#1fae7a]', value: 'text-[#0f6e5d]', label: 'text-[#0f6e5d]' },
   orange: { icon: 'bg-[#fff0e0] text-[#f08a1c]', value: 'text-[#e8770c]', label: 'text-[#c2620a]' },
   male: { icon: 'bg-[#e3eeff] text-[#2f7fe8]', value: 'text-[#12305f]', label: 'text-[#12305f]' },
-  female: { icon: 'bg-[#fde7ef] text-[#e0457b]', value: 'text-[#c2185b]', label: 'text-[#c2185b]' }
+  female: { icon: 'bg-[#fde7ef] text-[#e0457b]', value: 'text-[#c2185b]', label: 'text-[#c2185b]' },
+  purple: { icon: 'bg-[#efeafe] text-[#6d4fd8]', value: 'text-[#4a3aa7]', label: 'text-[#4a3aa7]' }
 }
 
 function Count({ value, format }) {
@@ -16,7 +17,8 @@ function Count({ value, format }) {
   return <>{format ? format(shown) : Math.round(shown)}</>
 }
 
-function KpiCard({ icon: Icon, tone, label, value, format }) {
+// Dipakai juga Kalender Diklat.
+export function KpiCard({ icon: Icon, tone, label, value, format }) {
   const style = TONES[tone]
   return (
     <div className={`${CARD_CLASS} !flex-row items-center gap-3 !py-3`}>

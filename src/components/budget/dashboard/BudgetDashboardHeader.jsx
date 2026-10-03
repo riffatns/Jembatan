@@ -39,7 +39,8 @@ function FiscalYearPicker({ years, fiscalYear, periodName, onChange }) {
 // Margin negatif menetralkan padding <main> supaya latarnya selebar konten.
 // Tanpa overflow-hidden dan dengan z-20, supaya menu akun yang terbuka ke bawah
 // tidak terpotong header dan tampil di atas kartu.
-// Dipakai Dashboard Keuangan, menu akun 51/52/53, dan Master Data.
+// Dipakai Dashboard Keuangan, menu akun 51/52/53, dan Master Data. actions =
+// kontrol tambahan di kanan (mis. pemilih triwulan Kalender Diklat).
 export function BudgetDashboardHeader({
   title = 'REALISASI ANGGARAN',
   subtitle = 'BPK PERWAKILAN PROVINSI PAPUA BARAT DAYA',
@@ -48,7 +49,8 @@ export function BudgetDashboardHeader({
   fiscalYear,
   periodName,
   onFiscalYearChange,
-  showYearPicker = true
+  showYearPicker = true,
+  actions = null
 }) {
   return (
     <header className="relative z-20 -mx-4 -mt-4 shrink-0 bg-gradient-to-b from-[#f6f9ff] to-[#eef4fb] px-4 py-4 sm:-mt-6 lg:-mt-8 fit:py-2.5 tall:py-4">
@@ -79,6 +81,7 @@ export function BudgetDashboardHeader({
           {showYearPicker && (
             <FiscalYearPicker years={years} fiscalYear={fiscalYear} periodName={periodName} onChange={onFiscalYearChange} />
           )}
+          {actions}
           <UserAccountMenu />
         </div>
       </div>

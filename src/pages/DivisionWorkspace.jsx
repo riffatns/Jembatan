@@ -38,6 +38,7 @@ import { BudgetWorkspace } from '../components/budget/BudgetWorkspace'
 import { AccountBudgetPage } from '../components/budget/accounts/AccountBudgetPage'
 import { USE_NEW_ACCOUNT_VIEWS, USE_NEW_HR_VIEWS } from '../lib/tampilan'
 import { BezettingPage } from '../components/hr/bezetting/BezettingPage'
+import { DiklatPage } from '../components/hr/diklat/DiklatPage'
 import { AssetWorkspace } from '../components/asset/AssetWorkspace'
 import { LegalWorkspace } from '../components/legal/LegalWorkspace'
 import { getServiceContent } from '../data/serviceContent'
@@ -304,6 +305,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   // SDM: menu Bezetting menampilkan Master Data SDM. Layanan SDM lain tetap.
   if (USE_NEW_HR_VIEWS && divisionId === 'hr' && activeCategoryId === 'bezetting') {
     return <BezettingPage />
+  }
+  if (USE_NEW_HR_VIEWS && divisionId === 'hr' && activeCategoryId === 'diklat') {
+    return <DiklatPage />
   }
 
   // Keuangan: menu akun 51/52/53 menampilkan angka Master Data Anggaran saja.

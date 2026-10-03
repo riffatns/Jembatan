@@ -19,7 +19,7 @@ const DIVISION_SIDEBAR = {
   },
   hr: {
     enabled: USE_NEW_HR_VIEWS,
-    hideCountFor: (category) => category.id === 'bezetting',
+    hideCountFor: (category) => ['bezetting', 'diklat'].includes(category.id),
     hideMonitoring: true,
     hideIntegration: true,
     masterData: { label: 'Master Data SDM', path: '/dashboard/master-sdm' }
