@@ -37,6 +37,8 @@ function FiscalYearPicker({ years, fiscalYear, periodName, onChange }) {
 
 // Kepala halaman bertema jembatan: foto jembatan dibuat samar di sisi kanan.
 // Margin negatif menetralkan padding <main> supaya latarnya selebar konten.
+// Tanpa overflow-hidden dan dengan z-20, supaya menu akun yang terbuka ke bawah
+// tidak terpotong header dan tampil di atas kartu.
 // Dipakai Dashboard Keuangan, menu akun 51/52/53, dan Master Data.
 export function BudgetDashboardHeader({
   title = 'REALISASI ANGGARAN',
@@ -49,7 +51,7 @@ export function BudgetDashboardHeader({
   showYearPicker = true
 }) {
   return (
-    <header className="relative -mx-4 -mt-4 shrink-0 overflow-hidden bg-gradient-to-b from-[#f6f9ff] to-[#eef4fb] px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mx-8 lg:-mt-8 lg:px-8 fit:py-2.5 tall:py-4">
+    <header className="relative z-20 -mx-4 -mt-4 shrink-0 bg-gradient-to-b from-[#f6f9ff] to-[#eef4fb] px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mx-8 lg:-mt-8 lg:px-8 fit:py-2.5 tall:py-4">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 left-[30%] right-0 bg-[url('/background-jembatan.jpeg')] bg-cover bg-[center_62%] opacity-[0.16] [mask-image:linear-gradient(90deg,transparent_0%,#000_45%)]"
