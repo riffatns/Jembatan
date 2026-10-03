@@ -1,7 +1,7 @@
 import { formatBillionFirst, formatCompactRupiah, formatPercent, formatRupiah } from '../../../lib/budgetFormat'
 import { IconCalendar, IconCoins, IconPercent, IconPieChart, IconTrendUp } from '../../icons/DuotoneIcons'
-import { CARD_CLASS } from '../dashboard/dashboardTheme'
-import { useCountUp } from '../dashboard/useAnimatedProgress'
+import { CARD_CLASS } from '../../ui/cardStyles'
+import { useCountUp } from '../../../hooks/useAnimatedProgress'
 
 const TONES = {
   blue: { icon: 'bg-[#e3eeff] text-[#2f7fe8]', value: 'text-[#1d5fd0]' },

@@ -1,6 +1,6 @@
 import { formatAbsorption, formatRupiah } from '../../../lib/budgetFormat'
-import { CARD_CLASS, CARD_TITLE_CLASS } from './dashboardTheme'
-import { useAnimatedProgress } from './useAnimatedProgress'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
+import { useAnimatedProgress } from '../../../hooks/useAnimatedProgress'
 
 function AbsorptionBar({ percent, bold, progress }) {
   return (

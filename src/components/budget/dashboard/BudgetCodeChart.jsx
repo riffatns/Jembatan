@@ -1,9 +1,9 @@
 import { formatBillion, formatRupiah } from '../../../lib/budgetFormat'
-import { CARD_CLASS, CARD_TITLE_CLASS } from './dashboardTheme'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { SERIES_COLORS, buildAxis } from './budgetDashboardModel'
-import { ChartTooltip, useChartTooltip } from './ChartTooltip'
-import { useElementSize } from './useElementSize'
-import { useAnimatedProgress } from './useAnimatedProgress'
+import { ChartTooltip, useChartTooltip } from '../../charts/ChartTooltip'
+import { useElementSize } from '../../../hooks/useElementSize'
+import { useAnimatedProgress } from '../../../hooks/useAnimatedProgress'
 
 // Sisa sengaja tidak digambar di grafik ini: angkanya sudah ada di kartu,
 // tabel, dan ringkasan, dan tanpa batang ketiga pagu vs realisasi lebih jelas.

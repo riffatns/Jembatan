@@ -92,7 +92,7 @@ Repo ini dua bahasa. Pembagiannya sudah terbentuk dan harus dijaga:
 
 - Halaman = komposisi tipis. Logika hitung ditaruh di model murni
   (contoh `components/budget/dashboard/budgetDashboardModel.js`), tampilan di
-  komponen kecil, gaya bersama di satu berkas tema (`dashboardTheme.js`).
+  komponen kecil, gaya kartu dari `src/components/ui/cardStyles.js`.
 - Satu fitur baru = satu folder (`components/<domain>/<fitur>/`), bukan
   tambahan ratusan baris ke berkas yang sudah besar.
 - Berkas yang **sudah** melewati batas — jangan ditambah lagi kecuali
@@ -110,10 +110,31 @@ Repo ini dua bahasa. Pembagiannya sudah terbentuk dan harus dijaga:
   hilang). Tambahkan screen bernama di `tailwind.config.js`. Jangan pula merakit
   nama kelas dari variabel (`${X}:grid`) — Tailwind tidak bisa menemukannya.
 - Animasi angka dan grafik memakai `useAnimatedProgress` / `useCountUp`
-  (`components/budget/dashboard/useAnimatedProgress.js`) yang sudah menghormati
+  (`src/hooks/useAnimatedProgress.js`) yang sudah menghormati
   `prefers-reduced-motion`. Jangan menambah library animasi.
 - Cek cepat sebelum commit:
   `find src -name '*.js*' | xargs wc -l | sort -rn | awk '$1>300'`
+
+## Modul bersama (wajib dipakai ulang)
+
+Sebelum membuat komponen, hook, atau formatter baru, cek daftar ini. Kalau
+kebutuhannya sudah tercakup, **pakai yang ada**; kalau hampir tercakup,
+perluas modulnya (tanpa mengubah perilaku pemakai lama), jangan menyalin.
+
+| Kebutuhan | Modul | Catatan |
+|---|---|---|
+| Tabel/daftar data (cari, urut, halaman) | `src/components/data-table/DataTable.jsx` (+ `useDataTable.js`, `TablePagination.jsx`) | Pencarian realtime di semua kolom ala DataTables, klik judul untuk urut, 20 baris/halaman, tinggi mengikuti isi. Kolom: `{ key, label, align, width, value(row), text(row), render(row), title(row) }`. Contoh: `components/budget/accounts/AccountDetailTable.jsx`. **Semua tabel data baru wajib memakai ini.** |
+| Ikon | `src/components/icons/DuotoneIcons.jsx` | Duotone, tanpa garis tepi. Ikon baru ditambahkan di sini. |
+| Gaya kartu & judul | `src/components/ui/cardStyles.js` (`CARD_CLASS`, `CARD_TITLE_CLASS`, `LABEL_CLASS`) | Sudah termasuk varian `fit:`/`tall:`. |
+| Tombol, dialog, input dasar | `src/components/ui/*` (`Button` varian `teal`/`outline`/`destructive`, `Dialog`) | Konfirmasi hapus memakai `Dialog`, bukan `window.confirm`. |
+| Kepala halaman dashboard | `src/components/budget/dashboard/BudgetDashboardHeader.jsx` | Props `title`, `subtitle`, `icon`, pemilih TA (`years`, `fiscalYear`, `onFiscalYearChange`), `showYearPicker`. |
+| Tooltip grafik | `src/components/charts/ChartTooltip.jsx` (`useChartTooltip`) | Isi berupa node React; mendukung tetikus dan keyboard. |
+| Animasi angka & grafik | `src/hooks/useAnimatedProgress.js` (`useAnimatedProgress`, `useCountUp`) | Menghormati `prefers-reduced-motion`. |
+| Ukuran elemen (grafik responsif) | `src/hooks/useElementSize.js` | ResizeObserver; teks SVG tetap ukuran asli. |
+| Format Rupiah & persen | `src/lib/budgetFormat.js` | `formatRupiah`, `formatBillion`, `formatBillionFirst`, `formatCompactRupiah`, `formatTableBillion`, `formatPercent`, `formatAbsorption`. |
+| Data anggaran Keuangan | `src/context/BudgetReportContext.jsx` (`useBudgetReports`) | Sumber tunggal dashboard & menu akun (lihat bagian Master Data). |
+| Keadaan kosong master data | `src/components/budget/MasterDataEmptyState.jsx` | Tombol ke Master Data hanya untuk admin. |
+| Satu layar tanpa scroll | screen Tailwind `fit`, `fitwide`, `tall` (`tailwind.config.js`) | Lihat Aturan 2. |
 
 ## Aturan 3 — Keamanan dulu
 

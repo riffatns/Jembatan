@@ -1,9 +1,9 @@
 import { formatBillionFirst, formatRupiah } from '../../../lib/budgetFormat'
 import { IconChartBars, IconInfo } from '../../icons/DuotoneIcons'
-import { CARD_CLASS, CARD_TITLE_CLASS } from '../dashboard/dashboardTheme'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { buildAxis } from '../dashboard/budgetDashboardModel'
-import { ChartTooltip, useChartTooltip } from '../dashboard/ChartTooltip'
-import { useAnimatedProgress } from '../dashboard/useAnimatedProgress'
+import { ChartTooltip, useChartTooltip } from '../../charts/ChartTooltip'
+import { useAnimatedProgress } from '../../../hooks/useAnimatedProgress'
 
 const MAX_BARS = 6
 // Kolom label akun, lalu kolom batang. Ruang kanan batang untuk label nilainya.

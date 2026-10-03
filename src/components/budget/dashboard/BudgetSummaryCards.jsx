@@ -1,7 +1,7 @@
 import { IconDocument, IconTrendUp } from '../../icons/DuotoneIcons'
 import { formatBillion, formatPercent, formatRupiah } from '../../../lib/budgetFormat'
-import { CARD_CLASS, CARD_TITLE_CLASS } from './dashboardTheme'
-import { useCountUp } from './useAnimatedProgress'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
+import { useCountUp } from '../../../hooks/useAnimatedProgress'
 
 const TONES = {
   green: { background: 'bg-gradient-to-b from-[#f2fbf6] to-[#e6f7ef]', icon: 'text-[#1fae7a]', wave: '#1fae7a' },

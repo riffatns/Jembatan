@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MONTH_NAMES } from '../../../lib/budgetReportParser'
 import { IconUpload } from '../../icons/DuotoneIcons'
 import { Button } from '../../ui/button'
-import { CARD_CLASS, CARD_TITLE_CLASS } from '../dashboard/dashboardTheme'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 
 const FIELD = 'w-full rounded-xl border border-[#d6dfec] bg-white px-3 py-2 text-sm font-semibold text-[#12305f] outline-none focus:border-[#2f7fe8]'
 

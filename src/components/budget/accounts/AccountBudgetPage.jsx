@@ -27,7 +27,7 @@ export function AccountBudgetPage({ groupCode }) {
   const model = useMemo(() => buildAccountModel(activeReport, groupCode), [activeReport, groupCode])
 
   return (
-    <div className="flex flex-col gap-4 text-[#12305f] fit:h-[calc(100dvh-4rem)] fit:gap-2.5 tall:gap-3">
+    <div className="flex flex-col gap-4 text-[#12305f] fit:gap-2.5 tall:gap-3">
       <BudgetDashboardHeader
         title={model.title.toUpperCase()}
         subtitle={`AKUN ${groupCode} · BPK PERWAKILAN PROVINSI PAPUA BARAT DAYA`}
@@ -43,11 +43,12 @@ export function AccountBudgetPage({ groupCode }) {
       ) : (
         <>
           <AccountKpiCards model={model} />
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] fit:min-h-0 fit:flex-[1.9] fit:gap-2.5 tall:flex-[1.15] tall:gap-3">
+          {/* Grafik setinggi sisa layar pertama; tabel di bawahnya mengikuti jumlah akun. */}
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] fit:h-[clamp(280px,calc(100dvh-17rem),460px)] fit:gap-2.5 tall:gap-3">
             <AccountCompositionChart model={model} />
             <AccountStatusPanel model={model} />
           </section>
-          <section className="grid fit:min-h-0 fit:flex-1 fit:grid-rows-[minmax(0,1fr)]">
+          <section>
             <AccountDetailTable accounts={model.accounts} />
           </section>
         </>

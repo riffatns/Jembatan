@@ -1,7 +1,7 @@
 import { formatBillion, formatPercent, formatRupiah } from '../../../lib/budgetFormat'
-import { CARD_CLASS, CARD_TITLE_CLASS } from './dashboardTheme'
-import { ChartTooltip, useChartTooltip } from './ChartTooltip'
-import { useAnimatedProgress } from './useAnimatedProgress'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
+import { ChartTooltip, useChartTooltip } from '../../charts/ChartTooltip'
+import { useAnimatedProgress } from '../../../hooks/useAnimatedProgress'
 
 const CENTER = 130
 const RADIUS = 84

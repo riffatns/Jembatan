@@ -1,9 +1,9 @@
 import { IconChartBars, IconDatabase, IconDocument } from '../../icons/DuotoneIcons'
 import { formatPercent, formatRupiah } from '../../../lib/budgetFormat'
-import { CARD_CLASS, LABEL_CLASS } from './dashboardTheme'
+import { CARD_CLASS, LABEL_CLASS } from '../../ui/cardStyles'
 import { SERIES_COLORS } from './budgetDashboardModel'
-import { ChartTooltip, useChartTooltip } from './ChartTooltip'
-import { useCountUp } from './useAnimatedProgress'
+import { ChartTooltip, useChartTooltip } from '../../charts/ChartTooltip'
+import { useCountUp } from '../../../hooks/useAnimatedProgress'
 
 // Ikon kecil di samping label, supaya angka Rupiah penuh mendapat seluruh
 // lebar kartu walau lima kartu berjajar di layar laptop.

@@ -1,7 +1,7 @@
 import { formatPercent, formatRupiah } from '../../../lib/budgetFormat'
 import { MONTH_NAMES } from '../../../lib/budgetReportParser'
 import { IconInfo, IconTableList } from '../../icons/DuotoneIcons'
-import { CARD_CLASS, CARD_TITLE_CLASS } from '../dashboard/dashboardTheme'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { ACCOUNT_GROUPS } from '../accounts/accountModel'
 
 const HEAD = 'sticky top-0 bg-[#e6eefb] px-2 py-1.5 text-right text-[12px] font-bold text-[#12305f] first:text-left'

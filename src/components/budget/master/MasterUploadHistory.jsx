@@ -1,7 +1,7 @@
 import { formatCompactRupiah } from '../../../lib/budgetFormat'
 import { MONTH_NAMES } from '../../../lib/budgetReportParser'
 import { IconTrash } from '../../icons/DuotoneIcons'
-import { CARD_CLASS, CARD_TITLE_CLASS } from '../dashboard/dashboardTheme'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 
 const CELL = 'whitespace-nowrap border-t border-[#e8edf5] px-3 py-1.5'
 

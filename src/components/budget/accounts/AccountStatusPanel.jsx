@@ -1,7 +1,7 @@
 import { formatPercent, formatRupiah } from '../../../lib/budgetFormat'
 import { IconCoins, IconDocument, IconTarget, IconTrendUp } from '../../icons/DuotoneIcons'
-import { CARD_CLASS, CARD_TITLE_CLASS } from '../dashboard/dashboardTheme'
-import { useAnimatedProgress } from '../dashboard/useAnimatedProgress'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
+import { useAnimatedProgress } from '../../../hooks/useAnimatedProgress'
 import { STATUS_STYLES, shortAccountName } from './accountModel'
 
 const MAX_ROWS = 8
