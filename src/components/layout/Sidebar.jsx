@@ -291,6 +291,9 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           </div>
         )}
 
+        {/* Keuangan tidak memakai Monitoring (Kalender Bersama) dan kotak
+            Integrasi Aplikasi; keduanya hanya disembunyikan untuk bidang ini. */}
+        {!usesAccountViews && (
         <div className="mt-5 border-t border-white/10 pt-4">
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Monitoring</p>
           <div className="mt-3 space-y-1.5">
@@ -312,6 +315,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
             ))}
           </div>
         </div>
+        )}
 
         {/* "Semua Dokumen" ikut dilepas, jadi seksi ini hanya berisi Arsip
             Digital - dan hanya muncul pada bidang yang memang punya kategori
@@ -346,13 +350,15 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/65">Integrasi Aplikasi</p>
-          <div className="mt-3 rounded-xl bg-[#14376b] p-3">
-            <p className="text-sm font-semibold text-white">JASMIN</p>
-            <p className="mt-1 text-xs text-sky-100/75">Integrasi Aplikasi (Persuratan)</p>
+        {!usesAccountViews && (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200/65">Integrasi Aplikasi</p>
+            <div className="mt-3 rounded-xl bg-[#14376b] p-3">
+              <p className="text-sm font-semibold text-white">JASMIN</p>
+              <p className="mt-1 text-xs text-sky-100/75">Integrasi Aplikasi (Persuratan)</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="border-t border-white/10 px-5 py-4">
