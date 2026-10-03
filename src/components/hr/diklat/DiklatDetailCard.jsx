@@ -1,6 +1,6 @@
 import { IconBuilding, IconCalendar, IconClock, IconInfo, IconPlay, IconUsers } from '../../icons/DuotoneIcons'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
-import { SECTION_COLORS, SECTION_LABELS, STATUS_LABELS, formatRange, programStatus } from './diklatModel'
+import { SECTION_COLORS, SECTION_LABELS, STATUS_LABELS, formatDuration, formatRange, programStatus } from './diklatModel'
 
 export const STATUS_TONES = {
   berlangsung: 'bg-[#dcf5e8] text-[#0b7a4f]',
@@ -29,11 +29,6 @@ function Row({ icon: Icon, label, children }) {
   )
 }
 
-function duration(program) {
-  const parts = [program.days, program.jp && `${program.jp} JP`].filter(Boolean)
-  return parts.length ? parts.join(' / ') : '-'
-}
-
 // Rincian program terpilih. Tahapan (PKP, PKA, JFPA) ditampilkan berurutan;
 // tahap yang sedang dipilih di kalender ditandai.
 export function DiklatDetailCard({ program, today, selectedEventId }) {
@@ -57,7 +52,7 @@ export function DiklatDetailCard({ program, today, selectedEventId }) {
         <Row icon={IconCalendar} label="Tanggal">{formatRange(program.schedule.start, program.schedule.end)}</Row>
         <Row icon={IconPlay} label="Metode">{program.method}</Row>
         <Row icon={IconBuilding} label="Penyelenggara">{program.organizer}</Row>
-        <Row icon={IconClock} label="Durasi">{duration(program)}</Row>
+        <Row icon={IconClock} label="Durasi">{formatDuration(program)}</Row>
         <Row icon={IconUsers} label="Peserta">{[program.participants && `${program.participants} orang`, program.criteria].filter(Boolean).join(' · ') || '-'}</Row>
         {datedPhases.length > 0 && (
           <ol className="mt-1 flex flex-col gap-1 rounded-xl bg-[#f6f9fe] p-2 text-xs">

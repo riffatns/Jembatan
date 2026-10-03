@@ -3,39 +3,22 @@ import { useMasterDatasetGroup } from '../../../context/MasterDatasetContext'
 import { MasterDataEmptyState } from '../../budget/MasterDataEmptyState'
 import { BudgetDashboardHeader } from '../../budget/dashboard/BudgetDashboardHeader'
 import { MonthCalendar } from '../../calendar/MonthCalendar'
-import { IconCalendar, IconChevronDown } from '../../icons/DuotoneIcons'
+import { IconCalendar } from '../../icons/DuotoneIcons'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { HR_DIVISION_ID } from '../bezetting/bezettingModel'
 import { DiklatDetailCard } from './DiklatDetailCard'
 import { DiklatFilters } from './DiklatFilters'
 import { DiklatKpiCards } from './DiklatKpiCards'
+import { DiklatPeriodPicker } from './DiklatPeriodPicker'
 import { OngoingList, UpcomingAgenda } from './DiklatSideLists'
 import { DiklatTable } from './DiklatTable'
 import { OngoingPrograms } from './OngoingPrograms'
 import {
-  DIKLAT_PREFIX, SECTION_COLORS, applyFilters, buildKpis, combinePrograms, filterOptions, ongoingPrograms, programEvents, toIsoDate, upcomingEvents
+  DIKLAT_PREFIX, SECTION_COLORS, applyFilters, buildKpis, combinePrograms, defaultYear, filterOptions, ongoingPrograms, programEvents, scopePartitions,
+  toIsoDate, upcomingEvents
 } from './diklatModel'
 
 const EMPTY_FILTERS = { search: '', section: '', method: '', month: '', organizer: '' }
-
-// Pemilih triwulan di kepala halaman: satu chip bila hanya satu triwulan aktif.
-function QuarterPicker({ partitions, value, onChange }) {
-  const chip = 'flex items-center gap-2 rounded-2xl bg-white/90 py-2 pl-3 pr-3 text-sm font-bold text-[#12305f] shadow-[0_10px_28px_-14px_rgba(18,48,95,0.22)]'
-  if (partitions.length < 2) {
-    return <span className={chip}><IconCalendar className="h-5 w-5 text-[#1d5fd0]" />{partitions[0]?.active.periodLabel || 'Belum ada data'}</span>
-  }
-  return (
-    <label className={`${chip} relative pr-8`}>
-      <IconCalendar className="h-5 w-5 text-[#1d5fd0]" />
-      <span className="sr-only">Triwulan</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="cursor-pointer appearance-none bg-transparent outline-none">
-        <option value="all">Semua triwulan ({partitions.length})</option>
-        {partitions.map((partition) => <option key={partition.dataset} value={partition.period}>{partition.active.periodLabel}</option>)}
-      </select>
-      <IconChevronDown className="pointer-events-none absolute right-2.5 h-4 w-4" />
-    </label>
-  )
-}
 
 function Legend({ sections }) {
   return (
@@ -54,7 +37,7 @@ function Legend({ sections }) {
 export function DiklatPage() {
   const group = useMasterDatasetGroup(DIKLAT_PREFIX)
   const today = toIsoDate(new Date())
-  const [period, setPeriod] = useState('all')
+  const [scope, setScope] = useState({ year: null, quarter: 'all' })
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [view, setView] = useState('calendar')
   const [month, setMonth] = useState(() => ({ year: new Date().getFullYear(), monthIndex: new Date().getMonth() }))
@@ -66,7 +49,8 @@ export function DiklatPage() {
   }, [])
 
   const active = useMemo(() => group.partitions.filter((partition) => partition.active), [group.partitions])
-  const scoped = useMemo(() => (period === 'all' ? active : active.filter((partition) => partition.period === period)), [active, period])
+  const year = scope.year ?? defaultYear(active, today)
+  const scoped = useMemo(() => scopePartitions(active, { year, quarter: scope.quarter }), [active, year, scope.quarter])
   const programs = useMemo(() => combinePrograms(scoped), [scoped])
   const options = useMemo(() => filterOptions(programs), [programs])
   const filtered = useMemo(() => applyFilters(programs, filters), [programs, filters])
@@ -75,14 +59,16 @@ export function DiklatPage() {
   // pendek terbaca; tahap itu tampil di kartu Sedang Berlangsung, Agenda, dan Detail.
   const calendarEvents = useMemo(() => events.filter((event) => !event.priority), [events])
   const ongoing = useMemo(() => ongoingPrograms(filtered, today), [filtered, today])
-  // Bulan ini kosong (mis. Kaldik triwulan depan): kalender dibuka di kegiatan terdekat.
-  const hasData = programs.length > 0
+  // Saat data dimuat atau Tahun/Triwulan diganti: bila bulan yang tampil tidak
+  // punya kegiatan, kalender dibuka di kegiatan terdekat (atau yang pertama).
+  const scopeKey = `${year}-${scope.quarter}-${programs.length > 0}`
   useEffect(() => {
     const shown = `${month.year}-${String(month.monthIndex + 1).padStart(2, '0')}`
     if (events.some((event) => event.start.slice(0, 7) <= shown && event.end.slice(0, 7) >= shown)) return
-    const next = events.filter((event) => event.end >= today).map((event) => event.start).sort()[0]
+    const starts = events.map((event) => event.start).sort()
+    const next = events.filter((event) => event.end >= today).map((event) => event.start).sort()[0] || starts[0]
     if (next) setMonth({ year: Number(next.slice(0, 4)), monthIndex: Number(next.slice(5, 7)) - 1 })
-  }, [hasData])
+  }, [scopeKey])
 
   const selected = filtered.find((program) => program.uid === selection.programUid) || ongoing[0] || null
 
@@ -96,7 +82,7 @@ export function DiklatPage() {
     setMonth({ year: Number(event.start.slice(0, 4)), monthIndex: Number(event.start.slice(5, 7)) - 1 })
   }
 
-  const header = <BudgetDashboardHeader title="KALENDER DIKLAT" subtitle="JADWAL PELATIHAN PEGAWAI DAN AGENDA PENGEMBANGAN KOMPETENSI" icon={IconCalendar} showYearPicker={false} actions={<QuarterPicker partitions={active} value={period} onChange={setPeriod} />} />
+  const header = <BudgetDashboardHeader title="KALENDER DIKLAT" subtitle="JADWAL PELATIHAN PEGAWAI DAN AGENDA PENGEMBANGAN KOMPETENSI" icon={IconCalendar} showYearPicker={false} actions={active.length > 0 && <DiklatPeriodPicker partitions={active} year={year} quarter={scope.quarter} onChange={setScope} />} />
   if (!active.length) {
     return (
       <div className="flex flex-col gap-4 text-[#12305f] fit:gap-2.5">

@@ -1,6 +1,6 @@
 import { DataTable } from '../../data-table/DataTable'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
-import { SECTION_LABELS, STATUS_LABELS, formatRange, programStatus } from './diklatModel'
+import { SECTION_LABELS, STATUS_LABELS, formatDuration, formatRange, programStatus } from './diklatModel'
 import { SectionPill, StatusPill } from './DiklatDetailCard'
 
 // Tampilan Daftar: semua program hasil filter (termasuk Self Learning).
@@ -19,7 +19,7 @@ export function DiklatTable({ programs, today, onSelect }) {
     { key: 'schedule', label: 'Jadwal', value: (row) => row.schedule.start || '9999', text: (row) => formatRange(row.schedule.start, row.schedule.end) },
     { key: 'method', label: 'Metode', text: (row) => row.method },
     { key: 'organizer', label: 'Penyelenggara', text: (row) => row.organizer },
-    { key: 'jp', label: 'Durasi', text: (row) => [row.days, row.jp && `${row.jp} JP`].filter(Boolean).join(' / ') || '-' },
+    { key: 'jp', label: 'Durasi', text: formatDuration },
     {
       key: 'status',
       label: 'Status',

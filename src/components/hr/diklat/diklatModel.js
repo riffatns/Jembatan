@@ -35,6 +35,35 @@ export function diklatDatasetName(year, quarter) {
   return `${DIKLAT_PREFIX}${year}-TW${quarter}`
 }
 
+// '2026-TW4' -> { year: 2026, quarter: 4 }; null bila bukan nama periode Kaldik.
+export function parsePeriod(period) {
+  const match = /^(\d{4})-TW([1-4])$/.exec(period || '')
+  return match ? { year: Number(match[1]), quarter: Number(match[2]) } : null
+}
+
+export function periodYears(partitions) {
+  return [...new Set(partitions.map((partition) => parsePeriod(partition.period)?.year).filter(Boolean))].sort((a, b) => b - a)
+}
+
+export function quartersOfYear(partitions, year) {
+  return partitions.map((partition) => parsePeriod(partition.period)).filter((period) => period?.year === year).map((period) => period.quarter).sort()
+}
+
+// Tahun bawaan: tahun berjalan bila ada datanya, selain itu tahun terbaru.
+export function defaultYear(partitions, today) {
+  const years = periodYears(partitions)
+  const current = Number(today.slice(0, 4))
+  return years.includes(current) ? current : years[0] || current
+}
+
+// Triwulan aktif sesuai pilihan Tahun dan Triwulan ('all' = semua triwulan tahun itu).
+export function scopePartitions(partitions, { year, quarter }) {
+  return partitions.filter((partition) => {
+    const period = parsePeriod(partition.period)
+    return period?.year === year && (quarter === 'all' || period.quarter === quarter)
+  })
+}
+
 export function buildDiklatPayload(parsed) {
   return {
     period: { month: null, year: parsed.year, label: quarterLabel(parsed.quarter, parsed.year) },
@@ -182,6 +211,12 @@ export function applyFilters(programs, filters) {
     if (query && !`${program.name} ${program.organizer} ${program.method}`.toLowerCase().includes(query)) return false
     return true
   })
+}
+
+// "2" -> "2 hari / 20 JP"; teks yang sudah berisi satuan dibiarkan.
+export function formatDuration(program) {
+  const days = /^\d+$/.test(program.days || '') ? `${program.days} hari` : program.days
+  return [days, program.jp && `${program.jp} JP`].filter(Boolean).join(' / ') || '-'
 }
 
 const SHORT_DATE = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
