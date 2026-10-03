@@ -13,3 +13,8 @@ export const TAMPILKAN_SUMBER_ANGKA = false
 // Dashboard Subbagian Keuangan memakai Dashboard Anggaran yang baru. Dashboard
 // lama tidak dihapus, hanya disembunyikan: ubah menjadi false untuk kembali.
 export const USE_NEW_FINANCE_DASHBOARD = true
+
+// Menu Belanja Pegawai/Barang/Modal di Subbagian Keuangan memakai tampilan
+// akun dari Master Data Anggaran. Tampilan lama (angka + daftar dokumen) tidak
+// dihapus: ubah menjadi false untuk kembali. Bidang lain tidak terpengaruh.
+export const USE_NEW_ACCOUNT_VIEWS = true

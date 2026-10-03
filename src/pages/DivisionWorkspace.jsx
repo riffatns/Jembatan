@@ -35,6 +35,8 @@ import { AgendaWorkspace } from '../components/agenda/AgendaWorkspace'
 import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
 import { ServiceIntro } from '../components/ServiceIntro'
 import { BudgetWorkspace } from '../components/budget/BudgetWorkspace'
+import { AccountBudgetPage } from '../components/budget/accounts/AccountBudgetPage'
+import { USE_NEW_ACCOUNT_VIEWS } from '../lib/tampilan'
 import { AssetWorkspace } from '../components/asset/AssetWorkspace'
 import { LegalWorkspace } from '../components/legal/LegalWorkspace'
 import { getServiceContent } from '../data/serviceContent'
@@ -296,6 +298,11 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
 
   if (!division || !canAccessDivision(divisionId)) {
     return <Navigate to="/dashboard" replace />
+  }
+
+  // Keuangan: menu akun 51/52/53 menampilkan angka Master Data Anggaran saja.
+  if (USE_NEW_ACCOUNT_VIEWS && divisionId === 'finance' && serviceContent.budgetCode) {
+    return <AccountBudgetPage key={serviceContent.budgetCode} groupCode={serviceContent.budgetCode} />
   }
 
   return (
