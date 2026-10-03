@@ -20,7 +20,9 @@ export function DashboardLayout() {
       <div className="min-h-screen bg-[#eef4fb] lg:flex">
         <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
         <div className="flex min-h-screen flex-1 flex-col overflow-x-hidden overflow-y-auto">
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          {/* Samping 16px supaya kartu memakai lebar layar; atas-bawah tetap
+              (tinggi satu layar di dashboard menghitung 2rem atas + bawah). */}
+          <main className="flex-1 p-4 sm:py-6 lg:py-8">
             <Outlet />
           </main>
         </div>
