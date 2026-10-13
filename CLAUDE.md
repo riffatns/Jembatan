@@ -39,7 +39,8 @@ lulus dan uji manual di browser adalah syarat minimum setiap perubahan.
 | `src/lib/*Storage.js` | Muat/simpan satu domain: localStorage, pemetaan baris Supabase (`mapRemoteX`/`toRemoteX`) |
 | `src/lib/*Workbook.js`, `parseExcel*.js` | Membaca berkas Excel |
 | `src/data/` | Konstanta, palet, metadata layanan, data contoh (`seed.js`) |
-| `supabase/` | SQL manual. `jalankan-semua.sql` = gabungan semua migrasi susulan, idempoten |
+| `supabase/migrations/` | **Migrasi berversi (Supabase CLI) — tempat semua SQL baru.** Lihat `supabase/README.md` |
+| `supabase/*.sql` | SQL manual lama, dibekukan. Isinya sudah tersalin ke `migrations/`; `users.sql` dan `set-role.sql` tetap dipakai karena butuh kata sandi yang diketik saat dijalankan |
 
 ## Aturan 1 — Penamaan konsisten
 
@@ -204,10 +205,12 @@ Saat menambah fitur:
   (`bpk-dashboard-category-change`), id bidang/layanan, atau kolom tabel.
 - Refaktor hanya bila perilakunya identik dan dibuktikan dengan uji manual
   alur yang sama sebelum dan sesudah.
-- SQL: jangan mengubah isi migrasi lama. Tambah berkas baru yang idempoten
-  (`if not exists`, `drop policy if exists`, blok `do ... exception`), lalu
-  salin bagian yang sama ke `jalankan-semua.sql` beserta baris pemeriksaannya.
-  Akhiri dengan `notify pgrst, 'reload schema';` bila kolom berubah.
+- SQL: jangan mengubah isi migrasi lama. Perubahan baru dibuat sebagai migrasi
+  tersendiri lewat `npx supabase@latest migration new <nama>`, isinya tetap
+  idempoten (`if not exists`, `drop policy if exists`, blok `do ... exception`),
+  dan diakhiri `notify pgrst, 'reload schema';` bila kolom berubah. Berkas SQL
+  lama di `supabase/` sudah dibekukan dan tidak perlu ditambah lagi — termasuk
+  `jalankan-semua.sql`. Cara memasangnya ada di `supabase/README.md`.
 - Realtime: tabel baru yang perlu sinkron harus ditambahkan ke publikasi
   `supabase_realtime` dan didengarkan di kanal `dashboard-data-sync` (`DataContext`).
 

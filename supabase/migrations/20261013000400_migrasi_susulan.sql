@@ -1,0 +1,763 @@
+-- Migrasi 4 - seluruh perubahan sesudah skema awal.
+--
+-- Isinya bagian 0 sampai 9 dari supabase/jalankan-semua.sql, apa adanya:
+-- fungsi bantu, status arsip, izin unggah admin, agenda berhari-hari, aset
+-- BMN, Master Data Anggaran beserta versinya, Master Data generik, bucket
+-- master-files, penamaan bidang, metadata kerja sama, angka bidang, pengunci
+-- peran profil, dan muat ulang cache skema.
+--
+-- Bagian 10 (tabel pemeriksaan) tidak ikut: itu SELECT untuk dibaca manusia
+-- setelah menempel SQL secara manual, tidak ada gunanya dijalankan otomatis.
+--
+-- Dibiarkan menyatu dalam satu berkas, tidak dipecah per fitur, karena inilah
+-- SQL yang sudah terbukti jalan di basis data sungguhan. Memecahnya berarti
+-- menyusun ulang urutan yang sudah benar tanpa bisa diuji.
+
+-- ----------------------------------------------------------------------------
+-- 0. Fungsi bantu
+-- ----------------------------------------------------------------------------
+-- Dipakai oleh hampir semua kebijakan di bawah. Aslinya dari policies.sql dan
+-- seharusnya sudah ada; ditulis ulang di sini supaya berkas ini berdiri
+-- sendiri dan tidak gagal di tengah jalan bila ternyata belum ada.
+
+create or replace function public.current_profile_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select role from public.profiles where id = auth.uid();
+$fn$;
+
+create or replace function public.current_profile_division()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select division_id from public.profiles where id = auth.uid();
+$fn$;
+
+
+-- ----------------------------------------------------------------------------
+-- 1. Status arsip pada dokumen
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: kartu Aktif / Inaktif / Musnah pada layanan Arsip.
+-- Bila dilewat: SELURUH unggahan dokumen gagal, bukan hanya di Arsip, karena
+-- aplikasi selalu mengirim kolom ini dan PostgREST menolak kolom yang tak
+-- dikenal. Ini bagian paling mendesak dari berkas ini.
+--
+-- Kolom ini sumbu terpisah dari public.documents.status yang mengatur alur
+-- persetujuan: sebuah arsip bisa berstatus 'approved' sekaligus 'musnah'.
+-- Dibiarkan nullable karena hanya bermakna untuk kategori 'arsip'.
+
+alter table public.documents
+  add column if not exists archive_status text;
+
+do $do$
+begin
+  alter table public.documents
+    add constraint documents_archive_status_check
+    check (archive_status is null or archive_status in ('aktif', 'inaktif', 'musnah'));
+exception
+  when duplicate_object then null;
+end
+$do$;
+
+-- Arsip lama yang belum berstatus dianggap aktif, sama seperti di aplikasi.
+update public.documents
+set archive_status = 'aktif'
+where category_id = 'arsip' and archive_status is null;
+
+create index if not exists documents_archive_status_idx
+  on public.documents (category_id, archive_status);
+
+
+-- ----------------------------------------------------------------------------
+-- 2. Izin unggah berkas untuk admin
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: galat "new row violates row-level security policy" saat
+-- admin mengunggah berkas.
+-- Bila dilewat: admin tetap tidak bisa mengunggah berkas ke bidang mana pun.
+--
+-- Penyebabnya, kebijakan lama hanya membandingkan nama folder dengan bidang
+-- pengunggah. Profil admin tidak terikat satu bidang, sehingga division-nya
+-- null dan perbandingannya menghasilkan null - yang oleh RLS diperlakukan
+-- sebagai ditolak. Jalur khusus admin ditambahkan di depan.
+
+drop policy if exists "Users can upload document files" on storage.objects;
+
+create policy "Users can upload document files"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'documents'
+    and (
+      public.current_profile_role() = 'admin'
+      or (storage.foldername(name))[1] = public.current_profile_division()
+    )
+  );
+
+
+-- ----------------------------------------------------------------------------
+-- 3. Agenda berhari-hari
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: kegiatan yang berlangsung beberapa hari, misalnya 31
+-- Agustus sampai 5 September.
+-- Bila dilewat: agenda baru gagal disimpan ke server dan hanya tersimpan di
+-- browser yang membuatnya.
+--
+-- Seluruh bagian agenda ditulis ulang di sini, bukan hanya kolom barunya,
+-- supaya berkas ini tetap benar walau supabase/agenda.sql belum pernah
+-- dijalankan. Semuanya "if not exists", jadi data yang sudah ada tidak
+-- tersentuh.
+
+create table if not exists public.agenda_events (
+  id uuid primary key default gen_random_uuid(),
+  division_id text not null default 'pr' references public.divisions(id) on delete cascade,
+  category_id text not null default 'agenda-kalan',
+  title text not null,
+  description text,
+  location text,
+  organizer text,
+  attendees text,
+  event_date date not null,
+  end_date date,
+  start_time time,
+  end_time time,
+  all_day boolean not null default false,
+  event_type text not null default 'rapat'
+    check (event_type in ('rapat', 'kunjungan', 'pemeriksaan', 'sosialisasi', 'upacara', 'lainnya')),
+  status text not null default 'scheduled'
+    check (status in ('scheduled', 'done', 'cancelled')),
+  visibility text not null default 'public'
+    check (visibility in ('public', 'division', 'restricted')),
+  created_by uuid references public.profiles(id) on delete set null,
+  created_by_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.agenda_events
+  add column if not exists visibility text not null default 'public';
+
+-- event_date adalah tanggal mulai, end_date tanggal selesai. Kosong berarti
+-- kegiatannya hanya sehari.
+alter table public.agenda_events
+  add column if not exists end_date date;
+
+do $do$
+begin
+  alter table public.agenda_events
+    add constraint agenda_events_end_date_check
+    check (end_date is null or end_date >= event_date);
+exception
+  when duplicate_object then null;
+end
+$do$;
+
+do $do$
+begin
+  alter table public.agenda_events
+    add constraint agenda_events_visibility_check
+    check (visibility in ('public', 'division', 'restricted'));
+exception
+  when duplicate_object then null;
+end
+$do$;
+
+create index if not exists agenda_events_division_date_idx
+  on public.agenda_events (division_id, event_date);
+
+alter table public.agenda_events enable row level security;
+
+drop policy if exists "Authenticated users can read agenda" on public.agenda_events;
+drop policy if exists "Users can create agenda" on public.agenda_events;
+drop policy if exists "Owners and admins can update agenda" on public.agenda_events;
+drop policy if exists "Owners and admins can delete agenda" on public.agenda_events;
+
+-- Visibility ditegakkan di database, bukan hanya di tampilan.
+create policy "Authenticated users can read agenda"
+  on public.agenda_events for select to authenticated
+  using (
+    visibility = 'public'
+    or created_by = auth.uid()
+    or public.current_profile_role() = 'admin'
+    or (visibility = 'division' and division_id = public.current_profile_division())
+  );
+
+create policy "Users can create agenda"
+  on public.agenda_events for insert to authenticated
+  with check (
+    created_by = auth.uid()
+    and (
+      public.current_profile_role() = 'admin'
+      or division_id = public.current_profile_division()
+    )
+  );
+
+create policy "Owners and admins can update agenda"
+  on public.agenda_events for update to authenticated
+  using (created_by = auth.uid() or public.current_profile_role() = 'admin')
+  with check (created_by = auth.uid() or public.current_profile_role() = 'admin');
+
+create policy "Owners and admins can delete agenda"
+  on public.agenda_events for delete to authenticated
+  using (created_by = auth.uid() or public.current_profile_role() = 'admin');
+
+-- Realtime supaya kalender ikut berubah tanpa perlu memuat ulang halaman.
+do $do$
+begin
+  alter publication supabase_realtime add table public.agenda_events;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end
+$do$;
+
+-- Kategori "Agenda Kalan" kini berisi jadwal kegiatan, bukan dokumen. Dokumen
+-- yang terlanjur tersimpan di sana dipindahkan ke Tata Usaha Kalan.
+update public.documents
+set category_id = 'tata-usaha-kalan', updated_at = now()
+where division_id = 'pr' and category_id = 'agenda-kalan';
+
+update public.document_categories
+set description = 'Jadwal kegiatan dan agenda pimpinan Kalan.'
+where division_id = 'pr' and id = 'agenda-kalan';
+
+
+-- ----------------------------------------------------------------------------
+-- 4. Daftar Barang Milik Negara
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: portal BMN pada layanan Aset di bidang Umum dan TI.
+-- Bila dilewat: halaman Aset tetap berfungsi, tetapi datanya hanya tersimpan
+-- di browser yang mengunggahnya dan tidak terlihat oleh pengguna lain.
+-- Aplikasi memberi tahu bila itu yang terjadi.
+--
+-- Nama kolom sengaja sama persis dengan bentuk record di
+-- src/lib/assetWorkbook.js (toRemoteAsset / mapRemoteAsset), jadi tidak ada
+-- pemetaan tambahan.
+
+create table if not exists public.assets (
+  id text primary key,
+  division_id text not null default 'it' references public.divisions(id) on delete cascade,
+  kode_barang text,
+  nup text,
+  nama_barang text not null,
+  jenis_bmn text,
+  kode_satker text,
+  nama_satker text,
+  status_bmn text,
+  merk text,
+  tipe text,
+  kondisi text,
+  umur_aset numeric not null default 0,
+  intra_extra text,
+  tanggal_perolehan date,
+  nilai_perolehan numeric not null default 0,
+  nilai_penyusutan numeric not null default 0,
+  nilai_buku numeric not null default 0,
+  status_penggunaan text,
+  no_psp text,
+  tanggal_psp date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists assets_division_jenis_idx on public.assets (division_id, jenis_bmn);
+create index if not exists assets_nama_idx on public.assets (nama_barang);
+
+alter table public.assets enable row level security;
+
+drop policy if exists "Authenticated users can read assets" on public.assets;
+drop policy if exists "Umum dan TI can write assets" on public.assets;
+drop policy if exists "Umum dan TI can update assets" on public.assets;
+drop policy if exists "Umum dan TI can delete assets" on public.assets;
+
+-- Daftar BMN dibaca semua pengguna portal; yang mengubahnya hanya admin dan
+-- pegawai bidang pemilik asetnya.
+create policy "Authenticated users can read assets"
+  on public.assets for select to authenticated using (true);
+
+create policy "Umum dan TI can write assets"
+  on public.assets for insert to authenticated
+  with check (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = division_id
+  );
+
+create policy "Umum dan TI can update assets"
+  on public.assets for update to authenticated
+  using (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = division_id
+  )
+  with check (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = division_id
+  );
+
+-- Unggah ulang berkas aset mengganti seluruh daftar bidang tersebut, jadi izin
+-- hapus diperlukan agar aset yang sudah dicoret dari catatan ikut hilang.
+create policy "Umum dan TI can delete assets"
+  on public.assets for delete to authenticated
+  using (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = division_id
+  );
+
+
+-- ----------------------------------------------------------------------------
+-- 5. Anggaran yang bisa diperbarui dari berkas Excel
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: mengganti berkas Excel anggaran dengan yang terbaru
+-- memperbarui angka untuk semua pengguna, termasuk rincian per kode 51 / 52 /
+-- 53 di Belanja Pegawai, Belanja Barang, dan Belanja Modal.
+-- Bila dilewat: angka anggaran hasil unggahan hanya tersimpan di browser yang
+-- mengunggahnya.
+--
+-- Sebelumnya budget_snapshots hanya bisa dibaca dan tidak menyimpan rincian
+-- per kode, sehingga perlu kolom rincian dan izin tulis.
+
+alter table public.budget_snapshots
+  add column if not exists breakdown jsonb not null default '[]'::jsonb;
+
+alter table public.budget_snapshots
+  add column if not exists updated_at timestamptz not null default now();
+
+-- upsert memakai fiscal_year sebagai kunci, jadi kolomnya harus unik.
+do $do$
+begin
+  alter table public.budget_snapshots
+    add constraint budget_snapshots_fiscal_year_key unique (fiscal_year);
+exception
+  when duplicate_table then null;
+  when duplicate_object then null;
+end
+$do$;
+
+drop policy if exists "Finance and admin can write budget snapshots" on public.budget_snapshots;
+drop policy if exists "Finance and admin can update budget snapshots" on public.budget_snapshots;
+
+-- Hanya admin dan pegawai bidang Keuangan yang boleh mengubah angka anggaran.
+create policy "Finance and admin can write budget snapshots"
+  on public.budget_snapshots for insert to authenticated
+  with check (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = 'finance'
+  );
+
+create policy "Finance and admin can update budget snapshots"
+  on public.budget_snapshots for update to authenticated
+  using (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = 'finance'
+  )
+  with check (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = 'finance'
+  );
+
+
+-- ----------------------------------------------------------------------------
+-- 5b. Realtime anggaran
+-- ----------------------------------------------------------------------------
+-- Dashboard Anggaran ikut berubah begitu admin mengunggah berkas anggaran baru,
+-- tanpa pengguna lain perlu memuat ulang halaman. Sama dengan anggaran-realtime.sql.
+
+do $do$
+begin
+  alter publication supabase_realtime add table public.budget_snapshots;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
+-- 5c. Master Data Anggaran (laporan realisasi SP2D per akun)
+-- ----------------------------------------------------------------------------
+-- Satu laporan per tahun anggaran, diunggah administrator lewat menu Master
+-- Data. Sama dengan anggaran-master.sql.
+
+create table if not exists public.budget_reports (
+  id uuid primary key default gen_random_uuid(),
+  fiscal_year integer not null unique,
+  period_month integer not null check (period_month between 1 and 12),
+  period_label text,
+  satker text,
+  accounts jsonb not null default '[]'::jsonb,
+  groups jsonb not null default '{}'::jsonb,
+  totals jsonb not null default '{}'::jsonb,
+  source_file_name text,
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  uploaded_by_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Riwayat setiap unggahan: siapa, kapan, berkas apa, totalnya berapa.
+create table if not exists public.budget_report_uploads (
+  id uuid primary key default gen_random_uuid(),
+  fiscal_year integer not null,
+  period_month integer not null check (period_month between 1 and 12),
+  source_file_name text,
+  account_count integer not null default 0,
+  totals jsonb not null default '{}'::jsonb,
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  uploaded_by_name text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.budget_reports enable row level security;
+alter table public.budget_report_uploads enable row level security;
+
+drop policy if exists "Authenticated users can read budget reports" on public.budget_reports;
+drop policy if exists "Admins can insert budget reports" on public.budget_reports;
+drop policy if exists "Admins can update budget reports" on public.budget_reports;
+drop policy if exists "Authenticated users can read budget report uploads" on public.budget_report_uploads;
+drop policy if exists "Admins can insert budget report uploads" on public.budget_report_uploads;
+
+-- Semua yang login boleh membaca: angka ini tampil di dashboard dan menu akun.
+create policy "Authenticated users can read budget reports"
+  on public.budget_reports for select to authenticated using (true);
+
+-- Hanya administrator yang boleh mengubah master data. Izin hapus ada di
+-- bagian 5c-2 (per TA) dan 5c-3 (per unggahan).
+create policy "Admins can insert budget reports"
+  on public.budget_reports for insert to authenticated
+  with check (public.current_profile_role() = 'admin');
+
+create policy "Admins can update budget reports"
+  on public.budget_reports for update to authenticated
+  using (public.current_profile_role() = 'admin')
+  with check (public.current_profile_role() = 'admin');
+
+create policy "Authenticated users can read budget report uploads"
+  on public.budget_report_uploads for select to authenticated using (true);
+
+create policy "Admins can insert budget report uploads"
+  on public.budget_report_uploads for insert to authenticated
+  with check (public.current_profile_role() = 'admin' and uploaded_by = auth.uid());
+
+-- Dashboard dan menu akun yang sedang terbuka ikut berubah begitu laporan baru disimpan.
+do $do$
+begin
+  alter publication supabase_realtime add table public.budget_reports;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
+-- 5c-2. Hapus data Master Data Anggaran per tahun anggaran
+-- ----------------------------------------------------------------------------
+-- Administrator bisa mengosongkan data satu TA. Sama dengan anggaran-master-hapus.sql.
+
+drop policy if exists "Admins can delete budget reports" on public.budget_reports;
+
+create policy "Admins can delete budget reports"
+  on public.budget_reports for delete to authenticated
+  using (public.current_profile_role() = 'admin');
+
+alter table public.budget_report_uploads
+  add column if not exists action text not null default 'upload';
+
+do $do$
+begin
+  alter table public.budget_report_uploads
+    add constraint budget_report_uploads_action_check check (action in ('upload', 'delete'));
+exception
+  when duplicate_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
+-- 5c-3. Versi unggahan Master Data Anggaran
+-- ----------------------------------------------------------------------------
+-- Setiap unggahan menyimpan isi laporannya; menghapus unggahan yang aktif
+-- mengembalikan data TA ke unggahan sebelumnya. Sama dengan anggaran-master-versi.sql.
+
+alter table public.budget_report_uploads
+  add column if not exists report jsonb;
+
+drop policy if exists "Admins can delete budget report uploads" on public.budget_report_uploads;
+
+create policy "Admins can delete budget report uploads"
+  on public.budget_report_uploads for delete to authenticated
+  using (public.current_profile_role() = 'admin');
+
+
+-- ----------------------------------------------------------------------------
+-- 5c-4. Master Data generik berversi (Bidang SDM: bezetting)
+-- ----------------------------------------------------------------------------
+-- Versi terbaru per dataset = data aktif; hapus versi terbaru = rollback.
+-- Data rinci pegawai di tabel privat (admin + bidang pemilik). Sama dengan
+-- master-dataset.sql.
+
+create table if not exists public.master_dataset_versions (
+  id uuid primary key default gen_random_uuid(),
+  dataset text not null,
+  action text not null default 'upload' check (action in ('upload', 'clear')),
+  period_month integer check (period_month between 1 and 12),
+  period_year integer,
+  period_label text,
+  payload jsonb not null default '{}'::jsonb,
+  source_file_name text,
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  uploaded_by_name text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists master_dataset_versions_dataset_idx
+  on public.master_dataset_versions (dataset, created_at desc);
+
+create table if not exists public.master_dataset_private (
+  version_id uuid primary key references public.master_dataset_versions(id) on delete cascade,
+  dataset text not null,
+  owner_division text not null references public.divisions(id) on delete cascade,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.master_dataset_versions enable row level security;
+alter table public.master_dataset_private enable row level security;
+
+drop policy if exists "Authenticated users can read master dataset versions" on public.master_dataset_versions;
+drop policy if exists "Admins can insert master dataset versions" on public.master_dataset_versions;
+drop policy if exists "Admins can delete master dataset versions" on public.master_dataset_versions;
+drop policy if exists "Owner division can read master dataset private" on public.master_dataset_private;
+drop policy if exists "Admins can insert master dataset private" on public.master_dataset_private;
+drop policy if exists "Admins can delete master dataset private" on public.master_dataset_private;
+
+-- Ringkasan dan data umum dibaca semua yang login (tampil di menu bidang).
+create policy "Authenticated users can read master dataset versions"
+  on public.master_dataset_versions for select to authenticated using (true);
+
+-- Hanya administrator yang mengunggah dan menghapus master data, tanpa approval.
+create policy "Admins can insert master dataset versions"
+  on public.master_dataset_versions for insert to authenticated
+  with check (public.current_profile_role() = 'admin' and uploaded_by = auth.uid());
+
+create policy "Admins can delete master dataset versions"
+  on public.master_dataset_versions for delete to authenticated
+  using (public.current_profile_role() = 'admin');
+
+-- Data rinci: admin, atau pegawai bidang pemilik data (mis. SDM untuk bezetting).
+create policy "Owner division can read master dataset private"
+  on public.master_dataset_private for select to authenticated
+  using (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = owner_division
+  );
+
+create policy "Admins can insert master dataset private"
+  on public.master_dataset_private for insert to authenticated
+  with check (public.current_profile_role() = 'admin');
+
+create policy "Admins can delete master dataset private"
+  on public.master_dataset_private for delete to authenticated
+  using (public.current_profile_role() = 'admin');
+
+-- Menu yang sedang terbuka ikut berubah begitu versi baru disimpan atau dihapus.
+do $do$
+begin
+  alter publication supabase_realtime add table public.master_dataset_versions;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end
+$do$;
+
+
+-- ----------------------------------------------------------------------------
+-- 5c-5. Berkas asli unggahan Master Data (unduh ulang)
+-- ----------------------------------------------------------------------------
+-- Bucket privat 'master-files', hanya admin. Bezetting disimpan sebagai salinan
+-- bersih (kolom setelah TMT Jabatan Tertentu dikosongkan di browser).
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'master-files', 'master-files', false, 5242880,
+  array[
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel'
+  ]
+)
+on conflict (id) do update
+  set public = false,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Admins can read master files" on storage.objects;
+drop policy if exists "Admins can upload master files" on storage.objects;
+drop policy if exists "Admins can delete master files" on storage.objects;
+
+create policy "Admins can read master files"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'master-files' and public.current_profile_role() = 'admin');
+
+create policy "Admins can upload master files"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'master-files' and public.current_profile_role() = 'admin');
+
+create policy "Admins can delete master files"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'master-files' and public.current_profile_role() = 'admin');
+
+-- Lokasi berkas per versi; kosong untuk versi lama dan baris kosongkan/hapus TA.
+alter table public.budget_report_uploads add column if not exists source_file_path text;
+alter table public.master_dataset_versions add column if not exists source_file_path text;
+
+
+-- ----------------------------------------------------------------------------
+-- 5d. Kunci peran dan bidang pada profil
+-- ----------------------------------------------------------------------------
+-- Pengguna tidak bisa lagi menjadikan dirinya admin atau pindah bidang sendiri.
+-- Sama dengan perbaikan-profil-peran.sql.
+
+create or replace function public.protect_profile_role()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null and coalesce(public.current_profile_role(), '') <> 'admin' then
+    new.role := old.role;
+    new.division_id := old.division_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_role on public.profiles;
+
+create trigger protect_profile_role
+  before update on public.profiles
+  for each row execute function public.protect_profile_role();
+
+
+-- ----------------------------------------------------------------------------
+-- 6. Penamaan bidang
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: nama bidang di basis data disamakan dengan yang dipakai
+-- aplikasi (src/data/seed.js).
+-- Bila dilewat: sidebar dan judul halaman menampilkan nama lama bagi pengguna
+-- yang datanya diambil dari server.
+--
+-- Singkatan bidang 'pr' tetap PR; yang berubah hanya nama panjangnya.
+
+update public.divisions
+set name = 'Sumber Daya Manusia', short_name = 'SDM'
+where id = 'hr';
+
+update public.divisions
+set name = 'Humas dan TU Kalan'
+where id = 'pr';
+
+
+-- ----------------------------------------------------------------------------
+-- 7. Metadata kerja sama pada layanan Legislasi / Review MOU
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: jenis dokumen, pihak terkait, dan masa berlaku pada layanan
+-- Legislasi / Review MOU, beserta pemantauan dokumen yang akan berakhir.
+-- Bila dilewat: unggahan pada layanan itu gagal, karena aplikasi mengirim
+-- ketiga kolom ini dan PostgREST menolak kolom yang tidak dikenal.
+--
+-- Ketiganya nullable dan hanya bermakna untuk kategori legislasi-review-mou;
+-- dokumen kategori lain tetap null. Statusnya (Aktif / Review / Berakhir)
+-- sengaja tidak disimpan - dihitung dari valid_until, supaya tidak basi begitu
+-- tanggalnya lewat tanpa ada yang menyunting dokumennya.
+
+alter table public.documents
+  add column if not exists agreement_type text;
+
+alter table public.documents
+  add column if not exists counterparty text;
+
+alter table public.documents
+  add column if not exists valid_until date;
+
+do $do$
+begin
+  alter table public.documents
+    add constraint documents_agreement_type_check
+    check (agreement_type is null or agreement_type in ('mou', 'perjanjian', 'review'));
+exception
+  when duplicate_object then null;
+end
+$do$;
+
+-- Pemantauan selalu mengurutkan dari yang paling dekat berakhir.
+create index if not exists documents_valid_until_idx
+  on public.documents (category_id, valid_until);
+
+
+-- ----------------------------------------------------------------------------
+-- 8. Angka bidang yang diisi lewat form
+-- ----------------------------------------------------------------------------
+-- Yang diperbaiki: form "Perbarui Data" pada dashboard, untuk angka yang tidak
+-- ada di dokumen atau terlalu sering berubah untuk diurus lewat unggah berkas -
+-- misalnya jumlah pegawai yang sedang cuti.
+-- Bila dilewat: formnya tetap bisa dipakai, tetapi angkanya hanya tersimpan di
+-- browser yang mengisinya dan tidak terlihat oleh pengguna lain. Aplikasi
+-- menyatakan hal itu.
+--
+-- Satu baris per bidang, isinya jsonb. Dibuat begini supaya menambah indikator
+-- baru tidak perlu mengubah struktur tabel - form menyimpan apa pun kuncinya,
+-- dan tampilan mengambil yang dikenalnya.
+
+create table if not exists public.division_metrics (
+  division_id text primary key references public.divisions(id) on delete cascade,
+  values jsonb not null default '{}'::jsonb,
+  note text,
+  updated_by uuid references public.profiles(id) on delete set null,
+  updated_by_name text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.division_metrics enable row level security;
+
+drop policy if exists "Authenticated users can read division metrics" on public.division_metrics;
+drop policy if exists "Division members can write division metrics" on public.division_metrics;
+drop policy if exists "Division members can update division metrics" on public.division_metrics;
+
+-- Angkanya tampil di dashboard yang dibuka semua pengguna, jadi dibaca siapa
+-- saja yang sudah masuk. Yang mengubah hanya admin dan pegawai bidang itu
+-- sendiri - bidang lain tidak bisa menulis angka bidang orang.
+create policy "Authenticated users can read division metrics"
+  on public.division_metrics for select to authenticated using (true);
+
+create policy "Division members can write division metrics"
+  on public.division_metrics for insert to authenticated
+  with check (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = division_id
+  );
+
+create policy "Division members can update division metrics"
+  on public.division_metrics for update to authenticated
+  using (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = division_id
+  )
+  with check (
+    public.current_profile_role() = 'admin'
+    or public.current_profile_division() = division_id
+  );
+
+
+-- ----------------------------------------------------------------------------
+-- 9. Muat ulang cache skema
+-- ----------------------------------------------------------------------------
+-- PostgREST menyimpan cache skema. Tanpa baris ini kolom yang baru ditambahkan
+-- masih bisa dilaporkan "could not find the column ... in the schema cache".
+
+notify pgrst, 'reload schema';
