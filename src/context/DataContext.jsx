@@ -25,6 +25,7 @@ import {
   saveStoredAgenda,
   toRemoteAgendaPayload
 } from '../lib/agendaStorage'
+import { mapRemoteReport, reportToBudget } from '../lib/budgetReportStorage'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
 
@@ -100,19 +101,29 @@ export function DataProvider({ children }) {
     // memajang salinan Excel bawaan yang membeku sejak di-commit, sementara
     // angka sebenarnya sudah berubah lewat Master Data.
     //
-    // Butuh kebijakan baca untuk anon pada budget_snapshots
-    // (supabase/migrations/...anggaran_halaman_depan.sql). Selama kebijakan itu
-    // belum terpasang, pembacaan ini pulang tanpa hasil dan berkas bawaan tetap
-    // dipakai seperti sebelumnya, jadi tidak ada yang rusak sambil menunggu.
+    // Sumbernya budget_reports, tabel yang sama dengan Dashboard Keuangan, dan
+    // dihitung dengan reportToBudget yang sama pula. Sempat dibaca dari
+    // budget_snapshots, dan itu keliru: tabel itu cermin turunan yang bisa
+    // melenceng - ada baris TA 2027 di sana yang tidak punya laporannya, dan
+    // halaman masuk memajang angka tahun itu. Satu sumber, satu hitungan,
+    // keduanya tidak bisa lagi berselisih.
+    //
+    // Tahun yang diambil pun dengan aturan yang sama: yang terbesar, persis
+    // seperti years[0] di BudgetReportContext.
+    //
+    // Kolomnya disebut satu per satu, bukan select('*'), karena anon hanya
+    // diberi hak atas ketiganya (migrasi anggaran_depan_satu_sumber). Selama
+    // migrasi itu belum terpasang, pembacaan pulang tanpa hasil dan berkas
+    // bawaan tetap dipakai, jadi tidak ada yang rusak sambil menunggu.
     const muatRingkasan = async () => {
       if (isSupabaseConfigured) {
         const { data, error } = await supabase
-          .from('budget_snapshots')
-          .select('*')
+          .from('budget_reports')
+          .select('fiscal_year, groups, updated_at')
           .order('fiscal_year', { ascending: false })
           .limit(1)
         if (!error && data?.[0]) {
-          if (active) setBudgetData((current) => mergeRemoteBudget(current, mapRemoteBudget(data[0])))
+          if (active) setBudgetData((current) => mergeRemoteBudget(current, reportToBudget(mapRemoteReport(data[0]))))
           return
         }
       }
