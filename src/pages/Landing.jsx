@@ -127,7 +127,7 @@ function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setP
 
 export default function Landing() {
   const { login, isAuthenticated } = useAuth()
-  const { stats } = useData()
+  const { stats, budgetReady } = useData()
   const navigate = useNavigate()
   const rememberedLogin = getRememberedLogin()
   const [username, setUsername] = useState(rememberedLogin.username)
@@ -207,6 +207,7 @@ export default function Landing() {
             primaryValue={budget.totalPagu}
             secondaryValue={budget.totalRealisasi}
             secondaryLabel="Realisasi"
+            siap={budgetReady}
           />
 
           <BudgetGauge
@@ -218,6 +219,7 @@ export default function Landing() {
             primaryValue={budget.totalPagu}
             secondaryValue={budget.totalSisa}
             secondaryLabel="Sisa Anggaran"
+            siap={budgetReady}
           />
 
           <LoginPanel

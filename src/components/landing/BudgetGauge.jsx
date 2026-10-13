@@ -28,14 +28,27 @@ export function BudgetGauge({
   accent,
   primaryValue,
   secondaryValue,
-  secondaryLabel
+  secondaryLabel,
+  siap = true
 }) {
   const clamped = Math.max(0, Math.min(100, percentage))
-  const progress = useAnimatedProgress(clamped, DURASI_UTAMA)
-  const terisi = clamped * progress
 
-  const nominalKedua = useScrambledNumber(secondaryValue, DURASI_NOMINAL)
-  const nominalPagu = useScrambledNumber(primaryValue, DURASI_NOMINAL)
+  // Animasi baru dimulai setelah angka sungguhannya datang.
+  //
+  // Sebelumnya kartu langsung memainkan animasi memakai angka contoh bawaan
+  // (BUDGET_SUMMARY, pagu 9,76 triliun), lalu mengulang dari nol begitu angka
+  // aslinya tiba. Yang terlihat: animasi tersendat di awal, sempat memajang
+  // angka yang bukan angka kantor ini, baru kemudian yang benar.
+  //
+  // Kuncinya ikut berubah saat siap, jadi animasinya berjalan satu kali dengan
+  // angka yang sudah pasti. Selama belum siap, nominalnya ditulis sebagai garis
+  // - bukan Rp 0, karena nol itu angka dan garis itu "belum ada".
+  const kunci = siap ? clamped : 'menunggu'
+  const progress = useAnimatedProgress(kunci, DURASI_UTAMA)
+  const terisi = siap ? clamped * progress : 0
+
+  const nominalKedua = useScrambledNumber(siap ? secondaryValue : 0, DURASI_NOMINAL)
+  const nominalPagu = useScrambledNumber(siap ? primaryValue : 0, DURASI_NOMINAL)
 
   return (
     <NeonPanel className="p-5 sm:p-6">
@@ -100,13 +113,13 @@ export function BudgetGauge({
             <div className="flex items-center justify-between gap-4 border-t border-white/10 py-4">
               <dt><FieldLabel>{secondaryLabel}</FieldLabel></dt>
               <dd className="whitespace-nowrap text-lg font-semibold tabular-nums tracking-tight text-white">
-                {formatRupiah(nominalKedua)}
+                {siap ? formatRupiah(nominalKedua) : '–'}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-white/10 py-4">
               <dt><FieldLabel>Pagu</FieldLabel></dt>
               <dd className="whitespace-nowrap text-lg font-semibold tabular-nums tracking-tight text-white">
-                {formatRupiah(nominalPagu)}
+                {siap ? formatRupiah(nominalPagu) : '–'}
               </dd>
             </div>
           </dl>

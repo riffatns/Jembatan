@@ -85,6 +85,10 @@ export function DataProvider({ children }) {
   const [content, setContent] = useState(loadContent)
   const [documents, setDocuments] = useState(loadStoredDocuments)
   const [budgetData, setBudgetData] = useState(() => loadStoredBudget() || BUDGET_SUMMARY)
+  // BUDGET_SUMMARY hanya angka contoh untuk mengisi keadaan awal, dan jauh
+  // berbeda dari angka sungguhan. Penanda ini memberi tahu tampilan bahwa
+  // angkanya belum datang, supaya tidak ada yang memajangnya sebagai nilai.
+  const [budgetReady, setBudgetReady] = useState(() => Boolean(loadStoredBudget()))
   const [remoteDivisions, setRemoteDivisions] = useState(null)
   const [remoteCategories, setRemoteCategories] = useState(null)
   const [allAgendaEvents, setAgendaEvents] = useState(loadStoredAgenda)
@@ -123,7 +127,10 @@ export function DataProvider({ children }) {
           .order('fiscal_year', { ascending: false })
           .limit(1)
         if (!error && data?.[0]) {
-          if (active) setBudgetData((current) => mergeRemoteBudget(current, reportToBudget(mapRemoteReport(data[0]))))
+          if (active) {
+            setBudgetData((current) => mergeRemoteBudget(current, reportToBudget(mapRemoteReport(data[0]))))
+            setBudgetReady(true)
+          }
           return
         }
       }
@@ -132,9 +139,10 @@ export function DataProvider({ children }) {
         const budget = await loadBudgetData()
         if (active) setBudgetData(budget)
       }
+      if (active) setBudgetReady(true)
     }
 
-    muatRingkasan().catch(() => {})
+    muatRingkasan().catch(() => { if (active) setBudgetReady(true) })
     return () => { active = false }
   }, [])
 
@@ -522,7 +530,7 @@ export function DataProvider({ children }) {
     return { total, pending, approved, rejected, perDivision, statusDistribution: [{ name: 'Approved', value: approved, color: '#00A99D' }, { name: 'Pending', value: pending, color: '#F5A623' }, { name: 'Rejected', value: rejected, color: '#E15554' }], totalDivisions: activeDivisions.length, budget, documentTotal: total, documentPending: pending, documentApproved: approved, documentRejected: rejected, documentsByDivision, documentsByCategory, latestDocuments, recentActivity }
   }, [activeDivisions, activeDocumentStructure, budgetData, content, documents])
 
-  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, refreshBudget, assets, isAssetRemote, updateAssetsFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats }
+  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, refreshBudget, assets, isAssetRemote, updateAssetsFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats, budgetReady }
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 
