@@ -1,4 +1,4 @@
-import { formatBillionFirst, formatCompactRupiah, formatPercent, formatRupiah } from '../../../lib/budgetFormat'
+import { formatPercent, formatRupiah } from '../../../lib/budgetFormat'
 import { IconCalendar, IconCoins, IconPercent, IconPieChart, IconTrendUp } from '../../icons/DuotoneIcons'
 import { CARD_CLASS } from '../../ui/cardStyles'
 import { useCountUp } from '../../../hooks/useAnimatedProgress'
@@ -23,9 +23,12 @@ function KpiCard({ icon: Icon, label, value, format, title, tone }) {
         </span>
         <p className="min-w-0 text-[13px] font-medium leading-tight text-[#3f557d] tall:text-sm">{label}</p>
       </div>
-      {/* Lebar kartu diukur sebagai container supaya angka mengecil, bukan terpotong. */}
+      {/* Lebar kartu diukur sebagai container supaya angka mengecil, bukan terpotong.
+          Pengalinya 7,6cqi, bukan 12,5 seperti waktu angkanya masih disingkat:
+          "Rp 24.977.421.000" tujuh belas aksara, sedangkan "Rp2,36 Miliar" hanya
+          tiga belas. Dengan pengali lama angka penuhnya meluber keluar kartu. */}
       <div style={{ containerType: 'inline-size' }}>
-        <p className={`whitespace-nowrap font-extrabold tabular-nums tracking-[-0.01em] ${style.value}`} style={{ fontSize: 'clamp(18px, 12.5cqi, 32px)' }}>
+        <p className={`whitespace-nowrap font-extrabold tabular-nums tracking-[-0.01em] ${style.value}`} style={{ fontSize: 'clamp(13px, 7.6cqi, 26px)' }}>
           {format(shown)}
         </p>
       </div>
@@ -38,10 +41,10 @@ export function AccountKpiCards({ model }) {
 
   return (
     <section className="grid shrink-0 grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5 fit:gap-2.5 tall:gap-3">
-      <KpiCard icon={IconCoins} tone="blue" label={`Pagu Akun ${groupCode}`} value={total.pagu} format={formatBillionFirst} title={formatRupiah(total.pagu)} />
-      <KpiCard icon={IconTrendUp} tone="green" label="Realisasi s.d. Periode" value={total.realisasi} format={formatBillionFirst} title={formatRupiah(total.realisasi)} />
-      <KpiCard icon={IconPieChart} tone="orange" label="Sisa Anggaran" value={total.sisa} format={formatBillionFirst} title={formatRupiah(total.sisa)} />
-      <KpiCard icon={IconCalendar} tone="purple" label={`Realisasi ${monthName || 'Bulan Ini'}`} value={total.realisasiIni} format={formatCompactRupiah} title={formatRupiah(total.realisasiIni)} />
+      <KpiCard icon={IconCoins} tone="blue" label={`Pagu Akun ${groupCode}`} value={total.pagu} format={formatRupiah} />
+      <KpiCard icon={IconTrendUp} tone="green" label="Realisasi s.d. Periode" value={total.realisasi} format={formatRupiah} />
+      <KpiCard icon={IconPieChart} tone="orange" label="Sisa Anggaran" value={total.sisa} format={formatRupiah} />
+      <KpiCard icon={IconCalendar} tone="purple" label={`Realisasi ${monthName || 'Bulan Ini'}`} value={total.realisasiIni} format={formatRupiah} />
       <KpiCard icon={IconPercent} tone="teal" label="Persentase Realisasi" value={absorption} format={(value) => formatPercent(value, 2)} title="Realisasi s.d. periode terhadap pagu" />
     </section>
   )
