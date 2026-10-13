@@ -8,29 +8,35 @@ const STORAGE_KEY = 'bpk-dashboard-auth'
 const USERS_KEY = 'bpk-dashboard-users'
 const LAST_LOGIN_KEY = 'bpk-dashboard-last-login'
 
+// Yang diingat hanya username. Kata sandi tidak pernah ditulis ke penyimpanan
+// peramban: isinya tersimpan apa adanya di disk, terbaca siapa pun yang membuka
+// komputer itu atau menyalin profil perambannya, dan terbaca penuh oleh skrip
+// mana pun yang berhasil masuk ke halaman. Mengetik ulang sandi bukan beban yang
+// sepadan dengan itu - yang menyusahkan diingat justru username, dan itu tetap
+// diisikan.
 export function getRememberedLogin() {
-  if (typeof window === 'undefined') return { username: '', password: '' }
+  if (typeof window === 'undefined') return { username: '' }
   try {
     const raw = localStorage.getItem(LAST_LOGIN_KEY)
-    if (!raw) return { username: '', password: '' }
+    if (!raw) return { username: '' }
     const parsed = JSON.parse(raw)
-    return {
-      username: typeof parsed.username === 'string' ? parsed.username : '',
-      password: typeof parsed.password === 'string' ? parsed.password : ''
+    const username = typeof parsed.username === 'string' ? parsed.username : ''
+
+    // Versi lama menyimpan sandinya juga. Begitu halaman ini dibuka, sisa itu
+    // ditimpa - kalau tidak, sandi lama tetap mengendap di peramban pengguna
+    // yang sudah pernah login walau kodenya sudah diperbaiki.
+    if (typeof parsed.password === 'string') {
+      localStorage.setItem(LAST_LOGIN_KEY, JSON.stringify({ username }))
     }
+
+    return { username }
   } catch {
-    return { username: '', password: '' }
+    return { username: '' }
   }
 }
 
-function rememberLogin(username, password) {
-  localStorage.setItem(
-    LAST_LOGIN_KEY,
-    JSON.stringify({
-      username: username.trim(),
-      password
-    })
-  )
+function rememberLogin(username) {
+  localStorage.setItem(LAST_LOGIN_KEY, JSON.stringify({ username: username.trim() }))
 }
 
 export function AuthProvider({ children }) {
@@ -92,7 +98,7 @@ export function AuthProvider({ children }) {
         if (error || !data.user) return { success: false, message: error?.message || 'Login gagal.' }
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
         const safeUser = profile ? { ...profile, division: profile.division_id, email: data.user.email } : { id: data.user.id, email: data.user.email }
-        rememberLogin(username, password)
+        rememberLogin(username)
         setUser(safeUser)
         return { success: true }
       }
@@ -104,7 +110,7 @@ export function AuthProvider({ children }) {
         return { success: false, message: 'Invalid username or password.' }
       }
       const { password: _pw, ...safeUser } = found
-      rememberLogin(username, password)
+      rememberLogin(username)
       setUser(safeUser)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(safeUser))
       return { success: true }

@@ -248,7 +248,8 @@ export default function Landing() {
   const navigate = useNavigate()
   const rememberedLogin = getRememberedLogin()
   const [username, setUsername] = useState(rememberedLogin.username)
-  const [password, setPassword] = useState(rememberedLogin.password)
+  // Sandi selalu mulai kosong - lihat getRememberedLogin.
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)

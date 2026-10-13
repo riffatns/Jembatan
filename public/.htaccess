@@ -1,0 +1,53 @@
+# Aturan untuk hosting Apache/LiteSpeed (Hostinger). Diabaikan oleh Vercel,
+# yang memakai vercel.json - keduanya menyatakan hal yang sama, jadi aplikasi
+# berjalan sama di kedua tempat.
+#
+# Berkas ini berada di public/ supaya Vite menyalinnya ke dist/ setiap kali
+# build. Tidak perlu diunggah terpisah.
+
+# ---------------------------------------------------------------------------
+# Rute aplikasi
+# ---------------------------------------------------------------------------
+# Seluruh rute ditangani React Router di sisi peramban, jadi di server hanya
+# ada satu halaman: index.html. Tanpa aturan ini, membuka /dashboard langsung
+# atau menekan refresh di halaman mana pun akan menghasilkan 404 - server
+# mencari folder bernama "dashboard" yang memang tidak ada.
+#
+# Berkas dan folder yang benar-benar ada tetap dilayani apa adanya, supaya
+# gambar, /assets/, dan /data/anggaran.xlsx tidak ikut dialihkan.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# Masa simpan cache
+# ---------------------------------------------------------------------------
+# Berkas di /assets/ bernama dengan sidik jari isinya (index-BMZT1cLr.js), jadi
+# nama yang sama pasti isi yang sama dan boleh disimpan lama.
+#
+# index.html justru tidak boleh disimpan sama sekali: di dalamnya tertulis nama
+# berkas assets mana yang harus dimuat. Kalau peramban menyimpannya, pengguna
+# akan terus meminta berkas versi lama yang sudah terhapus saat Anda mengunggah
+# build baru, dan halamannya kosong sampai cache-nya dibersihkan sendiri.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 day"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

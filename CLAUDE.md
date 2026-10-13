@@ -308,7 +308,7 @@ satu per satu dalam branch tersendiri.
 | # | Tingkat | Temuan | Lokasi |
 |---|---|---|---|
 | 1 | Kritis | Pengguna bisa mengubah `role`/`division_id` miliknya sendiri jadi admin. **Perbaikan sudah ditulis** (`supabase/perbaikan-profil-peran.sql` + `updateProfile` membuang kolom itu); tertutup setelah owner menjalankan SQL-nya | `supabase/schema.sql`; `AuthContext.updateProfile` |
-| 2 | Tinggi | Kata sandi tersimpan polos di localStorage (`bpk-dashboard-last-login`) dan tidak dihapus saat logout | `AuthContext.jsx` `rememberLogin` |
+| 2 | ~~Tinggi~~ | ~~Kata sandi tersimpan polos di localStorage (`bpk-dashboard-last-login`)~~ **Sudah diperbaiki**: `rememberLogin` hanya menyimpan username, dan `getRememberedLogin` menimpa entri lama yang masih memuat sandi saat halaman masuk dibuka | `AuthContext.jsx` |
 | 3 | Tinggi | `xlsx@0.18.5` punya advisory prototype pollution + ReDoS, tanpa perbaikan di npm (versi aman hanya dari CDN SheetJS) | `package.json` |
 | 4 | Sedang | Peran `viewer` tidak ditegakkan di RLS maupun klien; pemilik konten bisa menyetujui kontennya sendiri | `supabase/policies.sql` |
 | 5 | Sedang | Tidak ada security header (CSP, `frame-ancestors`, `nosniff`, Referrer-Policy) | `vercel.json` |
