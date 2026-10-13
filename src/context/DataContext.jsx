@@ -93,10 +93,37 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     let active = true
-    // Berkas bawaan hanya dipakai bila belum pernah ada anggaran yang diunggah.
-    if (!loadStoredBudget()) {
-      loadBudgetData().then((budget) => { if (active) setBudgetData(budget) }).catch(() => {})
+
+    // Ringkasan anggaran dibaca lebih dulu dari server, dan sengaja tanpa
+    // menunggu login - halaman masuk tampil sebelum ada sesi, dan di situlah
+    // kartu Realisasi dan Sisa Anggaran berada. Tanpa ini halaman masuk
+    // memajang salinan Excel bawaan yang membeku sejak di-commit, sementara
+    // angka sebenarnya sudah berubah lewat Master Data.
+    //
+    // Butuh kebijakan baca untuk anon pada budget_snapshots
+    // (supabase/migrations/...anggaran_halaman_depan.sql). Selama kebijakan itu
+    // belum terpasang, pembacaan ini pulang tanpa hasil dan berkas bawaan tetap
+    // dipakai seperti sebelumnya, jadi tidak ada yang rusak sambil menunggu.
+    const muatRingkasan = async () => {
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('budget_snapshots')
+          .select('*')
+          .order('fiscal_year', { ascending: false })
+          .limit(1)
+        if (!error && data?.[0]) {
+          if (active) setBudgetData((current) => mergeRemoteBudget(current, mapRemoteBudget(data[0])))
+          return
+        }
+      }
+      // Berkas bawaan hanya dipakai bila belum pernah ada anggaran yang diunggah.
+      if (!loadStoredBudget()) {
+        const budget = await loadBudgetData()
+        if (active) setBudgetData(budget)
+      }
     }
+
+    muatRingkasan().catch(() => {})
     return () => { active = false }
   }, [])
 
