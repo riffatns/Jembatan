@@ -19,8 +19,8 @@ export default function TransitionToDashboard() {
   }
 
   const bubbleOrder = [
-    { id: 'finance', title: 'Keuangan', image: '/keuangan.jpeg' },
     { id: 'hr', title: 'SDM', image: '/sdm.jpeg' },
+    { id: 'finance', title: 'Keuangan', image: '/keuangan.jpeg' },
     { id: 'legal', title: 'Hukum', image: '/hukum.jpeg' },
     { id: 'pr', title: 'Humas dan TU Kalan', image: '/humas-tukalan.jpeg' },
     { id: 'it', title: 'Umum dan TI', image: '/umum-ti.jpeg' }
