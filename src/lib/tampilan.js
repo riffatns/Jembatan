@@ -27,3 +27,8 @@ export const USE_NEW_HR_VIEWS = true
 // Dashboard Subbagian SDM memakai Dashboard SDM bergaya Dashboard Anggaran.
 // Ringkasan SDM yang lama tidak dihapus: ubah menjadi false untuk kembali.
 export const USE_NEW_HR_DASHBOARD = true
+
+// Dashboard Subbagian Hukum, bergaya sama dengan Dashboard Anggaran. Bidang
+// Hukum sebelumnya memakai kartu jumlah dokumen bawaan; itu kembali bila
+// saklar ini diubah menjadi false.
+export const USE_NEW_LEGAL_DASHBOARD = true

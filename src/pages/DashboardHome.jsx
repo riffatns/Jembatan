@@ -1,9 +1,10 @@
 import { lazy } from 'react'
-import { USE_NEW_FINANCE_DASHBOARD, USE_NEW_HR_DASHBOARD } from '../lib/tampilan'
+import { USE_NEW_FINANCE_DASHBOARD, USE_NEW_HR_DASHBOARD, USE_NEW_LEGAL_DASHBOARD } from '../lib/tampilan'
 
 const Dashboard = lazy(() => import('./Dashboard'))
 const BudgetDashboard = lazy(() => import('./BudgetDashboard'))
 const HrDashboard = lazy(() => import('./HrDashboard'))
+const LegalDashboard = lazy(() => import('./LegalDashboard'))
 
 // Rute /dashboard. Subbagian Keuangan mendapat Dashboard Anggaran yang baru;
 // bidang lain tetap memakai Dashboard yang ada. Dashboard lama Keuangan tidak
@@ -17,6 +18,10 @@ export default function DashboardHome() {
 
   if (USE_NEW_HR_DASHBOARD && selectedDivisionId === 'hr') {
     return <HrDashboard />
+  }
+
+  if (USE_NEW_LEGAL_DASHBOARD && selectedDivisionId === 'legal') {
+    return <LegalDashboard />
   }
 
   return <Dashboard />
