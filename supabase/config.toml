@@ -1,0 +1,16 @@
+# Konfigurasi Supabase CLI.
+#
+# Isinya sengaja minimal: yang dipakai sehari-hari di proyek ini hanya perintah
+# migrasi (link, migration new, db push), dan itu tidak butuh lebih dari ini.
+# Kalau suatu saat ingin menjalankan Supabase lokal lewat Docker
+# (npx supabase start), jalankan `npx supabase init` untuk menghasilkan berkas
+# konfigurasi lengkapnya.
+
+project_id = "jembatan"
+
+[db]
+port = 54322
+# Samakan dengan versi Postgres proyek Supabase Anda bila hendak memakai
+# Supabase lokal. Hanya berpengaruh untuk `supabase start`, tidak untuk
+# `db push` ke proyek sungguhan.
+major_version = 15
