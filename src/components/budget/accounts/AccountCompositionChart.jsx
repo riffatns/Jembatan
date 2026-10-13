@@ -1,4 +1,4 @@
-import { formatBillionFirst, formatRupiah } from '../../../lib/budgetFormat'
+import { formatCompactRupiah, formatRupiah } from '../../../lib/budgetFormat'
 import { IconChartBars, IconInfo } from '../../icons/DuotoneIcons'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { buildAxis } from '../dashboard/budgetDashboardModel'
@@ -10,12 +10,21 @@ const MAX_BARS = 6
 const ROW_GRID = 'grid grid-cols-[minmax(96px,32%)_minmax(0,1fr)] gap-x-3'
 const LABEL_SPACE = '7.5rem'
 
-function formatAxisBillion(value) {
-  return (value / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 })
+// Satuan sumbu mengikuti angka terbesarnya. Ketika seluruh akun bernilai
+// ratusan juta, sumbu dalam miliar hanya menghasilkan "0 / 0,5 / 1" - tiga
+// angka yang tidak membantu membaca batang yang semuanya di bawah 0,2.
+function satuanSumbu(max) {
+  if (max >= 1e9) return { pembagi: 1e9, nama: 'Rp Miliar' }
+  if (max >= 1e6) return { pembagi: 1e6, nama: 'Rp Juta' }
+  return { pembagi: 1e3, nama: 'Rp Ribu' }
+}
+
+function formatAxisValue(value, pembagi) {
+  return (value / pembagi).toLocaleString('id-ID', { maximumFractionDigits: 2 })
 }
 
 // Garis kisi dan angka sumbu memakai kolom batang yang sama dengan baris akun.
-function AxisLayer({ axis, withLabels }) {
+function AxisLayer({ axis, withLabels, pembagi }) {
   return (
     <div className={`${ROW_GRID} ${withLabels ? 'h-5' : 'pointer-events-none absolute inset-0'}`} aria-hidden={!withLabels}>
       <div />
@@ -23,7 +32,7 @@ function AxisLayer({ axis, withLabels }) {
         {axis.ticks.map((tick) => (
           withLabels ? (
             <span key={tick} className="absolute -translate-x-1/2 text-[11px] text-[#7a8aa8]" style={{ left: `${(tick / axis.max) * 100}%` }}>
-              {formatAxisBillion(tick)}
+              {formatAxisValue(tick, pembagi)}
             </span>
           ) : (
             <span key={tick} className={`absolute inset-y-0 w-px ${tick ? 'bg-[#edf1f8]' : 'bg-[#c9d3e4]'}`} style={{ left: `${(tick / axis.max) * 100}%` }} />
@@ -39,6 +48,7 @@ export function AccountCompositionChart({ model }) {
   const accounts = model.accounts.slice(0, MAX_BARS)
   const isSingle = model.accounts.length === 1
   const axis = buildAxis(Math.max(0, ...accounts.map((account) => account.pagu)), 5)
+  const sumbu = satuanSumbu(axis.max)
   const growth = useAnimatedProgress(accounts.map((account) => `${account.code}:${account.pagu}`).join('|'))
 
   return (
@@ -48,11 +58,11 @@ export function AccountCompositionChart({ model }) {
           <IconChartBars className="h-5 w-5 text-[#2f7fe8]" />
           {isSingle ? 'Komposisi Pagu Utama' : 'Komposisi Pagu Terbesar'}
         </h2>
-        <span className="text-xs text-[#7a8aa8]">Nilai Pagu (Rp Miliar)</span>
+        <span className="text-xs text-[#7a8aa8]">Nilai Pagu ({sumbu.nama})</span>
       </div>
 
       <div className="relative flex min-h-[180px] flex-1 flex-col justify-around gap-0.5 overflow-hidden py-0.5 fit:min-h-0">
-        <AxisLayer axis={axis} />
+        <AxisLayer axis={axis} pembagi={sumbu.pembagi} />
         {accounts.map((account, index) => {
           const width = (account.pagu / axis.max) * 100 * growth
           return (
@@ -71,14 +81,14 @@ export function AccountCompositionChart({ model }) {
                   className="absolute top-1/2 -translate-y-1/2 whitespace-nowrap pl-2 text-[12.5px] font-bold text-[#12305f]"
                   style={{ left: `${width}%`, opacity: growth }}
                 >
-                  {formatBillionFirst(account.pagu)}
+                  {formatCompactRupiah(account.pagu)}
                 </span>
               </div>
             </div>
           )
         })}
       </div>
-      <AxisLayer axis={axis} withLabels />
+      <AxisLayer axis={axis} withLabels pembagi={sumbu.pembagi} />
 
       {isSingle && (
         <p className="mt-2 flex items-center gap-2 rounded-xl bg-[#eef4fd] px-3 py-2 text-[13px] text-[#12305f]">

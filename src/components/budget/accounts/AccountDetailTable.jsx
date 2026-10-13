@@ -1,4 +1,4 @@
-import { formatPercent, formatRupiah, formatTableBillion } from '../../../lib/budgetFormat'
+import { formatCompactRupiah, formatPercent, formatRupiah } from '../../../lib/budgetFormat'
 import { IconTableList } from '../../icons/DuotoneIcons'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { DataTable } from '../../data-table/DataTable'
@@ -16,10 +16,10 @@ function AbsorptionChip({ account }) {
 const COLUMNS = [
   { key: 'code', label: 'Kode Akun', align: 'center', width: 'w-[11%]', className: 'font-bold' },
   { key: 'name', label: 'Uraian', align: 'left' },
-  { key: 'pagu', label: 'Pagu', align: 'center', width: 'w-[13%]', text: (row) => formatTableBillion(row.pagu), title: (row) => formatRupiah(row.pagu) },
-  { key: 'realisasi', label: 'Realisasi', align: 'center', width: 'w-[13%]', text: (row) => formatTableBillion(row.realisasi), title: (row) => formatRupiah(row.realisasi) },
+  { key: 'pagu', label: 'Pagu', align: 'center', width: 'w-[13%]', text: (row) => formatCompactRupiah(row.pagu), title: (row) => formatRupiah(row.pagu) },
+  { key: 'realisasi', label: 'Realisasi', align: 'center', width: 'w-[13%]', text: (row) => formatCompactRupiah(row.realisasi), title: (row) => formatRupiah(row.realisasi) },
   { key: 'absorption', label: '%', align: 'center', width: 'w-[11%]', text: (row) => formatPercent(row.absorption, 2), render: (row) => <AbsorptionChip account={row} /> },
-  { key: 'sisa', label: 'Sisa', align: 'center', width: 'w-[13%]', text: (row) => formatTableBillion(row.sisa), title: (row) => formatRupiah(row.sisa) }
+  { key: 'sisa', label: 'Sisa', align: 'center', width: 'w-[13%]', text: (row) => formatCompactRupiah(row.sisa), title: (row) => formatRupiah(row.sisa) }
 ]
 
 // Semua akun kelompok ini lewat DataTable global: pencarian realtime,
