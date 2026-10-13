@@ -23,3 +23,7 @@ export const USE_NEW_ACCOUNT_VIEWS = true
 // sidebar SDM mengikuti pola Keuangan. Tampilan lama tidak dihapus: ubah
 // menjadi false untuk kembali.
 export const USE_NEW_HR_VIEWS = true
+
+// Dashboard Subbagian SDM memakai Dashboard SDM bergaya Dashboard Anggaran.
+// Ringkasan SDM yang lama tidak dihapus: ubah menjadi false untuk kembali.
+export const USE_NEW_HR_DASHBOARD = true
