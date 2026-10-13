@@ -13,131 +13,14 @@ import { getRememberedLogin, useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { BudgetGauge } from '../components/landing/BudgetGauge'
+import { FieldLabel, NeonPanel } from '../components/landing/NeonPanel'
 
 const DEMO_ACCOUNTS = [
   { role: 'Administrator', username: 'admin', password: 'admin123' },
   { role: 'Employee', username: 'employee', password: 'employee123' },
   { role: 'Viewer', username: 'viewer', password: 'viewer123' }
 ]
-
-function formatCurrency(value) {
-  return `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(value))}`
-}
-
-// Panel kaca. Bingkainya satu garis rambut, ditambah sorot tipis di tepi atas
-// seperti tepi kaca yang menangkap cahaya.
-//
-// Sebelumnya ada bingkai kedua di dalam panel, sejajar sejarak sepuluh piksel.
-// Dua garis sejajar sama-sama terbaca sebagai tepi, jadi batas panelnya
-// menjadi kabur tanpa ada yang bertambah.
-// Tiap panel setinggi isinya sendiri. Sempat dipaksa mengikuti tinggi baris
-// grid agar ketiganya rata bawah, tapi kartu anggaran memang berisi lebih
-// sedikit daripada panel masuk - meregangkannya hanya memindahkan ruang kosong
-// ke dalam kartu.
-function NeonPanel({ className = '', children }) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-[30px] bg-[#071429]/90 shadow-[0_28px_80px_-24px_rgba(2,10,26,0.95)] ring-1 ring-white/10 backdrop-blur-xl ${className}`}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.11),transparent_36%)]" />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/55 to-transparent" />
-      <div className="relative">{children}</div>
-    </div>
-  )
-}
-
-// Label kecil berhuruf besar di atas nominal. Memberi hierarki tanpa menambah
-// warna, sehingga angkanya tetap yang paling menonjol. Dipakai di kartu
-// anggaran maupun panel masuk, supaya ketiganya terbaca satu keluarga.
-function FieldLabel({ children, className = '' }) {
-  return (
-    <p className={`text-[10px] font-medium uppercase tracking-[0.22em] text-sky-200/60 ${className}`}>
-      {children}
-    </p>
-  )
-}
-
-function BudgetGauge({ label, subtitle, icon: Icon, percentage, accent, primaryValue, secondaryValue, secondaryLabel }) {
-  const clamped = Math.max(0, Math.min(100, percentage))
-
-  return (
-    <NeonPanel className="p-5 sm:p-6">
-      <div className="min-w-0">
-        <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-[1.9rem]">{label}</h2>
-        <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
-      </div>
-
-      {/* Garis pemisah kepala dan isi. Sisa tinggi kartu jadi terbaca sebagai
-          struktur, bukan ruang yang kebetulan kosong. */}
-      <div className="mt-4 h-px bg-white/10" />
-
-      {/* Cincin dan angkanya dipasangkan - sejajar tengah, bukan direntang ke
-          dua ujung. Merentangkannya sempat membuat jaraknya acak: seratus
-          piksel di satu celah, lima puluh di celah berikutnya. */}
-      <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-center">
-        {/* Cincinnya dibesarkan dari 160 ke 192 piksel. Dengan isi kartu yang
-            kini meregang penuh, ukuran lama membuatnya terbaca menggantung di
-            tengah kolomnya sendiri. */}
-        <div className="flex shrink-0 items-center justify-center lg:w-52">
-          <div
-            aria-hidden="true"
-            className="relative flex h-48 w-48 items-center justify-center rounded-full"
-            style={{
-              background: `conic-gradient(${accent} ${clamped}%, rgba(148, 163, 184, 0.14) ${clamped}% 100%)`,
-              filter: `drop-shadow(0 0 20px ${accent}40)`
-            }}
-          >
-            <div className="absolute inset-5 rounded-full bg-[#05101f] ring-1 ring-inset ring-white/10" />
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-[#071429] text-sky-200 ring-1 ring-white/10">
-              <Icon className="h-9 w-9" />
-            </div>
-          </div>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          {/* tabular-nums supaya 57 dan 43 sama lebar dan tidak bergeser dari
-              satu kartu ke kartu sebelahnya. */}
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-5xl font-bold tabular-nums tracking-tighter text-white sm:text-6xl">
-              {Math.round(clamped)}
-            </span>
-            <span className="text-2xl font-medium text-sky-300/90">%</span>
-          </div>
-
-          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-900/80 ring-1 ring-inset ring-white/10">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${clamped}%`,
-                background: `linear-gradient(90deg, ${accent}, #7cc4ff)`,
-                boxShadow: `0 0 14px ${accent}88`
-              }}
-            />
-          </div>
-
-          {/* Daftar nominal: label di kiri, angka rata kanan, dipisah garis
-              dengan tinggi baris yang sama. Tepi kanan yang sejajar itu yang
-              membuatnya terbaca tertata - sebelumnya label dan angka bertumpuk
-              dengan jarak yang berbeda-beda. */}
-          <dl className="mt-6">
-            <div className="flex items-center justify-between gap-4 border-t border-white/10 py-4">
-              <dt><FieldLabel>{secondaryLabel}</FieldLabel></dt>
-              <dd className="whitespace-nowrap text-lg font-semibold tabular-nums tracking-tight text-white">
-                {formatCurrency(secondaryValue)}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-t border-white/10 py-4">
-              <dt><FieldLabel>Pagu</FieldLabel></dt>
-              <dd className="whitespace-nowrap text-lg font-semibold tabular-nums tracking-tight text-white">
-                {formatCurrency(primaryValue)}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-    </NeonPanel>
-  )
-}
 
 function LoginPanel({ onLogin, onFillDemo, username, setUsername, password, setPassword, showPassword, setShowPassword, error, submitting }) {
   return (
