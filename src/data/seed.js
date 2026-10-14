@@ -107,7 +107,9 @@ export const DOCUMENT_STRUCTURE = [
     divisionId: 'legal',
     title: 'Hukum',
     categories: [
-      { id: 'jdih', name: 'JDIH', description: 'Dokumen Jaringan Dokumentasi dan Informasi Hukum.' },
+      // Id tetap 'jdih' walau namanya berganti: id layanan dirujuk kolom
+      // category_id pada dokumen yang sudah tersimpan.
+      { id: 'jdih', name: 'Kajian Hukum', description: 'Telaah dan kajian hukum perwakilan.' },
       { id: 'legislasi-review-mou', name: 'Legislasi / Review MOU', description: 'Dokumen telaah regulasi dan review kerja sama.' },
       { id: 'perjanjian', name: 'Perjanjian', description: 'Dokumen perjanjian, kontrak, dan kesepakatan kerja sama.' },
       { id: 'manajemen-risiko', name: 'Manajemen Risiko Perwakilan', description: 'Dokumen identifikasi dan mitigasi risiko perwakilan.' }
@@ -131,7 +133,8 @@ export const DOCUMENT_STRUCTURE = [
 // menghapus satu baris di sini cukup untuk memunculkannya kembali.
 // Kuncinya berbentuk `divisionId:categoryId`.
 export const HIDDEN_CATEGORIES = new Set([
-  'it:peminjaman-aset'
+  'it:peminjaman-aset',
+  'legal:manajemen-risiko'
 ])
 
 export const BUDGET_SUMMARY = {

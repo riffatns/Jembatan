@@ -211,14 +211,14 @@ export const SERVICE_CONTENT = {
 
   // ------------------------------------------------------------- Hukum
   jdih: {
-    summary: 'Jaringan Dokumentasi dan Informasi Hukum perwakilan.',
+    summary: 'Telaah dan kajian hukum di lingkungan perwakilan.',
     expects: [
-      'Peraturan perundang-undangan dan produk hukum BPK',
-      'Keputusan dan surat edaran',
-      'Abstrak serta katalog dokumen hukum'
+      'Telaah dan pendapat hukum',
+      'Kajian atas peraturan dan produk hukum',
+      'Catatan hasil pendampingan hukum'
     ],
-    uploadLabel: 'Upload Produk Hukum',
-    emptyHint: 'Belum ada produk hukum yang didokumentasikan.'
+    uploadLabel: 'Upload Kajian Hukum',
+    emptyHint: 'Belum ada kajian hukum yang diunggah.'
   },
   'legislasi-review-mou': {
     type: 'legislasi',

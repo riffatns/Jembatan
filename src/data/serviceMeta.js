@@ -27,7 +27,7 @@ export const SERVICE_META = {
   'dokumentasi-kegiatan': { title: 'Dokumentasi Kegiatan', subtitle: 'Dokumentasi Kegiatan', color: '#16a34a', icon: FileText },
   'arsip-pemeriksaan': { title: 'Arsip Pemeriksaan', subtitle: 'Berkas Pemeriksaan', color: '#f97316', icon: FolderOpen },
   perpustakaan: { title: 'Perpustakaan', subtitle: 'Referensi & Arsip', color: '#8b5cf6', icon: BookOpen },
-  jdih: { title: 'JDIH', subtitle: 'Dokumen Hukum', color: '#2563eb', icon: FileText },
+  jdih: { title: 'Kajian Hukum', subtitle: 'Telaah Hukum', color: '#2563eb', icon: FileText },
   'legislasi-review-mou': { title: 'Legislasi / Review MOU', subtitle: 'Telaah Regulasi', color: '#16a34a', icon: ShieldCheck },
   perjanjian: { title: 'Perjanjian', subtitle: 'Kerja Sama & Kontrak', color: '#7c3aed', icon: Building2 },
   'manajemen-risiko': { title: 'Manajemen Risiko', subtitle: 'Mitigasi Risiko', color: '#f97316', icon: ShieldCheck },
