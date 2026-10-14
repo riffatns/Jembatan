@@ -22,7 +22,7 @@ export function ItKpiCards({ model }) {
         icon={IconAlert}
         label="Belum ber-PSP"
         value={total.belumPsp}
-        note={`${formatPercent(100 - pspShare)} dari aset tercatat`}
+        note={total.aset ? `${formatPercent(100 - pspShare)} dari aset tercatat` : 'Belum ada daftar BMN'}
         color="#eda100"
         satuan="unit"
       />

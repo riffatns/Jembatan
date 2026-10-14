@@ -42,3 +42,9 @@ export const USE_NEW_IT_DASHBOARD = true
 // Anggaran. Angkanya dari agenda pimpinan dan dokumen bidang ini. Tampilan
 // lama kembali bila saklar ini diubah menjadi false.
 export const USE_NEW_PR_DASHBOARD = true
+
+// Menu Aset di Subbagian Umum dan TI memakai Master Data Aset, dan sidebar
+// Umum dan TI mengikuti pola Keuangan/SDM. Halaman layanan Aset yang lama
+// (unggah dokumen + daftar dokumen) tidak dihapus: ubah menjadi false untuk
+// kembali.
+export const USE_NEW_ASSET_VIEWS = true

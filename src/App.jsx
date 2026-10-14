@@ -14,6 +14,7 @@ const SharedCalendar = lazy(() => import('./pages/SharedCalendar'))
 const BudgetDashboard = lazy(() => import('./pages/BudgetDashboard'))
 const BudgetMasterData = lazy(() => import('./pages/BudgetMasterData'))
 const HrMasterData = lazy(() => import('./pages/HrMasterData'))
+const AssetMasterData = lazy(() => import('./pages/AssetMasterData'))
 const ServiceMonitoring = lazy(() => import('./pages/ServiceMonitoring'))
 const Reports = lazy(() => import('./pages/Reports'))
 const SystemGuide = lazy(() => import('./pages/SystemGuide'))
@@ -65,6 +66,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['admin']}>
                 <HrMasterData />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/master-aset"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <AssetMasterData />
               </ProtectedRoute>
             }
           />

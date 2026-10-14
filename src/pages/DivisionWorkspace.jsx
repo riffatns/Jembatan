@@ -38,9 +38,10 @@ import { AgendaWorkspace } from '../components/agenda/AgendaWorkspace'
 import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
 import { BudgetWorkspace } from '../components/budget/BudgetWorkspace'
 import { AccountBudgetPage } from '../components/budget/accounts/AccountBudgetPage'
-import { USE_NEW_ACCOUNT_VIEWS, USE_NEW_HR_VIEWS } from '../lib/tampilan'
+import { USE_NEW_ACCOUNT_VIEWS, USE_NEW_ASSET_VIEWS, USE_NEW_HR_VIEWS } from '../lib/tampilan'
 import { BezettingPage } from '../components/hr/bezetting/BezettingPage'
 import { DiklatPage } from '../components/hr/diklat/DiklatPage'
+import { AssetPage } from '../components/asset/AssetPage'
 import { AssetWorkspace } from '../components/asset/AssetWorkspace'
 import { LegalWorkspace } from '../components/legal/LegalWorkspace'
 import { getServiceContent } from '../data/serviceContent'
@@ -65,7 +66,7 @@ function parseDateInputValue(value) {
 
 export default function DivisionWorkspace({ divisionId: propDivisionId }) {
   const { divisionId: routeDivisionId } = useParams()
-  const { getDocumentDivision, getDocumentCategories, documents, addDocument, updateDocument, deleteDocument, updateBudgetFromFile, updateAssetsFromFile, stats } = useData()
+  const { getDocumentDivision, getDocumentCategories, documents, addDocument, updateDocument, deleteDocument, updateBudgetFromFile, updateAssetsFromFile, assets, stats } = useData()
   const { user, canUploadToDivision, canManageDocument, canAccessDivision } = useAuth()
   const navigate = useNavigate()
 
@@ -312,6 +313,12 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
     return <DiklatPage />
   }
 
+  // Umum dan TI: menu Aset menampilkan Master Data Aset saja, tanpa unggahan
+  // dokumen - pola yang sama dengan Bezetting di SDM.
+  if (USE_NEW_ASSET_VIEWS && divisionId === 'it' && activeCategoryId === 'aset') {
+    return <AssetPage />
+  }
+
   // Keuangan: menu akun 51/52/53 menampilkan angka Master Data Anggaran saja.
   // Layanan Keuangan lain (Realisasi/Sisa Anggaran) sudah digantikan Dashboard.
   if (USE_NEW_ACCOUNT_VIEWS && divisionId === 'finance') {
@@ -353,7 +360,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         <BudgetWorkspace categoryId={activeCategoryId} categoryName={activeCategory?.name} budget={budget} />
       )}
 
-      {isAssetMode && <AssetWorkspace divisionId={divisionId} />}
+      {isAssetMode && <AssetWorkspace assets={assets.filter((a) => !a.divisionId || a.divisionId === divisionId)} />}
 
       {isLegalMode && <LegalWorkspace documents={legalDocuments} onSelect={handleView} />}
 

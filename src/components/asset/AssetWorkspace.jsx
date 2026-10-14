@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useData } from '../../context/DataContext'
-import { IconDatabase, IconInfo } from '../icons/DuotoneIcons'
-import { TAMPILKAN_SUMBER_ANGKA } from '../../lib/tampilan'
+import { IconDatabase } from '../icons/DuotoneIcons'
 import { AssetAnalytics } from './AssetAnalytics'
 import { AssetAttentionCards } from './AssetAttentionCards'
 import { AssetKpiCards } from './AssetKpiCards'
@@ -49,33 +47,30 @@ function kartuPerhatian(assets) {
   ]
 }
 
-export function AssetWorkspace({ divisionId }) {
-  const { assets, isAssetRemote } = useData()
+// Daftar asetnya datang dari pemanggil - menu Aset memberinya versi aktif
+// Master Data, halaman layanan lama memberinya aset dari DataContext - supaya
+// komponen ini tidak perlu tahu dari mana angkanya berasal.
+export function AssetWorkspace({ assets = [] }) {
   const [detail, setDetail] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [filterTabel, setFilterTabel] = useState(null)
   const [sorotan, setSorotan] = useState(null)
 
-  const divisionAssets = useMemo(
-    () => assets.filter((a) => !a.divisionId || a.divisionId === divisionId),
-    [assets, divisionId]
-  )
-
-  const ringkasan = useMemo(() => ringkasAset(divisionAssets), [divisionAssets])
-  const perhatian = useMemo(() => kartuPerhatian(divisionAssets), [divisionAssets])
+  const ringkasan = useMemo(() => ringkasAset(assets), [assets])
+  const perhatian = useMemo(() => kartuPerhatian(assets), [assets])
 
   const bukaDetail = (asset) => {
     setDetail(asset)
     setDetailOpen(true)
   }
 
-  if (!divisionAssets.length) {
+  if (!assets.length) {
     return (
       <div className="rounded-2xl border border-dashed border-[#c6d4ea] bg-white p-8 text-center">
         <IconDatabase className="mx-auto h-10 w-10 text-[#c6d4ea]" />
         <h2 className="mt-3 text-lg font-bold text-[#233b84]">Data BMN belum tersedia</h2>
         <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500">
-          Unggah berkas daftar aset berformat Excel pada bagian dokumen di bawah. Kolom yang dibaca meliputi
+          Unggah berkas daftar aset berformat Excel di menu Master Data Aset. Kolom yang dibaca meliputi
           Kode Barang, NUP, Nama Barang, Jenis BMN, Kondisi, Nilai Perolehan, Nilai Buku, dan PSP.
         </p>
       </div>
@@ -86,20 +81,7 @@ export function AssetWorkspace({ divisionId }) {
     <div className="flex flex-col gap-3 fit:gap-2.5">
       <AssetKpiCards ringkasan={ringkasan} />
 
-      {/* Keterangan tempat data BMN disimpan ikut saklar sumber angka yang sama
-          dengan keterangan "angka ini dibaca dari berkas" di bidang lain. */}
-      {TAMPILKAN_SUMBER_ANGKA && !isAssetRemote && (
-        <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-          <IconInfo className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            Data BMN ini dibaca dari berkas yang diunggah dan tersimpan di browser ini. Jalankan{' '}
-            <code className="font-semibold">supabase/aset.sql</code> agar tersimpan di server dan terlihat oleh
-            semua pengguna.
-          </p>
-        </div>
-      )}
-
-      <AssetAnalytics assets={divisionAssets} />
+      <AssetAnalytics assets={assets} />
 
       <AssetAttentionCards
         perhatian={perhatian}
@@ -114,7 +96,7 @@ export function AssetWorkspace({ divisionId }) {
       />
 
       <section id="tabel-aset">
-        <AssetTable assets={divisionAssets} onSelect={bukaDetail} filterAwal={filterTabel} />
+        <AssetTable assets={assets} onSelect={bukaDetail} filterAwal={filterTabel} />
       </section>
 
       <AssetDetail asset={detail} open={detailOpen} onOpenChange={setDetailOpen} />

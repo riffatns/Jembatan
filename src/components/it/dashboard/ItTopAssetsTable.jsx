@@ -57,7 +57,7 @@ export function ItTopAssetsTable({ rows }) {
         </div>
       ) : (
         <p className="flex min-h-0 flex-1 items-center justify-center text-center text-sm text-[#7a8aa8]">
-          Belum ada daftar BMN yang diunggah pada layanan Aset.
+          Belum ada daftar BMN di Master Data Aset.
         </p>
       )}
     </div>

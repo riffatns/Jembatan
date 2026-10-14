@@ -1,5 +1,5 @@
 import { getServiceContent } from './serviceContent'
-import { USE_NEW_ACCOUNT_VIEWS, USE_NEW_HR_VIEWS } from '../lib/tampilan'
+import { USE_NEW_ACCOUNT_VIEWS, USE_NEW_ASSET_VIEWS, USE_NEW_HR_VIEWS } from '../lib/tampilan'
 
 // Tampilan sidebar per bidang yang sudah memakai Master Data. Bidang yang tidak
 // tercantum memakai sidebar bawaan (semua layanan, Monitoring, Integrasi).
@@ -25,6 +25,14 @@ const DIVISION_SIDEBAR = {
     hideMonitoring: true,
     hideIntegration: true,
     masterData: { label: 'Master Data SDM', path: '/dashboard/master-sdm' }
+  },
+  it: {
+    enabled: USE_NEW_ASSET_VIEWS,
+    // Peminjaman Aset sudah disembunyikan lewat HIDDEN_CATEGORIES; di sini
+    // hanya hitungan dokumen menu Aset yang dilepas, karena angkanya kini
+    // dari Master Data, bukan dari jumlah dokumen yang diunggah.
+    hideCountFor: (category) => category.id === 'aset',
+    masterData: { label: 'Master Data Aset', path: '/dashboard/master-aset' }
   }
 }
 

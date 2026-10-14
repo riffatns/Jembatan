@@ -9,6 +9,9 @@ import { formatCompactRupiah, formatPercent } from '../../../lib/budgetFormat'
 // separuh ceritanya.
 export function ItSummaryCards({ model }) {
   const { total, nilaiBukuShare, perLayanan } = model
+  // Tanpa daftar BMN, "0% dari nilai perolehan" dan "100% dari nilai
+  // perolehan" sama-sama membagi dengan nol; sebut keadaannya apa adanya.
+  const bagian = (persen) => (total.nilaiPerolehan ? `${formatPercent(persen, 0)} dari nilai perolehan` : 'Belum ada daftar BMN')
   const layananTeramai = [...perLayanan].sort((a, b) => b.value - a.value)[0]
   const layananKosong = perLayanan.filter((item) => item.value === 0).length
 
@@ -22,7 +25,7 @@ export function ItSummaryCards({ model }) {
           label="Nilai Buku"
           value={total.nilaiBuku}
           format={formatCompactRupiah}
-          keterangan={`${formatPercent(nilaiBukuShare, 0)} dari nilai perolehan`}
+          keterangan={bagian(nilaiBukuShare)}
         />
         <DashboardSummaryCard
           tone="amber"
@@ -30,15 +33,15 @@ export function ItSummaryCards({ model }) {
           label="Akumulasi Penyusutan"
           value={total.penyusutan}
           format={formatCompactRupiah}
-          keterangan={`${formatPercent(100 - nilaiBukuShare, 0)} dari nilai perolehan`}
+          keterangan={bagian(100 - nilaiBukuShare)}
         />
       </div>
 
       {/* Dilipat di layar yang tidak cukup tinggi, supaya dashboard tetap muat
           satu layar - perlakuan yang sama dengan Ringkasan Realisasi. */}
       <p className="mt-3.5 text-[12.5px] text-[#7a8aa8] fit:hidden tall:mt-2 tall:block">
-        Nilai perolehan seluruhnya {formatCompactRupiah(total.nilaiPerolehan)}.
-        {total.belumPsp ? <> {total.belumPsp} aset belum memiliki PSP.</> : <> Seluruh aset sudah memiliki PSP.</>}
+        {total.aset ? <>Nilai perolehan seluruhnya {formatCompactRupiah(total.nilaiPerolehan)}.</> : <>Daftar BMN belum diunggah di Master Data Aset.</>}
+        {total.aset ? (total.belumPsp ? <> {total.belumPsp} aset belum memiliki PSP.</> : <> Seluruh aset sudah memiliki PSP.</>) : null}
         {layananTeramai && layananTeramai.value ? (
           <> Dokumen terbanyak pada layanan <b className="font-semibold text-[#3f557d]">{layananTeramai.label}</b> ({layananTeramai.value} berkas).</>
         ) : null}
