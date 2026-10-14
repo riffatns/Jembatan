@@ -41,10 +41,11 @@ export function AccountKpiCards({ model }) {
 
   return (
     <section className="grid shrink-0 grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5 fit:gap-2.5 tall:gap-3">
+      {/* Urutannya mengikuti warna: biru, ungu, hijau, oren, lalu persentase. */}
       <KpiCard icon={IconCoins} tone="blue" label={`Pagu Akun ${groupCode}`} value={total.pagu} format={formatRupiah} />
+      <KpiCard icon={IconCalendar} tone="purple" label={`Realisasi ${monthName || 'Bulan Ini'}`} value={total.realisasiIni} format={formatRupiah} />
       <KpiCard icon={IconTrendUp} tone="green" label="Realisasi s.d. Periode" value={total.realisasi} format={formatRupiah} />
       <KpiCard icon={IconPieChart} tone="orange" label="Sisa Anggaran" value={total.sisa} format={formatRupiah} />
-      <KpiCard icon={IconCalendar} tone="purple" label={`Realisasi ${monthName || 'Bulan Ini'}`} value={total.realisasiIni} format={formatRupiah} />
       <KpiCard icon={IconPercent} tone="teal" label="Persentase Realisasi" value={absorption} format={(value) => formatPercent(value, 2)} title="Realisasi s.d. periode terhadap pagu" />
     </section>
   )
