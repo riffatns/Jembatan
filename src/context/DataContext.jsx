@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { DIVISIONS, HIDDEN_CATEGORIES, INITIAL_CONTENT, BUDGET_SUMMARY, DOCUMENT_STRUCTURE } from '../data/seed'
+import { SERVICE_META } from '../data/serviceMeta'
 import { buildUploadedDocument, loadStoredDocuments, newDocumentId, saveStoredDocuments } from '../lib/documentStorage'
 import {
   loadStoredAssets,
@@ -287,17 +288,29 @@ export function DataProvider({ children }) {
     setContent((prev) => prev.filter((item) => item.id !== id))
   }, [user])
   const activeDivisions = remoteDivisions || DIVISIONS
-  // Penyaringan layanan tersembunyi dikerjakan di sini saja, bukan di tiap
-  // halaman, supaya sidebar, dashboard, laporan, dan statistik tidak bisa
-  // berbeda pendapat. Berlaku untuk data lokal maupun dari Supabase.
+  // Penyaringan layanan tersembunyi dan penamaannya dikerjakan di sini saja,
+  // bukan di tiap halaman, supaya sidebar, dashboard, laporan, dan statistik
+  // tidak bisa berbeda pendapat. Berlaku untuk data lokal maupun dari Supabase.
+  //
+  // Nama layanan diambil dari SERVICE_META, bukan dari kolom name di
+  // document_categories. Sebelumnya keduanya dipakai berbarengan - sidebar
+  // membaca kolom basis data sedangkan judul halaman dan kartu membaca
+  // SERVICE_META - sehingga mengganti nama layanan harus dikerjakan di dua
+  // tempat, dan melewatkan salah satunya membuat satu layanan tampil dengan
+  // dua nama berbeda dalam satu layar. Itu persis yang terjadi saat JDIH
+  // berganti menjadi Kajian Hukum.
+  //
+  // Konsekuensinya mengganti nama layanan lewat SQL saja tidak lagi mengubah
+  // tampilan; namanya diubah di src/data/serviceMeta.js. Kolom name di basis
+  // data tetap sebaiknya ikut disamakan supaya laporan dan kueri langsung
+  // tidak menyebut nama lama.
   const activeDocumentStructure = useMemo(() => {
     const source = remoteCategories || DOCUMENT_STRUCTURE
-    if (!HIDDEN_CATEGORIES.size) return source
     return source.map((division) => ({
       ...division,
-      categories: division.categories.filter(
-        (category) => !HIDDEN_CATEGORIES.has(`${division.divisionId}:${category.id}`)
-      )
+      categories: division.categories
+        .filter((category) => !HIDDEN_CATEGORIES.has(`${division.divisionId}:${category.id}`))
+        .map((category) => ({ ...category, name: SERVICE_META[category.id]?.title || category.name }))
     }))
   }, [remoteCategories])
   const getDocumentDivision = useCallback((id) => activeDivisions.find((division) => division.id === id), [activeDivisions])

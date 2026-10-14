@@ -27,7 +27,7 @@ function statusMeta(id) {
 
 export function buildLegalModel({ documents = [], categories = [], today = new Date() } = {}) {
   // Metadata kerja sama hanya melekat pada satu layanan; dokumen hukum lain
-  // (JDIH, manajemen risiko) tidak punya masa berlaku dan tidak ikut dinilai.
+  // (Kajian Hukum, Perjanjian) tidak punya masa berlaku dan tidak ikut dinilai.
   const agreements = documents.filter((document) => document.categoryId === AGREEMENT_CATEGORY_ID)
 
   const berjangka = agreements.filter((document) => getAgreementTypeMeta(document.agreementType).berjangka)

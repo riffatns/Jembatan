@@ -52,8 +52,8 @@ export default function LegalDashboard() {
           <IconBook className="mx-auto h-10 w-10 text-slate-300" />
           <h2 className="mt-3 text-lg font-bold text-[#233b84]">Belum ada dokumen hukum</h2>
           <p className="mx-auto mt-1 max-w-lg text-sm text-slate-500">
-            Angka dashboard ini dibentuk dari dokumen yang diunggah pada layanan JDIH, Legislasi / Review MOU,
-            Perjanjian, dan Manajemen Risiko.
+            Angka dashboard ini dibentuk dari dokumen yang diunggah pada layanan Bidang Hukum, dan
+            pemantauan masa berlakunya dari Legislasi / Review MOU.
           </p>
         </div>
       ) : (
