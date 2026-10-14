@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { getServiceContent } from '../../data/serviceContent'
 import { Layers, Send, Upload, Paperclip } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog'
 import { Button } from '../ui/button'
@@ -50,6 +51,11 @@ export function DocumentUploadModal({
 
   const divisionOptions = documentStructure
   const selectedDivisionId = form.divisionId || defaultDivisionId || user?.division || ''
+  // Layanan tertentu memakai form ringkas: bidang dan kategori sudah pasti
+  // karena formnya dibuka dari layanannya sendiri, dan tahun serta tanggal
+  // dokumen tidak dipakai di sana. Penandanya di data layanan, bukan daftar
+  // id di sini, supaya layanan berikutnya cukup menambah satu baris.
+  const ringkas = getServiceContent(form.categoryId || defaultCategoryId).uploadFields === 'ringkas'
   const categoryOptions = useMemo(() => getDocumentCategories(selectedDivisionId), [getDocumentCategories, selectedDivisionId])
 
   useEffect(() => {
@@ -229,6 +235,7 @@ export function DocumentUploadModal({
             <Textarea value={form.description} onChange={handleChange('description')} placeholder="Deskripsi singkat dokumen" />
           </div>
 
+          {!ringkas && (
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Bidang</label>
@@ -263,6 +270,7 @@ export function DocumentUploadModal({
               <Input type="number" value={form.year} onChange={handleChange('year')} min="2000" max="2100" />
             </div>
           </div>
+          )}
 
           {!initialDocument && archiveSheets.length > 1 && (
             <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
@@ -361,13 +369,15 @@ export function DocumentUploadModal({
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className={ringkas ? '' : 'grid gap-4 md:grid-cols-2'}>
+            {!ringkas && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
                 {isAgreementCategory(form.categoryId) ? 'Tanggal Ditandatangani' : 'Tanggal Dokumen'}
               </label>
               <Input type="date" value={form.documentDate} onChange={handleChange('documentDate')} />
             </div>
+            )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">File</label>
               <label className="flex cursor-pointer items-center justify-between rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-500 hover:border-teal hover:text-navy">

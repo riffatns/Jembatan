@@ -218,7 +218,11 @@ export const SERVICE_CONTENT = {
       'Catatan hasil pendampingan hukum'
     ],
     uploadLabel: 'Upload Kajian Hukum',
-    emptyHint: 'Belum ada kajian hukum yang diunggah.'
+    emptyHint: 'Belum ada kajian hukum yang diunggah.',
+    // Form unggahnya ringkas: hanya nama, nomor, deskripsi, dan berkas.
+    // Bidang dan kategori sudah pasti karena formnya dibuka dari layanan ini,
+    // sedangkan tahun dan tanggal dokumen tidak dipakai di sini.
+    uploadFields: 'ringkas'
   },
   'legislasi-review-mou': {
     type: 'legislasi',
