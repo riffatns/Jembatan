@@ -1,44 +1,31 @@
 import { useMemo } from 'react'
-import { kelompokkan, formatRupiahRingkas, UMUR_BUCKETS } from '../../lib/assetWorkbook'
+import { BarList } from '../charts/BarList'
+import { DonutChart } from '../charts/DonutChart'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../ui/cardStyles'
+import { formatCompactRupiah } from '../../lib/budgetFormat'
+import { kelompokkan, UMUR_BUCKETS } from '../../lib/assetWorkbook'
 import { kondisiMeta, warnaKategori, warnaUmur } from '../../data/assetPalette'
 
-// Batang mendatar, bukan diagram lingkaran: perbandingan besaran jauh lebih
-// mudah dibaca pada sumbu yang sama. Tiap batang diberi label langsung sehingga
-// tidak perlu legenda terpisah.
-function BarRow({ label, icon: Icon, value, display, max, color, hint }) {
-  const persen = max > 0 ? Math.round((value / max) * 100) : 0
-
-  return (
-    <li className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-[#233b84]" title={label}>
-          {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" style={{ color }} /> : null}
-          <span className="truncate">{label}</span>
-        </span>
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-700">{display}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${Math.max(persen, value > 0 ? 2 : 0)}%`, backgroundColor: color }}
-          />
-        </div>
-        {hint ? <span className="w-12 shrink-0 text-right text-xs tabular-nums text-slate-400">{hint}</span> : null}
-      </div>
-    </li>
-  )
-}
-
+// Analitik BMN memakai komponen grafik bersama yang sama dengan Dashboard
+// Anggaran: batang mendatar (BarList) untuk perbandingan besaran, donat
+// (DonutChart) untuk komposisi kondisi. Sebelumnya berkas ini menggambar
+// batangnya sendiri - bentuknya mirip, tetapi animasi, tooltip, dan ukuran
+// hurufnya tidak pernah ikut berubah saat yang bersama diperbaiki.
+//
+// Tinggi minimum dipasang di pembungkus isinya, bukan di kartunya: BarList
+// membagi ruang yang tersedia, jadi tanpa tinggi ia akan mengempis jadi satu
+// baris di halaman yang bisa di-scroll seperti ini.
 function Panel({ title, subtitle, children }) {
   return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-      <h3 className="text-base font-bold text-[#233b84]">{title}</h3>
-      <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
-      <ul className="mt-4 space-y-3">{children}</ul>
+    <div className={CARD_CLASS}>
+      <h3 className={CARD_TITLE_CLASS}>{title}</h3>
+      <p className="mt-0.5 text-sm text-[#61739b]">{subtitle}</p>
+      <div className="mt-3 flex min-h-[210px] flex-col">{children}</div>
     </div>
   )
 }
+
+const unit = (value) => `${value.toLocaleString('id-ID')} unit`
 
 export function AssetAnalytics({ assets }) {
   const perJenis = useMemo(() => kelompokkan(assets, (a) => a.jenisBmn), [assets])
@@ -46,83 +33,61 @@ export function AssetAnalytics({ assets }) {
 
   const perUmur = useMemo(
     () =>
-      UMUR_BUCKETS.map((bucket) => ({
-        ...bucket,
-        jumlah: assets.filter((a) => bucket.uji(a.umurAset)).length
+      UMUR_BUCKETS.map((bucket, index) => ({
+        key: bucket.id,
+        label: bucket.label,
+        value: assets.filter((a) => bucket.uji(a.umurAset)).length,
+        color: warnaUmur(index)
       })),
     [assets]
   )
 
-  const maxJumlahJenis = Math.max(...perJenis.map((g) => g.jumlah), 1)
-  const maxNilaiJenis = Math.max(...perJenis.map((g) => g.nilaiPerolehan), 1)
-  const maxKondisi = Math.max(...perKondisi.map((g) => g.jumlah), 1)
-  const maxUmur = Math.max(...perUmur.map((g) => g.jumlah), 1)
-  const totalAset = assets.length || 1
+  // Warna mengikuti entitasnya, bukan peringkat pada satu panel, sehingga satu
+  // jenis BMN berwarna sama di panel jumlah dan di panel nilai.
+  const jumlahJenis = useMemo(
+    () => perJenis.map((g, index) => ({ key: g.kunci, label: g.kunci, value: g.jumlah, color: warnaKategori(index) })),
+    [perJenis]
+  )
+
+  const nilaiJenis = useMemo(
+    () =>
+      perJenis
+        .map((g, index) => ({ key: g.kunci, label: g.kunci, value: g.nilaiPerolehan, color: warnaKategori(index) }))
+        .sort((a, b) => b.value - a.value),
+    [perJenis]
+  )
+
+  const kondisi = useMemo(
+    () =>
+      perKondisi.map((g) => {
+        const meta = kondisiMeta(g.kunci)
+        return { key: g.kunci, label: meta.label, value: g.jumlah, color: meta.color }
+      }),
+    [perKondisi]
+  )
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid gap-4 xl:grid-cols-2 fit:gap-2.5 tall:gap-3">
       <Panel title="Jumlah Aset per Jenis BMN" subtitle="Banyaknya unit pada tiap kelompok barang">
-        {perJenis.map((g, index) => (
-          <BarRow
-            key={g.kunci}
-            label={g.kunci}
-            value={g.jumlah}
-            display={`${g.jumlah} unit`}
-            max={maxJumlahJenis}
-            color={warnaKategori(index)}
-            hint={`${Math.round((g.jumlah / totalAset) * 100)}%`}
-          />
-        ))}
+        <BarList items={jumlahJenis} formatValue={unit} />
       </Panel>
 
       <Panel title="Nilai BMN per Jenis" subtitle="Nilai perolehan pada tiap kelompok barang">
-        {[...perJenis]
-          .sort((a, b) => b.nilaiPerolehan - a.nilaiPerolehan)
-          .map((g) => (
-            <BarRow
-              key={g.kunci}
-              label={g.kunci}
-              value={g.nilaiPerolehan}
-              display={formatRupiahRingkas(g.nilaiPerolehan)}
-              max={maxNilaiJenis}
-              // Warna mengikuti entitasnya, bukan peringkat pada panel ini,
-              // sehingga satu jenis berwarna sama di kedua panel.
-              color={warnaKategori(perJenis.findIndex((x) => x.kunci === g.kunci))}
-            />
-          ))}
+        <BarList items={nilaiJenis} formatValue={formatCompactRupiah} />
       </Panel>
 
       <Panel title="Distribusi Kondisi Aset" subtitle="Kondisi fisik menurut catatan BMN">
-        {perKondisi.map((g) => {
-          const meta = kondisiMeta(g.kunci)
-          const Icon = meta.icon
-          return (
-            <BarRow
-              key={g.kunci}
-              label={meta.label}
-              icon={Icon}
-              value={g.jumlah}
-              display={`${g.jumlah} unit`}
-              max={maxKondisi}
-              color={meta.color}
-              hint={`${Math.round((g.jumlah / totalAset) * 100)}%`}
-            />
-          )
-        })}
+        <DonutChart
+          segments={kondisi}
+          centerValue={assets.length}
+          centerLabel="Unit Tercatat"
+          formatValue={unit}
+          ariaLabel="Komposisi kondisi aset"
+        />
       </Panel>
 
       <Panel title="Distribusi Umur Aset" subtitle="Sebaran umur aset dalam tahun">
-        {perUmur.map((g, index) => (
-          <BarRow
-            key={g.id}
-            label={g.label}
-            value={g.jumlah}
-            display={`${g.jumlah} unit`}
-            max={maxUmur}
-            color={warnaUmur(index)}
-            hint={`${Math.round((g.jumlah / totalAset) * 100)}%`}
-          />
-        ))}
+        <BarList items={perUmur} formatValue={unit} labelWidth="minmax(130px,46%)" />
       </Panel>
     </div>
   )

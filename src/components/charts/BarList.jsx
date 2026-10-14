@@ -9,6 +9,11 @@ import { ChartTooltip, useChartTooltip } from './ChartTooltip'
 // yang terisi. Skalanya tetap satu untuk seluruh daftar, jadi panjang batang
 // antarbaris tetap bisa dibandingkan. Item tanpa `track` berperilaku seperti
 // sebelumnya.
+//
+// Item juga boleh membawa `color` sendiri, dipakai saat tiap baris adalah
+// entitas berbeda yang punya warna tetap - jenis BMN, misalnya, harus berwarna
+// sama di panel jumlah dan di panel nilai. Tanpa `color` seluruh batang memakai
+// satu warna seperti sebelumnya.
 export function BarList({ items, color = '#2f7fe8', trackColor = '#dbe7f8', formatValue = (value) => value.toLocaleString('id-ID'), labelWidth = 'minmax(120px,42%)' }) {
   const { tip, bind } = useChartTooltip()
   const max = Math.max(1, ...items.map((item) => Math.max(item.value, item.track || 0)))
@@ -41,7 +46,7 @@ export function BarList({ items, color = '#2f7fe8', trackColor = '#dbe7f8', form
                 )}
                 tabIndex={0}
                 className="relative h-full rounded-r-md outline-none hover:brightness-110 focus-visible:brightness-110"
-                style={{ width: `${width}%`, backgroundColor: color }}
+                style={{ width: `${width}%`, backgroundColor: item.color || color }}
               />
               <b className="pl-2 text-[12.5px] tabular-nums text-[#12305f]" style={{ opacity: growth }}>{formatValue(item.value)}</b>
             </span>

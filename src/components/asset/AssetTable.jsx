@@ -5,6 +5,7 @@ import { Input } from '../ui/input'
 import { Select } from '../ui/select'
 import { Badge } from '../ui/badge'
 import { cn } from '../../lib/utils'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../ui/cardStyles'
 import { formatRupiah, formatTanggalIndo, punyaPsp, tahunDari } from '../../lib/assetWorkbook'
 import { kondisiMeta } from '../../data/assetPalette'
 
@@ -96,8 +97,8 @@ export function AssetTable({ assets, onSelect, filterAwal }) {
   const adaFilterAktif = JSON.stringify(filter) !== JSON.stringify(FILTER_AWAL)
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_1px_10px_rgba(15,23,42,0.06)] xl:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,1fr))_auto]">
+    <div className="flex flex-col gap-4 fit:gap-2.5 tall:gap-3">
+      <div className={`${CARD_CLASS} !grid gap-3 !p-4 xl:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,1fr))_auto]`}>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
@@ -146,13 +147,13 @@ export function AssetTable({ assets, onSelect, filterAwal }) {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
+      <div className={`${CARD_CLASS} gap-0 overflow-hidden !p-0`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e1e8f4] px-5 py-4">
           <div>
-            <h3 className="text-lg font-bold text-[#233b84]">Data Aset</h3>
-            <p className="text-sm text-slate-500">Klik satu baris untuk membuka rincian aset</p>
+            <h3 className={CARD_TITLE_CLASS}>Data Aset</h3>
+            <p className="text-sm text-[#61739b]">Klik satu baris untuk membuka rincian aset</p>
           </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+          <span className="rounded-full bg-[#eef4fd] px-3 py-1 text-xs font-semibold text-[#3f557d]">
             {terurut.length} dari {assets.length} aset
           </span>
         </div>
@@ -243,7 +244,7 @@ export function AssetTable({ assets, onSelect, filterAwal }) {
         )}
 
         {totalHalaman > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e1e8f4] px-5 py-3">
             <p className="text-sm text-slate-500">
               Halaman {halamanAman} dari {totalHalaman}
             </p>
