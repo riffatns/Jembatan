@@ -51,11 +51,13 @@ export function DocumentUploadModal({
 
   const divisionOptions = documentStructure
   const selectedDivisionId = form.divisionId || defaultDivisionId || user?.division || ''
-  // Layanan tertentu memakai form ringkas: bidang dan kategori sudah pasti
-  // karena formnya dibuka dari layanannya sendiri, dan tahun serta tanggal
-  // dokumen tidak dipakai di sana. Penandanya di data layanan, bukan daftar
-  // id di sini, supaya layanan berikutnya cukup menambah satu baris.
-  const ringkas = getServiceContent(form.categoryId || defaultCategoryId).uploadFields === 'ringkas'
+  // Kolom yang disembunyikan ditentukan per layanan di serviceContent, bukan
+  // daftar id di sini, supaya layanan berikutnya cukup menambah satu baris di
+  // tempat yang sama dengan keterangan layanannya. Nilai kolom yang
+  // disembunyikan tetap disimpan seperti biasa - yang hilang pertanyaannya,
+  // bukan datanya.
+  const disembunyikan = new Set(getServiceContent(form.categoryId || defaultCategoryId).hideUploadFields || [])
+  const sembunyi = (kolom) => disembunyikan.has(kolom)
   const categoryOptions = useMemo(() => getDocumentCategories(selectedDivisionId), [getDocumentCategories, selectedDivisionId])
 
   useEffect(() => {
@@ -235,7 +237,7 @@ export function DocumentUploadModal({
             <Textarea value={form.description} onChange={handleChange('description')} placeholder="Deskripsi singkat dokumen" />
           </div>
 
-          {!ringkas && (
+          {!sembunyi('konteks') && (
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Bidang</label>
@@ -315,7 +317,7 @@ export function DocumentUploadModal({
             </div>
           )}
 
-          {isAgreementCategory(form.categoryId) && (
+          {isAgreementCategory(form.categoryId) && !sembunyi('kerjaSama') && (
             <div className="space-y-3 rounded-2xl border border-slate-200 bg-[#f8fbff] p-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
@@ -369,8 +371,8 @@ export function DocumentUploadModal({
             </div>
           )}
 
-          <div className={ringkas ? '' : 'grid gap-4 md:grid-cols-2'}>
-            {!ringkas && (
+          <div className={sembunyi('tanggal') ? '' : 'grid gap-4 md:grid-cols-2'}>
+            {!sembunyi('tanggal') && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">
                 {isAgreementCategory(form.categoryId) ? 'Tanggal Ditandatangani' : 'Tanggal Dokumen'}

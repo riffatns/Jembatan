@@ -219,10 +219,13 @@ export const SERVICE_CONTENT = {
     ],
     uploadLabel: 'Upload Kajian Hukum',
     emptyHint: 'Belum ada kajian hukum yang diunggah.',
-    // Form unggahnya ringkas: hanya nama, nomor, deskripsi, dan berkas.
-    // Bidang dan kategori sudah pasti karena formnya dibuka dari layanan ini,
-    // sedangkan tahun dan tanggal dokumen tidak dipakai di sini.
-    uploadFields: 'ringkas'
+    // Kolom yang disembunyikan pada form unggah layanan ini. Pilihannya:
+    //   'konteks'   Bidang, Kategori, Tahun - sudah pasti karena formnya
+    //               dibuka dari layanan ini, jadi hanya mengulang yang
+    //               sudah diketahui. Nilainya tetap disimpan.
+    //   'tanggal'   Tanggal Dokumen / Tanggal Ditandatangani
+    //   'kerjaSama' Jenis Dokumen, Pihak Terkait, Masa Berlaku Sampai
+    hideUploadFields: ['konteks', 'tanggal']
   },
   'legislasi-review-mou': {
     type: 'legislasi',
@@ -233,8 +236,11 @@ export const SERVICE_CONTENT = {
       'Catatan pendampingan hukum penugasan'
     ],
     uploadLabel: 'Upload Dokumen Kerja Sama',
-    emptyHint: 'Belum ada nota kesepahaman, perjanjian, atau telaah yang tercatat.'
+    emptyHint: 'Belum ada nota kesepahaman, perjanjian, atau telaah yang tercatat.',
+    // Lihat keterangan hideUploadFields pada layanan 'jdih'.
+    hideUploadFields: ['konteks', 'kerjaSama']
   },
+
   perjanjian: {
     summary: 'Perjanjian dan kesepakatan kerja sama yang berlaku.',
     expects: [
