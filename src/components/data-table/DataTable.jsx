@@ -36,6 +36,17 @@ function SortHeader({ column, sort, onSort, dense }) {
 //
 // columns: [{ key, label, align?, width?, sortable?, value?(row), text?(row),
 //             render?(row), title?(row), className? }]
+//
+// onRowClick opsional: barisnya jadi bisa diklik (untuk membuka rincian).
+//
+// fixedLayout opsional: lebar `width` tiap kolom jadi mengikat, bukan sekadar
+// usul, sehingga tabelnya selalu muat selebar kartunya dan isi yang panjang
+// membungkus ke baris berikutnya. Dipakai tabel yang kolomnya banyak dan
+// isinya panjang - tanpa itu tabelnya melebar dan harus digeser ke samping.
+// minWidth tetap berlaku, jadi di layar sempit tabelnya berhenti menyusut dan
+// kembali bisa digeser, bukan memeras tiap kolom jadi empat puluh piksel.
+//
+// Tanpa kedua prop itu tabel berperilaku persis seperti sebelumnya.
 export function DataTable({
   rows,
   columns,
@@ -48,7 +59,9 @@ export function DataTable({
   minWidth = 'min-w-[720px]',
   searchable = true,
   paginated = true,
-  dense = false
+  dense = false,
+  onRowClick,
+  fixedLayout = false
 }) {
   const cell = dense ? DENSE_CELL : CELL
   const table = useDataTable({ rows, columns, initialSort, pageSize: paginated ? pageSize : Number.MAX_SAFE_INTEGER })
@@ -71,13 +84,17 @@ export function DataTable({
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-[#e1e8f4]">
-        <table className={`w-full ${minWidth} border-collapse`}>
+        <table className={`w-full ${fixedLayout ? 'table-fixed' : ''} ${minWidth} border-collapse`}>
           <thead>
             <tr>{columns.map((column) => <SortHeader key={column.key} column={column} sort={table.sort} onSort={table.toggleSort} dense={dense} />)}</tr>
           </thead>
           <tbody>
             {table.rows.map((row, index) => (
-              <tr key={getRowKey ? getRowKey(row) : index} className="hover:bg-[#f7faff]">
+              <tr
+                key={getRowKey ? getRowKey(row) : index}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={`hover:bg-[#f7faff] ${onRowClick ? 'cursor-pointer' : ''}`}
+              >
                 {columns.map((column) => (
                   <td key={column.key} className={`${cell} ${ALIGN[column.align || 'left']} ${column.className || ''}`} title={column.title?.(row)}>
                     {column.render ? column.render(row) : columnText(column, row)}

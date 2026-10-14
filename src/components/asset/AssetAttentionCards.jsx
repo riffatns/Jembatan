@@ -1,19 +1,19 @@
 import { IconAlert } from '../icons/DuotoneIcons'
-import { CARD_CLASS, CARD_TITLE_CLASS } from '../ui/cardStyles'
+import { CARD_CLASS } from '../ui/cardStyles'
 import { Button } from '../ui/button'
-import { useCountUp } from '../../hooks/useAnimatedProgress'
 import { formatCompactRupiah } from '../../lib/budgetFormat'
 
-// Empat catatan yang membuat daftar BMN bermasalah saat diperiksa. Tiap kartu
-// tetap menjadi pintasan - mengubah filter tabel, atau membuka daftar asetnya -
-// hanya bentuknya kini sama dengan kartu KPI di atasnya.
+// Empat catatan yang membuat daftar BMN bermasalah saat diperiksa. Dulu empat
+// kartu setinggi kartu KPI, yang membuat halaman ini punya dua baris kartu
+// besar berturut-turut padahal isinya cuma empat angka. Sekarang satu kartu
+// mendatar: angka, label, dan pemisah tipis di antaranya.
 //
-// Kartu yang jumlahnya nol tidak bisa diklik: membuka daftar kosong hanya
-// membuat pengguna mengira pintasannya rusak.
+// Tiap bagian tetap jadi pintasan - mengubah filter tabel, atau membuka daftar
+// asetnya. Bagian yang jumlahnya nol tidak bisa diklik: membuka daftar kosong
+// hanya membuat pengguna mengira pintasannya rusak.
 
-function Kartu({ kartu, aktif, onClick }) {
+function Bagian({ kartu, aktif, onClick }) {
   const jumlah = kartu.items.length
-  const shown = useCountUp(jumlah)
   const kosong = jumlah === 0
 
   return (
@@ -21,28 +21,28 @@ function Kartu({ kartu, aktif, onClick }) {
       type="button"
       disabled={kosong}
       onClick={onClick}
-      className={`${CARD_CLASS} justify-center gap-2 !py-3 text-left transition-all tall:!py-4 ${
+      title={kartu.keterangan}
+      className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
         kosong
-          ? 'cursor-default opacity-60'
+          ? 'cursor-default opacity-55'
           : aktif
-            ? 'cursor-pointer !border-[#1f63d3] ring-2 ring-blue-100'
-            : 'cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(15,23,42,0.1)]'
+            ? 'cursor-pointer bg-[#eaf2ff] ring-1 ring-[#1f63d3]'
+            : 'cursor-pointer hover:bg-[#f2f6fd]'
       }`}
     >
-      <div className="flex items-center gap-2.5">
-        <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white tall:h-10 tall:w-10"
-          style={{ backgroundColor: kartu.warna }}
-        >
-          <IconAlert className="h-5 w-5" />
+      <span
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white"
+        style={{ backgroundColor: kartu.warna }}
+      >
+        <IconAlert className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[17px] font-extrabold leading-none tabular-nums text-[#12305f]">
+          {jumlah.toLocaleString('id-ID')}
+          <span className="ml-1 text-[0.55em] font-semibold uppercase tracking-[0.08em] text-[#7a8aa8]">unit</span>
         </span>
-        <p className="min-w-0 text-[13px] font-medium leading-tight text-[#3f557d] tall:text-sm">{kartu.label}</p>
-      </div>
-      <p className="font-extrabold tabular-nums tracking-[-0.01em] text-[#12305f]" style={{ fontSize: 'clamp(18px, 5cqi, 26px)' }}>
-        {Math.round(shown).toLocaleString('id-ID')}
-        <span className="ml-1.5 text-[0.46em] font-semibold uppercase tracking-[0.08em] text-[#7a8aa8]">unit</span>
-      </p>
-      <p className="text-xs leading-snug text-[#7a8aa8]">{kartu.keterangan}</p>
+        <span className="mt-0.5 block truncate text-[12.5px] text-[#3f557d]">{kartu.label}</span>
+      </span>
     </button>
   )
 }
@@ -50,27 +50,27 @@ function Kartu({ kartu, aktif, onClick }) {
 function DaftarSorotan({ label, items, onSelect }) {
   return (
     <div className={`${CARD_CLASS} gap-0 !p-0`}>
-      <div className="flex items-center gap-2 rounded-t-2xl border-b border-[#e1e8f4] bg-[#fffbeb] px-5 py-3 fit:rounded-t-xl">
+      <div className="flex items-center gap-2 rounded-t-2xl border-b border-[#e1e8f4] bg-[#fffbeb] px-5 py-2.5 fit:rounded-t-xl">
         <IconAlert className="h-4 w-4 shrink-0 text-[#c98500]" />
         <p className="text-sm font-semibold text-[#8a5a00]">
           {label} &middot; {items.length} aset
         </p>
       </div>
-      <ul className="divide-y divide-slate-100">
+      <ul className="max-h-[260px] divide-y divide-slate-100 overflow-y-auto">
         {items.map((asset) => (
           <li key={asset.id}>
             <button
               type="button"
               onClick={() => onSelect(asset)}
-              className="flex w-full cursor-pointer items-center justify-between gap-3 px-5 py-3 text-left transition-colors hover:bg-slate-50"
+              className="flex w-full cursor-pointer items-center justify-between gap-3 px-5 py-2 text-left transition-colors hover:bg-slate-50"
             >
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-[#233b84]">{asset.namaBarang}</span>
-                <span className="block truncate text-xs text-slate-500">
+                <span className="block truncate text-[13px] font-medium text-[#233b84]">{asset.namaBarang}</span>
+                <span className="block truncate text-[11.5px] text-slate-500">
                   {asset.jenisBmn} &middot; Kode {asset.kodeBarang || '-'} &middot; NUP {asset.nup || '-'}
                 </span>
               </span>
-              <span className="shrink-0 text-sm tabular-nums text-slate-600">{formatCompactRupiah(asset.nilaiBuku)}</span>
+              <span className="shrink-0 text-[13px] tabular-nums text-slate-600">{formatCompactRupiah(asset.nilaiBuku)}</span>
             </button>
           </li>
         ))}
@@ -83,28 +83,24 @@ export function AssetAttentionCards({ perhatian, sorotan, onSorot, onFilter, onS
   const kartuSorotan = sorotan ? perhatian.find((kartu) => kartu.id === sorotan) : null
 
   return (
-    <section className="flex flex-col gap-4 fit:gap-2.5 tall:gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className={CARD_TITLE_CLASS}>Perlu Perhatian</h2>
-          <p className="text-sm text-[#61739b]">Catatan yang sebaiknya ditindaklanjuti sebelum pemeriksaan</p>
-        </div>
-        {kartuSorotan && (
-          <Button variant="outline" onClick={() => onSorot(null)} className="rounded-full px-4">
-            Tutup daftar
-          </Button>
-        )}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 fit:gap-2.5 tall:gap-3">
+    <section className="flex flex-col gap-3 fit:gap-2.5">
+      <div className={`${CARD_CLASS} !flex-row flex-wrap items-center gap-1 !py-2.5`}>
+        <p className="mr-1 shrink-0 pl-1 pr-2 text-[12.5px] font-semibold uppercase tracking-[0.03em] text-[#3f557d]">
+          Perlu Perhatian
+        </p>
         {perhatian.map((kartu) => (
-          <Kartu
+          <Bagian
             key={kartu.id}
             kartu={kartu}
             aktif={sorotan === kartu.id}
             onClick={() => (kartu.filter ? onFilter(kartu) : onSorot(sorotan === kartu.id ? null : kartu.id))}
           />
         ))}
+        {kartuSorotan && (
+          <Button variant="outline" size="sm" onClick={() => onSorot(null)} className="shrink-0 rounded-full px-3">
+            Tutup
+          </Button>
+        )}
       </div>
 
       {kartuSorotan && kartuSorotan.items.length > 0 && (

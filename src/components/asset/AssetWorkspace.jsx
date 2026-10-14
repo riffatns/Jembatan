@@ -83,7 +83,7 @@ export function AssetWorkspace({ divisionId }) {
   }
 
   return (
-    <div className="flex flex-col gap-4 fit:gap-2.5 tall:gap-3">
+    <div className="flex flex-col gap-3 fit:gap-2.5">
       <AssetKpiCards ringkasan={ringkasan} />
 
       {/* Keterangan tempat data BMN disimpan ikut saklar sumber angka yang sama

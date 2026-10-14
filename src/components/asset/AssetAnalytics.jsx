@@ -17,10 +17,10 @@ import { kondisiMeta, warnaKategori, warnaUmur } from '../../data/assetPalette'
 // baris di halaman yang bisa di-scroll seperti ini.
 function Panel({ title, subtitle, children }) {
   return (
-    <div className={CARD_CLASS}>
+    <div className={`${CARD_CLASS} !py-4`}>
       <h3 className={CARD_TITLE_CLASS}>{title}</h3>
-      <p className="mt-0.5 text-sm text-[#61739b]">{subtitle}</p>
-      <div className="mt-3 flex min-h-[210px] flex-col">{children}</div>
+      <p className="mt-0.5 text-[13px] text-[#61739b]">{subtitle}</p>
+      <div className="mt-2.5 flex min-h-[172px] flex-col">{children}</div>
     </div>
   )
 }

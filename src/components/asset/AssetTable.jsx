@@ -1,38 +1,127 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
+import { DataTable } from '../data-table/DataTable'
+import { FilterSelect } from '../hr/bezetting/BezettingFilters'
 import { Button } from '../ui/button'
-import { Input } from '../ui/input'
-import { Select } from '../ui/select'
-import { Badge } from '../ui/badge'
-import { cn } from '../../lib/utils'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../ui/cardStyles'
-import { formatRupiah, formatTanggalIndo, punyaPsp, tahunDari } from '../../lib/assetWorkbook'
+import { IconTableList } from '../icons/DuotoneIcons'
+import { formatRupiah, punyaPsp, tahunDari } from '../../lib/assetWorkbook'
 import { kondisiMeta } from '../../data/assetPalette'
 
-const PER_HALAMAN = 15
+// Daftar aset memakai DataTable bersama, sama dengan Daftar Pegawai di SDM:
+// pencarian realtime di semua kolom, klik judul untuk mengurutkan, 20 baris
+// per halaman, tinggi mengikuti isi.
+//
+// Sebelas kolom lama dipadatkan jadi delapan tanpa membuang satu nilai pun -
+// Kode Barang dan NUP jadi satu kolom, Merk/Tipe jadi baris kedua di bawah
+// nama barang, dan Status Penggunaan digabung dengan nomor PSP. Dengan begitu
+// tabelnya muat selebar kartu dan tidak perlu digeser ke samping.
 
-const KOLOM = [
-  { id: 'nup', label: 'NUP', align: 'left', lebar: 'w-[70px]' },
-  { id: 'kodeBarang', label: 'Kode Barang', align: 'left', lebar: 'w-[130px]' },
-  { id: 'namaBarang', label: 'Nama Barang', align: 'left', lebar: 'min-w-[200px]' },
-  { id: 'jenisBmn', label: 'Jenis BMN', align: 'left', lebar: 'min-w-[180px]' },
-  { id: 'merkTipe', label: 'Merk / Tipe', align: 'left', lebar: 'min-w-[180px]', tanpaSort: true },
-  { id: 'kondisi', label: 'Kondisi', align: 'left', lebar: 'w-[120px]' },
-  { id: 'tanggalPerolehan', label: 'Tgl Perolehan', align: 'left', lebar: 'w-[140px]' },
-  { id: 'nilaiPerolehan', label: 'Nilai Perolehan', align: 'right', lebar: 'w-[160px]' },
-  { id: 'nilaiBuku', label: 'Nilai Buku', align: 'right', lebar: 'w-[160px]' },
-  { id: 'statusPenggunaan', label: 'Status Penggunaan', align: 'left', lebar: 'min-w-[200px]' },
-  { id: 'noPsp', label: 'PSP', align: 'left', lebar: 'min-w-[170px]' }
+const FILTER_AWAL = { jenis: '', kondisi: '', tahun: '', psp: '' }
+
+// Bulan disingkat ("28 Sep 2023", bukan "28 September 2023") supaya kolomnya
+// cukup satu baris sempit. Tanggal lengkapnya tetap ada di rincian aset.
+function formatTanggalSingkat(nilai) {
+  const polos = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(nilai || ''))
+  if (!polos) return '-'
+  const tanggal = new Date(Number(polos[1]), Number(polos[2]) - 1, Number(polos[3]))
+  if (Number.isNaN(tanggal.getTime())) return '-'
+  return tanggal.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function KondisiBadge({ kondisi }) {
+  const meta = kondisiMeta(kondisi)
+  return (
+    <span className="rounded-full px-2 py-0.5 text-[11.5px] font-semibold text-white" style={{ backgroundColor: meta.color }}>
+      {meta.label}
+    </span>
+  )
+}
+
+// Lebar kolom dibagi dalam persen supaya tabelnya mengisi kartu, bukan memaksa
+// kartunya melebar. Tiga kolom teks panjang - nama barang, jenis BMN, dan
+// status/PSP - membungkus ke baris berikutnya, tidak dipotong: seluruh
+// isinya memang harus terbaca tanpa menggeser tabel ke samping. Kolom angka
+// dan tanggal tetap satu baris supaya kolomnya sejajar.
+// Tanda seru penting: kelas dasar sel DataTable memasang whitespace-nowrap,
+// dan Tailwind menaruh nowrap sesudah normal di berkas keluarannya, jadi tanpa
+// ini kelas wrap-nya kalah dan tabelnya melebar sampai perlu digeser.
+const WRAP = '!whitespace-normal break-words leading-snug'
+
+const COLUMNS = [
+  {
+    key: 'kodeBarang',
+    label: 'Kode / NUP',
+    align: 'left',
+    width: 'w-[10%]',
+    render: (row) => (
+      <>
+        <span className="block">{row.kodeBarang || '-'}</span>
+        <span className="block text-[11.5px] text-[#7a8aa8]">NUP {row.nup || '-'}</span>
+      </>
+    ),
+    text: (row) => `${row.kodeBarang || ''} ${row.nup || ''}`,
+    value: (row) => row.kodeBarang || '',
+    className: WRAP
+  },
+  {
+    key: 'namaBarang',
+    label: 'Nama Barang',
+    align: 'left',
+    width: 'w-[19%]',
+    render: (row) => {
+      const merkTipe = [row.merk, row.tipe].filter(Boolean).join(' / ')
+      return (
+        <>
+          <span className="block font-semibold">{row.namaBarang}</span>
+          {merkTipe ? <span className="block text-[11.5px] font-normal text-[#7a8aa8]">{merkTipe}</span> : null}
+        </>
+      )
+    },
+    text: (row) => [row.namaBarang, row.merk, row.tipe].filter(Boolean).join(' '),
+    value: (row) => row.namaBarang,
+    className: WRAP
+  },
+  { key: 'jenisBmn', label: 'Jenis BMN', align: 'left', width: 'w-[13%]', className: WRAP },
+  {
+    key: 'kondisi',
+    label: 'Kondisi',
+    align: 'center',
+    width: 'w-[9%]',
+    render: (row) => <KondisiBadge kondisi={row.kondisi} />,
+    text: (row) => kondisiMeta(row.kondisi).label
+  },
+  {
+    key: 'tanggalPerolehan',
+    label: 'Perolehan',
+    align: 'center',
+    width: 'w-[10%]',
+    text: (row) => formatTanggalSingkat(row.tanggalPerolehan)
+  },
+  { key: 'nilaiPerolehan', label: 'Nilai Perolehan', align: 'right', width: 'w-[13%]', text: (row) => formatRupiah(row.nilaiPerolehan), className: WRAP },
+  { key: 'nilaiBuku', label: 'Nilai Buku', align: 'right', width: 'w-[13%]', text: (row) => formatRupiah(row.nilaiBuku), className: WRAP },
+  {
+    key: 'noPsp',
+    label: 'Status / PSP',
+    align: 'left',
+    width: 'w-[13%]',
+    render: (row) => (
+      <>
+        <span className="block">{row.statusPenggunaan || '-'}</span>
+        <span className={`block text-[11.5px] font-normal ${punyaPsp(row) ? 'text-[#7a8aa8]' : 'text-[#c98500]'}`}>
+          {punyaPsp(row) ? row.noPsp : 'Belum ada PSP'}
+        </span>
+      </>
+    ),
+    text: (row) => `${row.statusPenggunaan || ''} ${punyaPsp(row) ? row.noPsp : 'Belum ada PSP'}`,
+    value: (row) => (punyaPsp(row) ? row.noPsp : ''),
+    className: WRAP
+  }
 ]
-
-const FILTER_AWAL = { cari: '', jenis: 'all', kondisi: 'all', tahun: 'all', psp: 'all' }
 
 export function AssetTable({ assets, onSelect, filterAwal }) {
   const [filter, setFilter] = useState({ ...FILTER_AWAL, ...filterAwal })
-  const [urut, setUrut] = useState({ kolom: 'nilaiPerolehan', arah: 'desc' })
-  const [halaman, setHalaman] = useState(1)
 
-  // Pintasan dari panel "Perlu Perhatian" mengubah filter dari luar.
+  // Pintasan dari strip "Perlu Perhatian" mengubah filter dari luar.
   useEffect(() => {
     if (filterAwal) setFilter({ ...FILTER_AWAL, ...filterAwal })
   }, [filterAwal])
@@ -41,236 +130,74 @@ export function AssetTable({ assets, onSelect, filterAwal }) {
     () => ({
       jenis: [...new Set(assets.map((a) => a.jenisBmn).filter(Boolean))].sort(),
       kondisi: [...new Set(assets.map((a) => a.kondisi).filter(Boolean))].sort(),
-      tahun: [...new Set(assets.map((a) => tahunDari(a.tanggalPerolehan)).filter(Boolean))].sort((a, b) => b - a)
+      tahun: [...new Set(assets.map((a) => tahunDari(a.tanggalPerolehan)).filter(Boolean))]
+        .sort((a, b) => b - a)
+        .map(String)
     }),
     [assets]
   )
 
-  const tersaring = useMemo(() => {
-    const kata = filter.cari.trim().toLowerCase()
+  const tersaring = useMemo(
+    () =>
+      assets.filter((a) => {
+        if (filter.jenis && a.jenisBmn !== filter.jenis) return false
+        if (filter.kondisi && a.kondisi !== filter.kondisi) return false
+        if (filter.tahun && String(tahunDari(a.tanggalPerolehan)) !== filter.tahun) return false
+        if (filter.psp && (filter.psp === 'sudah') !== punyaPsp(a)) return false
+        return true
+      }),
+    [assets, filter]
+  )
 
-    return assets.filter((a) => {
-      const cocokKata =
-        !kata ||
-        [a.namaBarang, a.kodeBarang, a.nup, a.merk, a.tipe, a.noPsp, a.jenisBmn]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(kata))
-
-      const cocokJenis = filter.jenis === 'all' || a.jenisBmn === filter.jenis
-      const cocokKondisi = filter.kondisi === 'all' || a.kondisi === filter.kondisi
-      const cocokTahun = filter.tahun === 'all' || String(tahunDari(a.tanggalPerolehan)) === String(filter.tahun)
-      const cocokPsp =
-        filter.psp === 'all' || (filter.psp === 'sudah' ? punyaPsp(a) : !punyaPsp(a))
-
-      return cocokKata && cocokJenis && cocokKondisi && cocokTahun && cocokPsp
-    })
-  }, [assets, filter])
-
-  const terurut = useMemo(() => {
-    const arah = urut.arah === 'asc' ? 1 : -1
-    return [...tersaring].sort((a, b) => {
-      const kiri = a[urut.kolom]
-      const kanan = b[urut.kolom]
-      if (typeof kiri === 'number' && typeof kanan === 'number') return (kiri - kanan) * arah
-      return String(kiri ?? '').localeCompare(String(kanan ?? ''), 'id') * arah
-    })
-  }, [tersaring, urut])
-
-  const totalHalaman = Math.max(1, Math.ceil(terurut.length / PER_HALAMAN))
-  const halamanAman = Math.min(halaman, totalHalaman)
-  const tampil = terurut.slice((halamanAman - 1) * PER_HALAMAN, halamanAman * PER_HALAMAN)
-
-  const ubahFilter = (kunci) => (event) => {
-    setFilter((current) => ({ ...current, [kunci]: event.target.value }))
-    setHalaman(1)
-  }
-
-  const ubahUrut = (kolom) => {
-    setUrut((current) =>
-      current.kolom === kolom
-        ? { kolom, arah: current.arah === 'asc' ? 'desc' : 'asc' }
-        : { kolom, arah: 'asc' }
-    )
-    setHalaman(1)
-  }
-
-  const adaFilterAktif = JSON.stringify(filter) !== JSON.stringify(FILTER_AWAL)
+  const adaFilterAktif = Object.values(filter).some(Boolean)
+  const set = (kunci) => (nilai) => setFilter((current) => ({ ...current, [kunci]: nilai }))
 
   return (
-    <div className="flex flex-col gap-4 fit:gap-2.5 tall:gap-3">
-      <div className={`${CARD_CLASS} !grid gap-3 !p-4 xl:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,1fr))_auto]`}>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            value={filter.cari}
-            onChange={ubahFilter('cari')}
-            placeholder="Cari nama, kode barang, NUP, merk, atau PSP..."
-            className="pl-9"
-          />
-        </div>
-
-        <Select value={filter.jenis} onChange={ubahFilter('jenis')} aria-label="Filter jenis BMN">
-          <option value="all">Semua Jenis BMN</option>
-          {opsi.jenis.map((v) => (
-            <option key={v} value={v}>{v}</option>
-          ))}
-        </Select>
-
-        <Select value={filter.kondisi} onChange={ubahFilter('kondisi')} aria-label="Filter kondisi">
-          <option value="all">Semua Kondisi</option>
-          {opsi.kondisi.map((v) => (
-            <option key={v} value={v}>{v}</option>
-          ))}
-        </Select>
-
-        <Select value={filter.tahun} onChange={ubahFilter('tahun')} aria-label="Filter tahun perolehan">
-          <option value="all">Semua Tahun</option>
-          {opsi.tahun.map((v) => (
-            <option key={v} value={v}>{v}</option>
-          ))}
-        </Select>
-
-        <Select value={filter.psp} onChange={ubahFilter('psp')} aria-label="Filter status PSP">
-          <option value="all">Semua Status PSP</option>
-          <option value="sudah">Sudah ada PSP</option>
-          <option value="belum">Belum ada PSP</option>
-        </Select>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => { setFilter(FILTER_AWAL); setHalaman(1) }}
-          disabled={!adaFilterAktif}
-          className="justify-center"
-        >
-          <X className="h-4 w-4" /> Reset
-        </Button>
-      </div>
-
-      <div className={`${CARD_CLASS} gap-0 overflow-hidden !p-0`}>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e1e8f4] px-5 py-4">
-          <div>
-            <h3 className={CARD_TITLE_CLASS}>Data Aset</h3>
-            <p className="text-sm text-[#61739b]">Klik satu baris untuk membuka rincian aset</p>
-          </div>
-          <span className="rounded-full bg-[#eef4fd] px-3 py-1 text-xs font-semibold text-[#3f557d]">
-            {terurut.length} dari {assets.length} aset
-          </span>
-        </div>
-
-        {terurut.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-slate-500">
-            Tidak ada aset yang cocok dengan pencarian dan filter ini.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-left text-sm">
-              <thead className="bg-[#f8fbff]">
-                <tr>
-                  {KOLOM.map((kolom) => (
-                    <th
-                      key={kolom.id}
-                      className={cn(
-                        'whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400',
-                        kolom.lebar,
-                        kolom.align === 'right' && 'text-right'
-                      )}
-                    >
-                      {kolom.tanpaSort ? (
-                        kolom.label
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => ubahUrut(kolom.id)}
-                          className={cn(
-                            'inline-flex cursor-pointer items-center gap-1 transition-colors hover:text-[#1f63d3]',
-                            urut.kolom === kolom.id && 'text-[#1f63d3]'
-                          )}
-                        >
-                          {kolom.label}
-                          {urut.kolom === kolom.id &&
-                            (urut.arah === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
-                        </button>
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {tampil.map((asset) => {
-                  const meta = kondisiMeta(asset.kondisi)
-                  const Icon = meta.icon
-                  return (
-                    <tr
-                      key={asset.id}
-                      onClick={() => onSelect(asset)}
-                      className="cursor-pointer transition-colors hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-3 tabular-nums text-slate-600">{asset.nup || '-'}</td>
-                      <td className="px-4 py-3 tabular-nums text-slate-600">{asset.kodeBarang || '-'}</td>
-                      <td className="px-4 py-3 font-medium text-[#233b84]">{asset.namaBarang}</td>
-                      <td className="px-4 py-3 text-slate-600">{asset.jenisBmn}</td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {[asset.merk, asset.tipe].filter(Boolean).join(' / ') || '-'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={meta.badge} className="gap-1">
-                          <Icon className="h-3 w-3" /> {meta.label}
-                        </Badge>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                        {formatTanggalIndo(asset.tanggalPerolehan)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">
-                        {formatRupiah(asset.nilaiPerolehan)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">
-                        {formatRupiah(asset.nilaiBuku)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{asset.statusPenggunaan || '-'}</td>
-                      <td className="px-4 py-3">
-                        {punyaPsp(asset) ? (
-                          <span className="tabular-nums text-slate-600">{asset.noPsp}</span>
-                        ) : (
-                          <Badge variant="warning">Belum ada PSP</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {totalHalaman > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e1e8f4] px-5 py-3">
-            <p className="text-sm text-slate-500">
-              Halaman {halamanAman} dari {totalHalaman}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setHalaman((h) => Math.max(1, h - 1))}
-                disabled={halamanAman === 1}
-              >
-                <ChevronLeft className="h-4 w-4" /> Sebelumnya
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setHalaman((h) => Math.min(totalHalaman, h + 1))}
-                disabled={halamanAman === totalHalaman}
-              >
-                Berikutnya <ChevronRight className="h-4 w-4" />
-              </Button>
+    <div className={CARD_CLASS}>
+      <DataTable
+        rows={tersaring}
+        columns={COLUMNS}
+        getRowKey={(row) => row.id}
+        initialSort={{ key: 'nilaiPerolehan', direction: 'desc' }}
+        onRowClick={onSelect}
+        itemLabel="aset"
+        fixedLayout
+        minWidth="min-w-[880px]"
+        searchPlaceholder="Cari nama, kode, NUP, merk, PSP..."
+        title={
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h3 className={`${CARD_TITLE_CLASS} mr-1 flex shrink-0 items-center gap-2`}>
+              <IconTableList className="h-5 w-5 text-[#2f7fe8]" />
+              Data Aset
+            </h3>
+            <div className="w-[132px]">
+              <FilterSelect id="aset-jenis" label="Jenis BMN" value={filter.jenis} options={opsi.jenis} onChange={set('jenis')} allLabel="Semua Jenis" inset />
             </div>
+            <div className="w-[128px]">
+              <FilterSelect id="aset-kondisi" label="Kondisi" value={filter.kondisi} options={opsi.kondisi} onChange={set('kondisi')} allLabel="Semua Kondisi" inset />
+            </div>
+            <div className="w-[112px]">
+              <FilterSelect id="aset-tahun" label="Tahun" value={filter.tahun} options={opsi.tahun} onChange={set('tahun')} allLabel="Semua Tahun" inset />
+            </div>
+            <div className="w-[122px]">
+              <FilterSelect
+                id="aset-psp"
+                label="PSP"
+                value={filter.psp}
+                options={[{ value: 'sudah', label: 'Sudah ada' }, { value: 'belum', label: 'Belum ada' }]}
+                onChange={set('psp')}
+                allLabel="Semua PSP"
+                inset
+              />
+            </div>
+            {adaFilterAktif && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setFilter(FILTER_AWAL)} className="h-11 shrink-0 rounded-xl">
+                Reset
+              </Button>
+            )}
           </div>
-        )}
-      </div>
+        }
+      />
     </div>
   )
 }
