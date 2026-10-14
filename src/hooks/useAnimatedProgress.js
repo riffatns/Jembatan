@@ -9,20 +9,23 @@ function prefersReducedMotion() {
 // Menjalankan kemajuan 0 -> 1 dengan pelandaian ease-out, lalu memanggil
 // onProgress tiap frame. Mengembalikan fungsi pembatal.
 //
-// Peramban menghentikan requestAnimationFrame pada tab yang tidak terlihat.
-// Tanpa penjagaan ini, halaman yang dibuka di tab latar mandek pada frame
-// pertama - bilah kosong dan angkanya nol - sampai tabnya dibuka. Untuk bilah
-// itu sekadar jelek; untuk angka rupiah itu salah, karena "Rp 0" terbaca
-// sebagai nilai, bukan sebagai animasi yang belum mulai.
+// Ada dua keadaan yang membuat requestAnimationFrame tidak pernah dipanggil,
+// dan keduanya pernah membuat angka mandek di nol:
 //
-// Karena itu halaman yang tersembunyi langsung diberi nilai akhirnya tanpa
-// animasi, sama seperti perlakuan untuk yang meminta gerak dikurangi. Sempat
-// dicoba menunda animasinya sampai halaman terlihat, tetapi itu menggantungkan
-// kebenaran angka pada satu peristiwa yang belum tentu datang. Animasi hanya
-// hiasan; angka yang benar tidak.
+// 1. Halaman tersembunyi (document.hidden). Peramban menghentikan rAF di tab
+//    latar. Keadaan ini dikenali di awal dan langsung diberi nilai akhirnya.
+//
+// 2. Halaman "terlihat" menurut document.hidden, tetapi tidak pernah digambar -
+//    jendela terminimalkan, jendela tertutup jendela lain, atau panel peramban
+//    yang tidak tampak. Di sini document.hidden bernilai false sehingga
+//    penjagaan pertama tidak menolong, dan rAF tetap tidak menyala.
+//
+// Karena itu ada jaring pengaman berupa timer: timer tetap berjalan walau rAF
+// tidak. Begitu waktunya habis, nilai akhir dipasang apa adanya. Animasinya
+// hilang, angkanya benar - dan itu urutan kepentingan yang betul, karena
+// "Rp 0" terbaca sebagai nilai, bukan sebagai animasi yang belum mulai.
 function runProgress(duration, onProgress) {
-  const tanpaAnimasi = prefersReducedMotion() || (typeof document !== 'undefined' && document.hidden)
-  if (tanpaAnimasi) {
+  if (prefersReducedMotion() || (typeof document !== 'undefined' && document.hidden)) {
     onProgress(1, 1)
     return () => {}
   }
@@ -31,12 +34,17 @@ function runProgress(duration, onProgress) {
   let start = 0
   let dibatalkan = false
 
+  const pengaman = setTimeout(() => {
+    if (!dibatalkan) onProgress(1, 1)
+  }, duration + 150)
+
   const tick = (now) => {
     if (dibatalkan) return
     if (!start) start = now
     const elapsed = Math.min(1, (now - start) / duration)
     onProgress(1 - (1 - elapsed) ** 3, elapsed)
     if (elapsed < 1) frame = requestAnimationFrame(tick)
+    else clearTimeout(pengaman)
   }
 
   frame = requestAnimationFrame(tick)
@@ -44,6 +52,7 @@ function runProgress(duration, onProgress) {
   return () => {
     dibatalkan = true
     cancelAnimationFrame(frame)
+    clearTimeout(pengaman)
   }
 }
 
