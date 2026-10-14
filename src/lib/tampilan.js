@@ -32,3 +32,13 @@ export const USE_NEW_HR_DASHBOARD = true
 // Hukum sebelumnya memakai kartu jumlah dokumen bawaan; itu kembali bila
 // saklar ini diubah menjadi false.
 export const USE_NEW_LEGAL_DASHBOARD = true
+
+// Dashboard Subbagian Umum dan TI, bergaya sama dengan Dashboard Anggaran.
+// Angkanya dari daftar BMN layanan Aset dan dokumen bidang ini. Tampilan lama
+// kembali bila saklar ini diubah menjadi false.
+export const USE_NEW_IT_DASHBOARD = true
+
+// Dashboard Subbagian Humas dan TU Kalan, bergaya sama dengan Dashboard
+// Anggaran. Angkanya dari agenda pimpinan dan dokumen bidang ini. Tampilan
+// lama kembali bila saklar ini diubah menjadi false.
+export const USE_NEW_PR_DASHBOARD = true
