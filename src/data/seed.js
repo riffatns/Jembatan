@@ -134,7 +134,10 @@ export const DOCUMENT_STRUCTURE = [
 // Kuncinya berbentuk `divisionId:categoryId`.
 export const HIDDEN_CATEGORIES = new Set([
   'it:peminjaman-aset',
-  'legal:manajemen-risiko'
+  'legal:manajemen-risiko',
+  'pr:tata-usaha-kalan',
+  'pr:publikasi-pemberitaan',
+  'pr:arsip-pemeriksaan'
 ])
 
 export const BUDGET_SUMMARY = {
