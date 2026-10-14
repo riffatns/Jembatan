@@ -27,13 +27,15 @@ import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { DocumentFilters } from '../components/documents/DocumentFilters'
 import { DocumentTable } from '../components/documents/DocumentTable'
+import { ServicePageHeader } from '../components/documents/service/ServicePageHeader'
+import { ServiceKpiCards } from '../components/documents/service/ServiceKpiCards'
+import { CARD_CLASS } from '../components/ui/cardStyles'
 import { DocumentUploadModal } from '../components/documents/DocumentUploadModal'
 import { DocumentDetail } from '../components/documents/DocumentDetail'
 import { hasDocumentFile, resolveDocumentFileUrl } from '../lib/documentStorage'
 import { DashboardHeader } from '../components/layout/DashboardHeader'
 import { AgendaWorkspace } from '../components/agenda/AgendaWorkspace'
 import { AGENDA_CATEGORY_ID } from '../lib/agendaStorage'
-import { ServiceIntro } from '../components/ServiceIntro'
 import { BudgetWorkspace } from '../components/budget/BudgetWorkspace'
 import { AccountBudgetPage } from '../components/budget/accounts/AccountBudgetPage'
 import { USE_NEW_ACCOUNT_VIEWS, USE_NEW_HR_VIEWS } from '../lib/tampilan'
@@ -319,49 +321,18 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
 
   return (
     <div className="space-y-6 text-slate-800">
-      <DashboardHeader
-        division={division}
-        selectedDateObject={selectedDateObject}
+      <ServicePageHeader
+        title={(activeCategory?.name || division.name).toUpperCase()}
+        subtitle={`${division.name.toUpperCase()} · BPK PERWAKILAN PROVINSI PAPUA BARAT DAYA`}
         dateInputId="division-date-filter"
         selectedDate={selectedDate}
+        selectedDateObject={selectedDateObject}
         onDateChange={setSelectedDate}
         actionLabel={serviceContent.uploadLabel}
         actionIcon={isAgendaMode ? CalendarPlus : Plus}
         onAction={isAgendaMode ? () => setAgendaCreateTick((tick) => tick + 1) : handleOpenUpload}
         showAction={canUploadToDivision(divisionId)}
-        onBrandClick={() => navigate('/dashboard')}
       />
-      {/*
-        <div>
-          <button type="button" onClick={() => navigate('/dashboard')} className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eff5ff] px-3 py-1 text-xs font-semibold tracking-[0.26em] text-[#1f3f89] transition-colors hover:bg-[#dceaff] active:scale-[0.98]" aria-label="Kembali ke dashboard utama">
-            DASHBOARD {division.shortName}
-          </button>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#233b84] sm:text-3xl">
-            Dashboard {division.shortName}
-          </h1>
-          <p className="mt-1 text-sm text-[#61739b]">Ringkasan layanan {division.name}</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <label htmlFor="division-date-filter" className="relative flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-[#233b84] shadow-sm transition-colors hover:border-blue-300 hover:bg-[#f8fbff] active:scale-[0.98]" title="Pilih bulan filter dokumen">
-            <CalendarRange className="h-4 w-4 text-[#1f63d3]" />
-            {selectedDateObject.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-            <input id="division-date-filter" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Filter tanggal dokumen" />
-          </label>
-          <UserAccountMenu />
-          {canUploadDocuments() && (
-            <Button variant="teal" onClick={handleOpenUpload} className="rounded-full px-5 shadow-[0_14px_30px_rgba(31,99,211,0.26)]">
-              <Plus className="h-4 w-4" /> Upload Dokumen
-            </Button>
-          )}
-        </div>
-      </div>
-
-      */}
-
-      {!isAgendaMode && (
-        <ServiceIntro categoryId={activeCategoryId} categoryName={activeCategory?.name || division.name} />
-      )}
 
       {budgetNotice && (
         <div
@@ -424,6 +395,12 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
           <AgendaWorkspace divisionId={divisionId} focusDate={selectedDate} createTick={agendaCreateTick} />
         ) : (
           <>
+            <ServiceKpiCards documents={filteredDocuments} />
+
+            {/* Penyaring dan tabelnya dibungkus satu kartu, bentuk yang sama
+                dengan "Rincian Akun Utama" di menu akun Keuangan, supaya
+                daftar dokumen tidak lagi terbaca menempel di latar halaman. */}
+            <div className={`${CARD_CLASS} gap-4`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-xl font-bold text-[#233b84]">
@@ -466,6 +443,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
               canDeleteDocument={canManageDocument}
               canDownload
             />
+            </div>
           </>
         )}
       </div>
