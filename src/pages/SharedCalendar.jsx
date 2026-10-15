@@ -1,106 +1,87 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { CalendarPlus, Info } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
-import { Button } from '../components/ui/button'
-import { UserAccountMenu } from '../components/layout/UserAccountMenu'
-import { AgendaCalendar } from '../components/agenda/AgendaCalendar'
+import { BudgetDashboardHeader } from '../components/budget/dashboard/BudgetDashboardHeader'
+import { MonthCalendar } from '../components/calendar/MonthCalendar'
 import { AgendaEventModal } from '../components/agenda/AgendaEventModal'
-import { AgendaEventDetail } from '../components/agenda/AgendaEventDetail'
-import { DivisionFilterPanel } from '../components/agenda/DivisionFilterPanel'
-import { AgendaListItem } from '../components/agenda/AgendaListItem'
+import { AgendaDetailCard } from '../components/agenda/calendar/AgendaDetailCard'
+import { AgendaTable } from '../components/agenda/calendar/AgendaTable'
+import { UpcomingAgendaList } from '../components/agenda/calendar/AgendaSideLists'
+import { SharedCalendarFilters } from '../components/agenda/calendar/SharedCalendarFilters'
+import { SharedCalendarKpiCards } from '../components/agenda/calendar/SharedCalendarKpiCards'
+import { DivisionLegend } from '../components/agenda/calendar/DivisionLegend'
+import { TodayAgendaStrip } from '../components/agenda/calendar/TodayAgendaStrip'
+import { IconCalendar, IconUpload } from '../components/icons/DuotoneIcons'
+import { Button } from '../components/ui/button'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { CARD_CLASS, CARD_TITLE_CLASS } from '../components/ui/cardStyles'
 import { COLORED_DIVISION_IDS } from '../data/divisionPalette'
+import { parseDateKey } from '../lib/agendaStorage'
 import {
-  agendaCoversDate,
-  agendaEndDate,
-  agendaOverlapsMonth,
-  formatAgendaDate,
-  parseDateKey,
-  sortAgendaEvents,
-  toDateKey
-} from '../lib/agendaStorage'
+  EMPTY_FILTERS,
+  agendaCalendarEvents,
+  applyFilters,
+  buildKpis,
+  filterOptions,
+  monthKeyOf,
+  ongoingAgenda,
+  todayKey,
+  upcomingAgenda
+} from '../components/agenda/calendar/sharedCalendarModel'
 
-const FILTER_KEY = 'bpk-dashboard-agenda-divisions'
-
+// Kalender Bersama: agenda seluruh bidang dalam satu tampilan. Susunannya
+// sama dengan Kalender Diklat - kartu ringkasan, bilah penyaring, kalender
+// besar, kolom rincian di kanan - tetapi datanya berdiri sendiri. Keduanya
+// memang beda urusan: yang satu program pelatihan pegawai, yang ini agenda
+// kegiatan antarbidang, jadi tidak ada angka atau jadwal yang dibagi.
 export default function SharedCalendar() {
-  const { agendaEvents, divisions, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote } = useData()
+  const { agendaEvents, divisions, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent } = useData()
   const { user, isAdmin } = useAuth()
-  const navigate = useNavigate()
+  const today = todayKey()
 
-  const todayKey = toDateKey(new Date())
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [view, setView] = useState('calendar')
+  const [month, setMonth] = useState(() => ({ year: new Date().getFullYear(), monthIndex: new Date().getMonth() }))
+  const [selectedId, setSelectedId] = useState(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
-  // Hanya bidang yang punya slot warna tervalidasi yang tampil di kalender bersama.
+  // Hanya bidang yang punya slot warna tervalidasi yang tampil di legenda.
   const calendarDivisions = useMemo(
     () => COLORED_DIVISION_IDS.map((id) => divisions.find((division) => division.id === id)).filter(Boolean),
     [divisions]
   )
-
-  // Default: bidang sendiri + Humas dan TU Kalan, karena agenda pimpinan yang
-  // berlingkup sekantor dikelola di sana. Admin melihat semuanya.
-  const [activeIds, setActiveIds] = useState(() => {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(FILTER_KEY) || 'null')
-      if (Array.isArray(saved) && saved.length) return saved
-    } catch {
-      /* pilihan tersimpan rusak: pakai default di bawah */
-    }
-    if (user?.role === 'admin') return [...COLORED_DIVISION_IDS]
-    return [...new Set([user?.division, 'pr'].filter(Boolean))]
-  })
-
-  const [cursor, setCursor] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1)
-  })
-  const [selectedKey, setSelectedKey] = useState(todayKey)
-  const [formOpen, setFormOpen] = useState(false)
-  const [editingEvent, setEditingEvent] = useState(null)
-  const [detailEvent, setDetailEvent] = useState(null)
-  const [detailOpen, setDetailOpen] = useState(false)
-
-  useEffect(() => {
-    sessionStorage.setItem(FILTER_KEY, JSON.stringify(activeIds))
-  }, [activeIds])
 
   const divisionName = useCallback(
     (divisionId) => divisions.find((division) => division.id === divisionId)?.name || '',
     [divisions]
   )
 
-  const visibleEvents = useMemo(
-    () => agendaEvents.filter((event) => activeIds.includes(event.divisionId)),
-    [agendaEvents, activeIds]
-  )
+  const options = useMemo(() => filterOptions(agendaEvents, divisions), [agendaEvents, divisions])
+  const filtered = useMemo(() => applyFilters(agendaEvents, filters), [agendaEvents, filters])
+  const kpis = useMemo(() => buildKpis(filtered, today), [filtered, today])
+  const calendarEvents = useMemo(() => agendaCalendarEvents(filtered), [filtered])
+  const ongoing = useMemo(() => ongoingAgenda(filtered, today), [filtered, today])
+  const upcoming = useMemo(() => upcomingAgenda(filtered, today), [filtered, today])
 
-  const monthEvents = useMemo(
-    () => visibleEvents.filter((event) => agendaOverlapsMonth(event, cursor.getFullYear(), cursor.getMonth())),
-    [visibleEvents, cursor]
-  )
-
-  const monthCountsByDivision = useMemo(() => {
-    const counts = {}
+  // Hitungan per bidang pada bulan yang sedang tampil, untuk legenda.
+  const monthKey = `${month.year}-${String(month.monthIndex + 1).padStart(2, '0')}`
+  const counts = useMemo(() => {
+    const hasil = {}
     for (const event of agendaEvents) {
-      if (!agendaOverlapsMonth(event, cursor.getFullYear(), cursor.getMonth())) continue
-      counts[event.divisionId] = (counts[event.divisionId] || 0) + 1
+      if (monthKeyOf(event) !== monthKey) continue
+      hasil[event.divisionId] = (hasil[event.divisionId] || 0) + 1
     }
-    return counts
-  }, [agendaEvents, cursor])
+    return hasil
+  }, [agendaEvents, monthKey])
 
-  const selectedDayEvents = useMemo(
-    () => sortAgendaEvents(visibleEvents.filter((event) => agendaCoversDate(event, selectedKey))),
-    [visibleEvents, selectedKey]
-  )
-
-  const upcomingEvents = useMemo(
-    // Kegiatan yang sedang berlangsung tetap terhitung mendatang sampai berakhir.
-    () => sortAgendaEvents(visibleEvents.filter((event) => agendaEndDate(event) >= todayKey && event.status !== 'cancelled')).slice(0, 5),
-    [visibleEvents, todayKey]
-  )
+  const selected = filtered.find((event) => event.id === selectedId) || ongoing[0] || upcoming[0] || null
 
   const canManage = useCallback(
     (event) => {
-      if (!user) return false
+      if (!user || !event) return false
       if (isAdmin) return true
       if (event.createdBy && user.id) return event.createdBy === user.id
       return Boolean(event.createdByName) && event.createdByName === user.name
@@ -108,15 +89,18 @@ export default function SharedCalendar() {
     [user, isAdmin]
   )
 
-  const toggleDivision = (divisionId) => {
-    setActiveIds((current) =>
-      current.includes(divisionId) ? current.filter((id) => id !== divisionId) : [...current, divisionId]
-    )
+  const selectEvent = (event) => {
+    setSelectedId(event.id)
+    const iso = event.eventDate || event.start
+    if (iso) setMonth({ year: Number(iso.slice(0, 4)), monthIndex: Number(iso.slice(5, 7)) - 1 })
   }
 
-  const openDetail = (event) => {
-    setDetailEvent(event)
-    setDetailOpen(true)
+  // Memilih bulan di penyaring ikut memindahkan kalender ke bulan itu.
+  const changeFilters = (next) => {
+    setFilters(next)
+    if (next.month && next.month !== filters.month) {
+      setMonth({ year: Number(next.month.slice(0, 4)), monthIndex: Number(next.month.slice(5, 7)) - 1 })
+    }
   }
 
   const openCreate = () => {
@@ -125,156 +109,107 @@ export default function SharedCalendar() {
   }
 
   const handleEdit = (event) => {
-    setDetailOpen(false)
     setEditingEvent(event)
     setFormOpen(true)
   }
 
-  const handleDelete = async (event) => {
-    if (!window.confirm(`Hapus agenda "${event.title}"?`)) return
-    await deleteAgendaEvent(event.id)
-    setDetailOpen(false)
-    setDetailEvent(null)
+  const handleDelete = async () => {
+    setDeleting(true)
+    await deleteAgendaEvent(pendingDelete.id)
+    setDeleting(false)
+    setPendingDelete(null)
+    setSelectedId(null)
   }
 
   const handleSubmit = async (payload) => {
-    if (payload.id) {
-      await updateAgendaEvent(payload.id, payload)
-    } else {
-      await addAgendaEvent(payload)
-    }
+    if (payload.id) await updateAgendaEvent(payload.id, payload)
+    else await addAgendaEvent(payload)
 
     // Pastikan agenda yang baru disimpan benar-benar terlihat, bukan tersembunyi
-    // di balik filter bidang yang sedang mati.
-    setActiveIds((current) => (current.includes(payload.divisionId) ? current : [...current, payload.divisionId]))
-    setSelectedKey(payload.eventDate)
+    // di balik penyaring yang sedang aktif.
+    setFilters(EMPTY_FILTERS)
+    setSelectedId(payload.id || null)
     const target = parseDateKey(payload.eventDate)
-    setCursor(new Date(target.getFullYear(), target.getMonth(), 1))
+    setMonth({ year: target.getFullYear(), monthIndex: target.getMonth() })
   }
 
-  const changeMonth = (offset) => {
-    setCursor((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1))
-  }
-
-  const goToToday = () => {
-    const now = new Date()
-    setCursor(new Date(now.getFullYear(), now.getMonth(), 1))
-    setSelectedKey(toDateKey(now))
-  }
+  useEffect(() => {
+    sessionStorage.removeItem('bpk-dashboard-selected-category')
+  }, [])
 
   return (
-    <div className="space-y-6 text-slate-800">
-      <div className="flex flex-col gap-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eff5ff] px-3 py-1 text-xs font-semibold tracking-[0.26em] text-[#1f3f89] transition-colors hover:bg-[#dceaff] active:scale-[0.98]"
-          >
-            KALENDER BERSAMA
-          </button>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#233b84] sm:text-3xl">Kalender Bersama</h1>
-          <p className="mt-1 text-sm text-[#61739b]">Agenda seluruh bidang dalam satu tampilan</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <UserAccountMenu />
+    <div className={`flex flex-col gap-4 text-[#12305f] fit:gap-2.5 ${view === 'calendar' ? 'tall:h-[calc(100dvh-4rem)]' : ''}`}>
+      <BudgetDashboardHeader
+        title="KALENDER BERSAMA"
+        subtitle="AGENDA KEGIATAN SELURUH BIDANG DALAM SATU TAMPILAN"
+        icon={IconCalendar}
+        showYearPicker={false}
+        actions={
           <Button variant="teal" onClick={openCreate} className="rounded-full px-5 shadow-[0_14px_30px_rgba(31,99,211,0.26)]">
-            <CalendarPlus className="h-4 w-4" /> Tambah Agenda
+            <IconUpload className="h-4 w-4" /> Tambah Agenda
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {isAdmin && !isAgendaRemote && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Agenda masih tersimpan di browser ini saja. Jalankan <code className="font-semibold">supabase/agenda.sql</code> di
-          SQL Editor Supabase agar agenda tersimpan di server dan terlihat oleh semua pengguna.
-        </div>
-      )}
+      <SharedCalendarKpiCards kpis={kpis} today={today} />
+      <SharedCalendarFilters filters={filters} options={options} view={view} onChange={changeFilters} onViewChange={setView} />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
-        <AgendaCalendar
-          title="Agenda Seluruh Bidang"
-          cursor={cursor}
-          events={monthEvents}
-          selectedKey={selectedKey}
-          showDivisionTag
-          onChangeMonth={changeMonth}
-          onToday={goToToday}
-          onSelectDay={setSelectedKey}
-          onSelectEvent={openDetail}
-        />
-
-        <div className="space-y-5">
-          <DivisionFilterPanel
-            divisions={calendarDivisions}
-            activeIds={activeIds}
-            counts={monthCountsByDivision}
-            onToggle={toggleDivision}
-            onSelectAll={() => setActiveIds([...COLORED_DIVISION_IDS])}
-            onClear={() => setActiveIds([])}
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.42fr)] fit:gap-2.5 tall:min-h-0 tall:flex-1">
+        <div className="flex min-h-0 min-w-0 flex-col gap-4 fit:gap-2.5">
+          <TodayAgendaStrip
+            events={ongoing}
+            today={today}
+            divisionName={divisionName}
+            selectedId={selected?.id}
+            onSelect={selectEvent}
           />
 
-          <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="text-lg font-bold text-[#233b84]">Agenda Terpilih</h3>
-                <p className="truncate text-sm text-slate-500">{formatAgendaDate(selectedKey)}</p>
-              </div>
-              <Button size="sm" variant="outline" onClick={openCreate} className="shrink-0 rounded-full">
-                <CalendarPlus className="h-3.5 w-3.5" /> Tambah
-              </Button>
+          {view === 'calendar' ? (
+            <div className={`${CARD_CLASS} min-h-0 flex-1`}>
+              <MonthCalendar
+                title={<h2 className={`${CARD_TITLE_CLASS} flex items-center gap-2`}><IconCalendar className="h-5 w-5 text-[#2f7fe8]" />Kalender Bersama</h2>}
+                aside={<DivisionLegend divisions={calendarDivisions} active={filters.division} counts={counts} onPick={(id) => changeFilters({ ...filters, division: id })} />}
+                year={month.year}
+                monthIndex={month.monthIndex}
+                events={calendarEvents}
+                today={today}
+                selectedId={selected?.id}
+                onSelect={(event) => selectEvent(filtered.find((item) => item.id === event.id) || event)}
+                onMonthChange={(year, monthIndex) => setMonth({ year, monthIndex })}
+                rowClassName="min-h-[88px] tall:min-h-0"
+                className="flex-1"
+              />
             </div>
-
-            <div className="mt-3 space-y-1">
-              {selectedDayEvents.length === 0 ? (
-                <div className="flex items-start gap-2 rounded-2xl bg-slate-50 px-3 py-6 text-sm text-slate-500">
-                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                  {activeIds.length === 0
-                    ? 'Belum ada bidang yang dicentang.'
-                    : 'Tidak ada kegiatan pada tanggal ini.'}
-                </div>
-              ) : (
-                selectedDayEvents.map((event) => (
-                  <AgendaListItem
-                    key={event.id}
-                    event={event}
-                    divisionName={divisionName(event.divisionId)}
-                    onSelect={openDetail}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-            <h3 className="text-lg font-bold text-[#233b84]">Kegiatan Mendatang</h3>
-            <p className="text-sm text-slate-500">Lima agenda terdekat dari bidang yang dicentang</p>
-
-            <div className="mt-3 space-y-1">
-              {upcomingEvents.length === 0 ? (
-                <p className="rounded-2xl bg-slate-50 px-3 py-6 text-sm text-slate-500">Belum ada agenda mendatang.</p>
-              ) : (
-                upcomingEvents.map((event) => (
-                  <AgendaListItem
-                    key={event.id}
-                    event={event}
-                    divisionName={divisionName(event.divisionId)}
-                    onSelect={openDetail}
-                    showDate
-                  />
-                ))
-              )}
-            </div>
-          </div>
+          ) : (
+            <AgendaTable
+              events={filtered}
+              today={today}
+              divisionName={divisionName}
+              selectedId={selected?.id}
+              onSelect={selectEvent}
+            />
+          )}
         </div>
-      </div>
+
+        <aside className="flex min-h-0 min-w-0 flex-col gap-4 fit:gap-2.5">
+          <AgendaDetailCard
+            event={selected}
+            today={today}
+            divisionName={divisionName(selected?.divisionId)}
+            allEvents={agendaEvents}
+            canManage={canManage(selected)}
+            onEdit={handleEdit}
+            onDelete={setPendingDelete}
+          />
+          <UpcomingAgendaList events={upcoming} divisionName={divisionName} selectedId={selected?.id} onSelect={selectEvent} />
+        </aside>
+      </section>
 
       <AgendaEventModal
         open={formOpen}
         onOpenChange={setFormOpen}
         initialEvent={editingEvent}
-        defaultDate={selectedKey}
+        defaultDate={selected?.eventDate || today}
         defaultDivisionId={editingEvent?.divisionId || user?.division || calendarDivisions[0]?.id || ''}
         divisionOptions={calendarDivisions}
         lockDivision={!isAdmin}
@@ -282,14 +217,15 @@ export default function SharedCalendar() {
         onSubmit={handleSubmit}
       />
 
-      <AgendaEventDetail
-        event={detailEvent}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        canManage={detailEvent ? canManage(detailEvent) : false}
-        divisionName={detailEvent ? divisionName(detailEvent.divisionId) : ''}
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Hapus agenda?"
+        description={pendingDelete ? `"${pendingDelete.title}" akan dihapus dari kalender bersama dan tidak bisa dikembalikan.` : ''}
+        confirmLabel="Hapus agenda"
+        busyLabel="Menghapus..."
+        busy={deleting}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={handleDelete}
       />
     </div>
   )
