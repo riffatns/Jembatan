@@ -11,3 +11,6 @@ dist-ssr
 # Supabase CLI
 supabase/.temp
 supabase/.branches
+
+# Pengaturan alat bantu per mesin (mis. launch.json untuk menjalankan server dev)
+.claude
