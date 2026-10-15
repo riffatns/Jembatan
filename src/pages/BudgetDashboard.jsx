@@ -44,6 +44,8 @@ export default function BudgetDashboard() {
   return (
     <div className="flex flex-col gap-4 text-[#12305f] fit:h-[calc(100dvh-4rem)] fit:gap-2.5 tall:gap-3">
       <BudgetDashboardHeader
+        title="KEUANGAN"
+        subtitle="REALISASI ANGGARAN DAN SERAPAN BELANJA"
         years={years}
         fiscalYear={activeFiscalYear}
         periodName={activeReport ? MONTH_NAMES[activeReport.periodMonth - 1] : null}

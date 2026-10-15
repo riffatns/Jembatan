@@ -41,8 +41,13 @@ function FiscalYearPicker({ years, fiscalYear, periodName, onChange }) {
 // tidak terpotong header dan tampil di atas kartu.
 // Dipakai Dashboard Keuangan, menu akun 51/52/53, dan Master Data. actions =
 // kontrol tambahan di kanan (mis. pemilih triwulan Kalender Diklat).
+//
+// `title` wajib diisi pemanggil. Dulu bawaannya "REALISASI ANGGARAN", yang
+// benar hanya untuk satu halaman tetapi diam-diam menempel ke halaman mana pun
+// yang lupa mengisinya - dan itulah yang membuat Dashboard Keuangan berjudul
+// nama laporan, bukan nama bidangnya.
 export function BudgetDashboardHeader({
-  title = 'REALISASI ANGGARAN',
+  title,
   subtitle = 'BPK PERWAKILAN PROVINSI PAPUA BARAT DAYA',
   icon: Icon = IconDatabase,
   years = [],
