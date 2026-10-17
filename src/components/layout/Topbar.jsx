@@ -14,7 +14,7 @@ import {
   DropdownMenuLabel
 } from '../ui/dropdown-menu'
 import { formatDate } from '../../lib/utils'
-import { getRoleInfo } from '../../data/accessControl'
+import { getPositionInfo } from '../../data/accessControl'
 
 export function Topbar({ onOpenMobile }) {
   const { user, logout, isAdmin } = useAuth()
@@ -58,7 +58,7 @@ export function Topbar({ onOpenMobile }) {
       }))
   }, [documents, isAdmin, user])
 
-  const roleInfo = getRoleInfo(user?.role)
+  const roleInfo = getPositionInfo(user)
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">

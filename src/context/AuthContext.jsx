@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { USERS } from '../data/seed'
-import { getRoleInfo } from '../data/accessControl'
+import { getPositionInfo } from '../data/accessControl'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
@@ -183,7 +183,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    roleInfo: getRoleInfo(user?.role),
+    roleInfo: getPositionInfo(user),
     users,
     loading,
     login,

@@ -59,7 +59,7 @@ export default function Profile() {
                 </div>
               )}
               <div className="flex items-center gap-2 text-sm text-slate-600">
-                <ShieldCheck className="h-4 w-4 text-teal" /> {roleInfo.label} access
+                <ShieldCheck className="h-4 w-4 text-teal" /> Akses {getRoleInfo(user?.role).label}
               </div>
             </div>
           </CardContent>
