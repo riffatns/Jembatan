@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { JembatanWordmark } from '../components/landing/JembatanWordmark'
+import { TAMPILKAN_MARKA_TRANSISI } from '../lib/tampilan'
 
 export default function TransitionToDashboard() {
   const navigate = useNavigate()
@@ -97,11 +98,16 @@ export default function TransitionToDashboard() {
         {/* Tinggi dikurangi padding vertikalnya, supaya halaman ini pas satu
             layar dan tidak menyisakan gulir yang tak berisi apa-apa. */}
         <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-7xl flex-col justify-between gap-8">
-          <JembatanWordmark eyebrow="Main Dashboard" className="pt-8 sm:pt-0" />
+          {TAMPILKAN_MARKA_TRANSISI && <JembatanWordmark eyebrow="Main Dashboard" className="pt-8 sm:pt-0" />}
 
           {/* Enam kolom, tiap kartu mengambil dua. Baris kedua yang hanya berisi
-              dua kartu digeser satu kolom supaya berhenti menggantung di kiri. */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-6 xl:gap-8">
+              dua kartu digeser satu kolom supaya berhenti menggantung di kiri.
+
+              my-auto saat marka kata disembunyikan: tanpa itu kartu menumpuk
+              di tepi atas dan menyisakan ruang kosong besar di atas footer,
+              karena pembungkusnya membagi jarak antara anak pertama dan
+              terakhir. */}
+          <div className={`grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-6 xl:gap-8 ${TAMPILKAN_MARKA_TRANSISI ? '' : 'my-auto'}`}>
             {bubbleDivisions.map((division, index) => (
               <button
                 key={division.id}

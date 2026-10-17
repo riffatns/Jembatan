@@ -195,13 +195,13 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col justify-center gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5 tall:gap-5 tall:lg:py-6">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col justify-center gap-3 px-4 py-4 sm:px-6 lg:px-8 lg:py-5 tall:gap-5 tall:lg:py-6">
         {/* Marka kata portal, pindah dari halaman pilih bidang: halaman inilah
             yang dilihat lebih dulu, dan sebelumnya ia tidak menyebut nama
-            portalnya sama sekali. Ukurannya "md", bukan "lg" seperti di
-            halaman pilih bidang, supaya panel masuk dan kartu anggaran di
-            bawahnya tetap muat satu layar. */}
-        <JembatanWordmark eyebrow="BPK Perwakilan Provinsi Papua Barat Daya" size="md" className="shrink-0" />
+            portalnya sama sekali. Ukurannya "hero": sebesar halaman pilih
+            bidang di desktop, tetapi lentur mengikuti lebar dan tinggi layar
+            supaya kartu anggaran dan panel masuk di bawahnya tetap terlihat. */}
+        <JembatanWordmark eyebrow="BPK Perwakilan Provinsi Papua Barat Daya" size="hero" className="shrink-0" />
 
         {/* items-start: tiap kartu berhenti di tinggi isinya sendiri, jadi
             kartu anggaran tetap ringkas dan tidak ikut setinggi panel masuk. */}

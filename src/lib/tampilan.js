@@ -48,3 +48,9 @@ export const USE_NEW_PR_DASHBOARD = true
 // (unggah dokumen + daftar dokumen) tidak dihapus: ubah menjadi false untuk
 // kembali.
 export const USE_NEW_ASSET_VIEWS = true
+
+// Marka kata "JEMBATAN" di halaman pilih bidang. Sejak marka kata itu tampil
+// besar di halaman masuk, menampilkannya dua kali berturut-turut jadi
+// mengulang. Kodenya tidak dihapus: ubah menjadi true untuk menampilkannya
+// lagi di halaman pilih bidang.
+export const TAMPILKAN_MARKA_TRANSISI = false
