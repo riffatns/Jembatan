@@ -2,6 +2,7 @@ import { LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
+import { JembatanWordmark } from '../components/landing/JembatanWordmark'
 
 export default function TransitionToDashboard() {
   const navigate = useNavigate()
@@ -96,20 +97,7 @@ export default function TransitionToDashboard() {
         {/* Tinggi dikurangi padding vertikalnya, supaya halaman ini pas satu
             layar dan tidak menyisakan gulir yang tak berisi apa-apa. */}
         <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-7xl flex-col justify-between gap-8">
-          <header className="pt-8 text-center sm:pt-0">
-            <p className="text-[10px] font-medium uppercase tracking-[0.5em] text-sky-200/70 sm:text-[11px]">
-              Main Dashboard
-            </p>
-            {/* Judul halaman ini sebelumnya hanya paragraf besar; sekarang h1,
-                sehingga pembaca layar dan mesin telusur mengenalinya. */}
-            <h1 className="mt-4 text-5xl font-black uppercase leading-none tracking-[0.1em] text-white drop-shadow-[0_10px_28px_rgba(0,0,0,0.55)] sm:text-7xl sm:tracking-[0.14em] lg:text-8xl">
-              Jembatan
-            </h1>
-            <div className="mx-auto mt-5 h-px w-24 bg-gradient-to-r from-transparent via-white/45 to-transparent shadow-[0_0_18px_rgba(255,255,255,0.18)] sm:w-32" />
-            <p className="mx-auto mt-4 max-w-lg text-balance text-sm font-light leading-relaxed tracking-wide text-slate-200/80 sm:text-base">
-              Jendela Manajemen dan Kolaborasi Kesekretariatan
-            </p>
-          </header>
+          <JembatanWordmark eyebrow="Main Dashboard" className="pt-8 sm:pt-0" />
 
           {/* Enam kolom, tiap kartu mengambil dua. Baris kedua yang hanya berisi
               dua kartu digeser satu kolom supaya berhenti menggantung di kiri. */}

@@ -14,6 +14,7 @@ import { useData } from '../context/DataContext'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { BudgetGauge } from '../components/landing/BudgetGauge'
+import { JembatanWordmark } from '../components/landing/JembatanWordmark'
 import { FieldLabel, NeonPanel } from '../components/landing/NeonPanel'
 
 const DEMO_ACCOUNTS = [
@@ -194,7 +195,14 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col justify-center gap-5 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col justify-center gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5 tall:gap-5 tall:lg:py-6">
+        {/* Marka kata portal, pindah dari halaman pilih bidang: halaman inilah
+            yang dilihat lebih dulu, dan sebelumnya ia tidak menyebut nama
+            portalnya sama sekali. Ukurannya "md", bukan "lg" seperti di
+            halaman pilih bidang, supaya panel masuk dan kartu anggaran di
+            bawahnya tetap muat satu layar. */}
+        <JembatanWordmark eyebrow="BPK Perwakilan Provinsi Papua Barat Daya" size="md" className="shrink-0" />
+
         {/* items-start: tiap kartu berhenti di tinggi isinya sendiri, jadi
             kartu anggaran tetap ringkas dan tidak ikut setinggi panel masuk. */}
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_340px] xl:items-start">
