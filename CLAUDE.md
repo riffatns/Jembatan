@@ -184,7 +184,7 @@ lewat fungsi `public.current_profile_role()` dan `public.current_profile_divisio
 | Unggah/ubah dokumen, agenda, aset, angka bidang | admin, atau pegawai bidang itu | RLS + `canUploadToDivision` |
 | Ubah angka anggaran (`budget_snapshots`) | admin, atau bidang `finance` | RLS di `anggaran.sql` |
 | Menyetujui/menolak | admin | rute `/approvals` (klien) + RLS |
-| `viewer` | hanya membaca | **belum ditegakkan**, lihat Temuan terbuka |
+| `viewer` | hanya membaca | RLS (`current_profile_can_write()`) + `canUploadToDivision` |
 
 Saat menambah fitur:
 - Pakai helper yang ada (`useAuth().isAdmin`, `canUploadToDivision(divisionId)`,
@@ -194,6 +194,10 @@ Saat menambah fitur:
   lolos RLS `select`; jangan membuka jalan tulis baru.
 - Kebijakan RLS baru memakai pola yang sama:
   `public.current_profile_role() = 'admin' or public.current_profile_division() = <kolom bidang>`.
+- Setiap kebijakan **tulis** yang jalurnya bukan "admin saja" wajib menyertakan
+  `public.current_profile_can_write()`. Tanpa itu viewer yang punya bidang ikut
+  lolos, karena syarat lainnya hanya memeriksa bidang atau kepemilikan. Fungsi
+  itu gagal-tertutup: profil tanpa peran diperlakukan sebagai viewer.
 
 ## Aturan 5 — Jangan mengganggu logika yang sudah ada
 
@@ -313,7 +317,7 @@ satu per satu dalam branch tersendiri.
 | 1 | Kritis | Pengguna bisa mengubah `role`/`division_id` miliknya sendiri jadi admin. **Perbaikan sudah ditulis** (`supabase/perbaikan-profil-peran.sql` + `updateProfile` membuang kolom itu); tertutup setelah owner menjalankan SQL-nya | `supabase/schema.sql`; `AuthContext.updateProfile` |
 | 2 | ~~Tinggi~~ | ~~Kata sandi tersimpan polos di localStorage (`bpk-dashboard-last-login`)~~ **Sudah diperbaiki**: `rememberLogin` hanya menyimpan username, dan `getRememberedLogin` menimpa entri lama yang masih memuat sandi saat halaman masuk dibuka | `AuthContext.jsx` |
 | 3 | Tinggi | `xlsx@0.18.5` punya advisory prototype pollution + ReDoS, tanpa perbaikan di npm (versi aman hanya dari CDN SheetJS) | `package.json` |
-| 4 | Sedang | Peran `viewer` tidak ditegakkan di RLS maupun klien; pemilik konten bisa menyetujui kontennya sendiri | `supabase/policies.sql` |
+| 4 | Sedang | ~~Peran `viewer` tidak ditegakkan~~ **sudah diperbaiki** (migrasi `20261017000800_viewer_baca_saja.sql`). Sisa yang belum: pemilik konten masih bisa menyetujui kontennya sendiri | `supabase/policies.sql` |
 | 5 | Sedang | Tidak ada security header (CSP, `frame-ancestors`, `nosniff`, Referrer-Policy) | `vercel.json` |
 | 6 | Sedang | Validasi unggahan hanya di klien, tanpa batas ukuran; bucket tanpa batas MIME/ukuran | `documentStorage.js`, `policies.sql` |
 | 7 | Sedang | `public/data/anggaran.xlsx` dan angka di halaman masuk bisa dilihat tanpa login | `public/data/`, `Landing.jsx` |

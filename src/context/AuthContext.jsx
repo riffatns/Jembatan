@@ -159,6 +159,11 @@ export function AuthProvider({ children }) {
   const canUploadToDivision = useCallback(
     (divisionId) => {
       if (!user) return false
+      // Viewer tidak pernah boleh mengunggah, termasuk ke bidangnya sendiri.
+      // Sebelumnya syaratnya hanya kecocokan bidang, jadi viewer yang punya
+      // bidang tetap melihat tombol unggah. Database sudah menolaknya
+      // (migrasi viewer_baca_saja), ini supaya tombolnya pun tidak muncul.
+      if (user.role === 'viewer') return false
       return user.role === 'admin' || user.division === divisionId
     },
     [user]
