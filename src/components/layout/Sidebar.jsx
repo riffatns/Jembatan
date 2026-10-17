@@ -28,6 +28,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { cn } from '../../lib/utils'
 import { AGENDA_CATEGORY_ID } from '../../lib/agendaStorage'
+import { isRuteAkun } from '../../lib/akunNavigasi'
+import { AccountSidebar } from './AccountSidebar'
 import { MASTER_DATA_ROUTES, getDivisionSidebar } from '../../data/sidebarConfig'
 
 const LEGACY_ICONS = {
@@ -534,11 +536,17 @@ export function Sidebar({ mobileOpen, onCloseMobile }) {
   const location = useLocation()
   const divisionMatch = matchPath('/dashboard/division/:divisionId/*', location.pathname) || matchPath('/division/:divisionId/*', location.pathname)
   const isDashboardRoute = location.pathname === '/dashboard'
-  const isProfileRoute = location.pathname === '/profile'
   const isSectionRoute = SECTION_ROUTES.includes(location.pathname)
   const selectedDivisionId = sessionStorage.getItem('bpk-dashboard-selected-division') || user?.division || 'finance'
 
-  if (divisionMatch || isDashboardRoute || isProfileRoute || isSectionRoute) {
+  // Halaman akun berdiri di luar alur bidang - menu layanan tidak ada
+  // hubungannya di sana, dan tombol mereknya harus "Kembali", bukan
+  // "Pilih bidang lain".
+  if (isRuteAkun(location.pathname)) {
+    return <AccountSidebar onCloseMobile={onCloseMobile} />
+  }
+
+  if (divisionMatch || isDashboardRoute || isSectionRoute) {
     const activeDivisionId = divisionMatch?.params?.divisionId || selectedDivisionId
     if (!activeDivisionId) {
       return <LegacySidebar mobileOpen={mobileOpen} onCloseMobile={onCloseMobile} />

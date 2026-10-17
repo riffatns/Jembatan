@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { ingatHalamanSebelumAkun, isRuteAkun } from '../../lib/akunNavigasi'
 
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
+
+  // Halaman bukan-akun terakhir diingat, supaya tombol Kembali di sidebar
+  // akun mengembalikan pengguna ke tempat ia berangkat.
+  useEffect(() => { ingatHalamanSebelumAkun(location.pathname) }, [location.pathname])
   const isDivisionShellRoute = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard/division/') || location.pathname.startsWith('/dashboard/kalender') ||
     location.pathname.startsWith('/dashboard/anggaran') ||
     location.pathname.startsWith('/dashboard/master-anggaran') ||
@@ -13,7 +18,7 @@ export function DashboardLayout() {
     location.pathname.startsWith('/dashboard/monitoring') ||
     location.pathname.startsWith('/dashboard/laporan') ||
     location.pathname.startsWith('/dashboard/panduan') ||
-    location.pathname === '/profile'
+    isRuteAkun(location.pathname)
 
   if (isDivisionShellRoute) {
     return (
