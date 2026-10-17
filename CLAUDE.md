@@ -23,7 +23,13 @@ dibiarkan; aturan berlaku untuk kode yang baru ditulis atau sedang disentuh.
 npm ci            # pasang dependensi persis sesuai lockfile
 npm run dev       # http://localhost:5173
 npm run build     # WAJIB lulus sebelum commit
+npm run kemas     # build + jembatan-hosting.zip untuk diunggah ke Hostinger
 ```
+
+`npm run kemas` menolak membuat paket bila `.env.local` tidak terbaca atau
+`.htaccess` tidak ikut - dua cara gagal yang diam-diam: portal terbuka tetapi
+datanya kosong, atau refresh di `/dashboard` menghasilkan 404. Hostinger
+diunggah manual setiap ada perubahan; Vercel membangun sendiri dari `main`.
 
 Belum ada ESLint, Prettier, atau tes otomatis. Sampai ada, `npm run build`
 lulus dan uji manual di browser adalah syarat minimum setiap perubahan.
