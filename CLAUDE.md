@@ -185,6 +185,7 @@ lewat fungsi `public.current_profile_role()` dan `public.current_profile_divisio
 | Ubah angka anggaran (`budget_snapshots`) | admin, atau bidang `finance` | RLS di `anggaran.sql` |
 | Menyetujui/menolak | admin | rute `/approvals` (klien) + RLS |
 | `viewer` | hanya membaca | RLS (`current_profile_can_write()`) + `canUploadToDivision` |
+| Melihat riwayat masuk (`/dashboard/akses`) | hanya yang ditandai `profiles.is_teknis` | fungsi `daftar_akses()` menolak di database; `ProtectedRoute teknis` hanya menyembunyikan |
 
 Saat menambah fitur:
 - Pakai helper yang ada (`useAuth().isAdmin`, `canUploadToDivision(divisionId)`,
@@ -194,6 +195,10 @@ Saat menambah fitur:
   lolos RLS `select`; jangan membuka jalan tulis baru.
 - Kebijakan RLS baru memakai pola yang sama:
   `public.current_profile_role() = 'admin' or public.current_profile_division() = <kolom bidang>`.
+- Penanda `profiles.is_teknis` terpisah dari peran: ia hanya membuka halaman
+  Akses, tidak menambah hak apa pun atas data bidang. Tidak bisa diubah lewat
+  aplikasi (trigger `protect_profile_role` mengunci kolomnya untuk semua
+  pengguna, termasuk admin) - penandaannya lewat SQL Editor.
 - Setiap kebijakan **tulis** yang jalurnya bukan "admin saja" wajib menyertakan
   `public.current_profile_can_write()`. Tanpa itu viewer yang punya bidang ikut
   lolos, karena syarat lainnya hanya memeriksa bidang atau kepemilikan. Fungsi

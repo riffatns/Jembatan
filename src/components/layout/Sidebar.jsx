@@ -338,6 +338,26 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           </div>
         )}
 
+        {/* Hanya pengelola teknis. Penanda is_teknis terpisah dari peran, dan
+            database tetap menolak pemanggil yang tidak ditandai walau alamatnya
+            dibuka langsung. */}
+        {user?.is_teknis && (
+          <div className="mt-5 border-t border-white/10 pt-4">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Pengelola</p>
+            <div className="mt-3 space-y-1.5">
+              <SidebarNavButton
+                icon={ShieldCheck}
+                label="Akses Pengguna"
+                isActive={currentPath === '/dashboard/akses'}
+                onClick={() => {
+                  sessionStorage.setItem('bpk-dashboard-selected-division', divisionId)
+                  navigate('/dashboard/akses')
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 border-t border-white/10 pt-4">
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Bantuan</p>
           <div className="mt-3 space-y-1.5">

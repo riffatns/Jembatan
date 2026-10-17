@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-export function ProtectedRoute({ children, roles }) {
+export function ProtectedRoute({ children, roles, teknis = false }) {
   const { user, loading } = useAuth()
 
   if (loading) {
@@ -17,6 +17,14 @@ export function ProtectedRoute({ children, roles }) {
   }
 
   if (roles && !roles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  // Penanda pengelola teknis terpisah dari peran: Kepala Perwakilan berperan
+  // admin tetapi belum tentu orang yang mengurus sistemnya. Penolakan yang
+  // sesungguhnya ada di database (fungsi daftar_akses); ini hanya supaya
+  // halamannya tidak terbuka kosong.
+  if (teknis && !user.is_teknis) {
     return <Navigate to="/dashboard" replace />
   }
 
