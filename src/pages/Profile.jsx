@@ -8,13 +8,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
 import { formatDate } from '../lib/utils'
-import { getRoleInfo } from '../data/accessControl'
+import { accountIdentity, getRoleInfo, isInternalEmail } from '../data/accessControl'
 
 export default function Profile() {
   const { user, roleInfo, updateProfile } = useAuth()
   const { content, divisions } = useData()
   const [name, setName] = useState(user?.name || '')
-  const [email, setEmail] = useState(user?.email || '')
+  // Akun username-saja tidak punya email sungguhan; yang diedit hanya nama.
+  const akunInternal = isInternalEmail(user?.email)
+  const [email, setEmail] = useState(akunInternal ? '' : user?.email || '')
   const [saved, setSaved] = useState(false)
 
   const mySubmissions = useMemo(() => {
@@ -27,7 +29,7 @@ export default function Profile() {
 
   const handleSave = (e) => {
     e.preventDefault()
-    updateProfile({ name, email })
+    updateProfile(akunInternal ? { name } : { name, email })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -51,7 +53,7 @@ export default function Profile() {
 
             <div className="mt-6 w-full space-y-3 border-t border-slate-100 pt-4 text-left">
               <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Mail className="h-4 w-4 text-teal" /> {user?.email}
+                <Mail className="h-4 w-4 text-teal" /> {accountIdentity(user)}
               </div>
               {division && (
                 <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -77,8 +79,19 @@ export default function Profile() {
                 <Input value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Email Address</label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {akunInternal ? 'Username' : 'Email Address'}
+                </label>
+                {akunInternal ? (
+                  <>
+                    <Input value={user?.username || ''} readOnly disabled />
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      Akun ini masuk dengan username, bukan email. Hubungi administrator untuk mengubahnya.
+                    </p>
+                  </>
+                ) : (
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <Button type="submit" variant="teal">

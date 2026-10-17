@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async (username, password) => {
       if (isSupabaseConfigured) {
-        const email = username.includes('@') ? username.trim() : `${username.trim()}@jembatan.local`
+        const email = username.includes('@') ? username.trim() : `${username.trim()}${INTERNAL_EMAIL_DOMAIN}`
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error || !data.user) return { success: false, message: error?.message || 'Login gagal.' }
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single()
