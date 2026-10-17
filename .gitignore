@@ -18,3 +18,6 @@ supabase/.branches
 # Panduan Sistem dibuat ulang dari tools/buat-panduan.py, bukan disimpan di repo.
 # Berkas jadinya diunggah administrator lewat menu Panduan Sistem.
 panduan-sistem.pdf
+
+# Paket unggahan Hostinger, dibuat ulang dari dist/ setiap build.
+jembatan-hosting.zip

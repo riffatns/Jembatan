@@ -1,4 +1,3 @@
-const BUDGET_FILE_URL = '/data/anggaran.xlsx'
 const BUDGET_KEY = 'bpk-dashboard-budget'
 
 function parseAmount(value) {
@@ -67,10 +66,6 @@ export async function parseBudgetWorkbook(source) {
       }))
       .filter((item) => /^\d+$/.test(item.code))
   }
-}
-
-export async function loadBudgetData() {
-  return parseBudgetWorkbook(BUDGET_FILE_URL)
 }
 
 export function loadStoredBudget() {

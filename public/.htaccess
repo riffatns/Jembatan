@@ -14,7 +14,7 @@
 # mencari folder bernama "dashboard" yang memang tidak ada.
 #
 # Berkas dan folder yang benar-benar ada tetap dilayani apa adanya, supaya
-# gambar, /assets/, dan /data/anggaran.xlsx tidak ikut dialihkan.
+# gambar dan /assets/ tidak ikut dialihkan.
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /

@@ -325,6 +325,6 @@ satu per satu dalam branch tersendiri.
 | 4 | Sedang | ~~Peran `viewer` tidak ditegakkan~~ **sudah diperbaiki** (migrasi `20261017000800_viewer_baca_saja.sql`). Sisa yang belum: pemilik konten masih bisa menyetujui kontennya sendiri | `supabase/policies.sql` |
 | 5 | Sedang | Tidak ada security header (CSP, `frame-ancestors`, `nosniff`, Referrer-Policy) | `vercel.json` |
 | 6 | Sedang | Validasi unggahan hanya di klien, tanpa batas ukuran; bucket tanpa batas MIME/ukuran | `documentStorage.js`, `policies.sql` |
-| 7 | Sedang | `public/data/anggaran.xlsx` dan angka di halaman masuk bisa dilihat tanpa login | `public/data/`, `Landing.jsx` |
+| 7 | Sedang | ~~`public/data/anggaran.xlsx` bisa diunduh tanpa login~~ **berkasnya sudah dihapus** beserta jalur cadangannya. Angka di halaman masuk tetap terlihat tanpa login - itu keputusan pemilik proyek, bukan temuan yang belum digarap | `Landing.jsx` |
 | 8 | Rendah | `react-router-dom` 6.30.x dalam rentang advisory sedang; ada versi perbaikan | `package.json` |
 | 9 | Rendah | `fiscalYear` anggaran diambil dari tanggal hari ini, bukan dari berkas; `updated_at` snapshot tidak pernah diperbarui | `budgetStorage.js` |

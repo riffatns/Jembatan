@@ -10,7 +10,6 @@ import {
   toRemoteAsset
 } from '../lib/assetWorkbook'
 import {
-  loadBudgetData,
   loadStoredBudget,
   mapRemoteBudget,
   mergeRemoteBudget,
@@ -135,11 +134,11 @@ export function DataProvider({ children }) {
           return
         }
       }
-      // Berkas bawaan hanya dipakai bila belum pernah ada anggaran yang diunggah.
-      if (!loadStoredBudget()) {
-        const budget = await loadBudgetData()
-        if (active) setBudgetData(budget)
-      }
+      // Tidak ada berkas bawaan lagi: angkanya datang dari Master Data
+      // Anggaran, atau dari simpanan peramban bila pernah dimuat. Berkas
+      // contoh di public/data dihapus karena bisa diunduh siapa pun tanpa
+      // login (Temuan terbuka #7), dan tidak pernah terpakai begitu Master
+      // Data terisi.
       if (active) setBudgetReady(true)
     }
 
