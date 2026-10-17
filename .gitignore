@@ -14,3 +14,7 @@ supabase/.branches
 
 # Pengaturan alat bantu per mesin (mis. launch.json untuk menjalankan server dev)
 .claude
+
+# Panduan Sistem dibuat ulang dari tools/buat-panduan.py, bukan disimpan di repo.
+# Berkas jadinya diunggah administrator lewat menu Panduan Sistem.
+panduan-sistem.pdf
