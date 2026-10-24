@@ -38,7 +38,7 @@ function DeleteButton({ label, onClick }) {
 
 // Data aktif per tahun anggaran (hapus per TA) dan riwayat setiap unggahan
 // (unduh berkas asli dan hapus per unggahan; unggahan aktif ditandai).
-export function MasterUploadHistory({ reports, years, uploads, activeIds, onDeleteYear, onDeleteUpload, notice }) {
+export function MasterUploadHistory({ reports, years, uploads, activeIds, onDeleteYear, onDeleteUpload, notice, canManage }) {
   const source = useSourceDownload()
   const columns = [
     { key: 'createdAt', label: 'Waktu', value: (row) => new Date(row.createdAt).getTime() || 0, text: (row) => formatTime(row.createdAt) },
@@ -65,7 +65,7 @@ export function MasterUploadHistory({ reports, years, uploads, activeIds, onDele
           hasFile={row.action !== 'delete'}
           downloading={source.busyId === row.id}
           onDownload={source.download}
-          onDelete={onDeleteUpload}
+          onDelete={canManage ? onDeleteUpload : undefined}
         />
       )
     }
@@ -85,7 +85,7 @@ export function MasterUploadHistory({ reports, years, uploads, activeIds, onDele
                 <span className="text-[#3f557d]"> · s.d. {MONTH_NAMES[report.periodMonth - 1]} · Pagu {formatCompactRupiah(report.totals?.pagu)}</span>
                 <span className="block text-xs text-[#7a8aa8]">Diperbarui {formatTime(report.updatedAt)}{report.uploadedByName ? ` oleh ${report.uploadedByName}` : ''}</span>
               </div>
-              <DeleteButton label={`Hapus data TA ${year}`} onClick={() => onDeleteYear(report)} />
+              {canManage && <DeleteButton label={`Hapus data TA ${year}`} onClick={() => onDeleteYear(report)} />}
             </div>
           )
         }) : <p className="text-sm text-slate-500">Belum ada master data. Dashboard dan menu akun masih kosong.</p>}

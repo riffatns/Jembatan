@@ -22,7 +22,7 @@ function QuarterChip({ partition, selected, onSelect }) {
 
 // Data aktif per triwulan + riwayat versi triwulan terpilih. Setiap triwulan
 // punya versi aktif, rollback, dan kosongkan sendiri.
-export function DiklatQuarterHistory({ partitions, selected, onSelect, group }) {
+export function DiklatQuarterHistory({ partitions, selected, onSelect, group, canManage }) {
   const current = partitions.find((partition) => partition.dataset === selected) || partitions[0] || null
   const label = current ? `Kalender Diklat ${current.versions[0]?.periodLabel || current.period}` : 'Kalender Diklat'
   const deletion = useVersionDeletion({
@@ -36,9 +36,11 @@ export function DiklatQuarterHistory({ partitions, selected, onSelect, group }) 
     <div className={`${CARD_CLASS} gap-3`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className={CARD_TITLE_CLASS}>Data Aktif per Triwulan & Riwayat Versi</h2>
-        <Button variant="outline" size="sm" onClick={deletion.askClear} disabled={!current?.active} className="rounded-full text-[#c0262d]">
-          <IconTrash className="h-4 w-4" /> Kosongkan triwulan ini
-        </Button>
+        {canManage && (
+          <Button variant="outline" size="sm" onClick={deletion.askClear} disabled={!current?.active} className="rounded-full text-[#c0262d]">
+            <IconTrash className="h-4 w-4" /> Kosongkan triwulan ini
+          </Button>
+        )}
       </div>
       {partitions.length ? (
         <div className="flex flex-wrap gap-2">
@@ -48,7 +50,7 @@ export function DiklatQuarterHistory({ partitions, selected, onSelect, group }) 
         </div>
       ) : <p className="text-sm text-slate-500">Belum ada Kalender Diklat. Menu Kalender Diklat masih kosong.</p>}
       {deletion.notice && <p className={`rounded-xl px-3 py-2 text-[13px] ${deletion.notice.ok ? 'bg-[#dcf5e8] text-[#0b7a4f]' : 'bg-[#fde2e2] text-[#c0262d]'}`}>{deletion.notice.text}</p>}
-      {current && <VersionHistory versions={current.versions} activeId={current.active?.id} onDelete={deletion.askDelete} />}
+      {current && <VersionHistory versions={current.versions} activeId={current.active?.id} onDelete={canManage ? deletion.askDelete : undefined} />}
       <ConfirmDialog
         open={Boolean(deletion.dialog)}
         title={deletion.dialog?.title}

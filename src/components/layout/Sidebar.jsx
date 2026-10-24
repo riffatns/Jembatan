@@ -167,7 +167,7 @@ function SidebarNavButton({ icon: Icon, label, count, isActive, onClick }) {
 }
 
 function DivisionSidebar({ divisionId, onCloseMobile }) {
-  const { user } = useAuth()
+  const { user, isAdmin, isEmployee } = useAuth()
   const { getDocumentDivision, getDocumentCategories, stats, documents, agendaEvents } = useData()
   const navigate = useNavigate()
   const location = useLocation()
@@ -235,6 +235,9 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
   if (!division) return null
 
   const totalDivisionDocs = stats.documentsByDivision.find((item) => item.id === divisionId)?.total || 0
+  const profileDivision = user?.division || user?.division_id
+  const canOpenMasterData = isAdmin
+    || (isEmployee && ['hr', 'finance'].includes(profileDivision) && ['hr', 'finance'].includes(divisionId))
 
   return (
     <aside className="flex w-full flex-col bg-[#0b2d5a] text-white shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:sticky lg:top-0 lg:h-screen lg:w-[290px]">
@@ -279,7 +282,7 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
           })}
         </div>
 
-        {sidebarConfig.masterData && user?.role === 'admin' && (
+        {sidebarConfig.masterData && canOpenMasterData && (
           <div className="mt-5 border-t border-white/10 pt-4">
             <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-sky-200/65">Master Data</p>
             <div className="mt-3 space-y-1.5">

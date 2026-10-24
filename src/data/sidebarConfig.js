@@ -7,7 +7,7 @@ import { USE_NEW_ACCOUNT_VIEWS, USE_NEW_ASSET_VIEWS, USE_NEW_HR_VIEWS } from '..
 // - categoryFilter: layanan yang ditampilkan (bawaan: semua)
 // - hideCountFor: layanan tanpa angka hitungan dokumen
 // - hideMonitoring / hideIntegration: sembunyikan Kalender Bersama / JASMIN
-// - masterData: tautan Master Data (hanya untuk admin)
+// - masterData: tautan Master Data (admin dan pegawai bidang terkait)
 const DIVISION_SIDEBAR = {
   finance: {
     enabled: USE_NEW_ACCOUNT_VIEWS,

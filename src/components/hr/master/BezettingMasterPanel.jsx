@@ -12,6 +12,7 @@ import { useVersionDeletion } from '../../master-data/useVersionDeletion'
 import { Button } from '../../ui/button'
 import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { ConfirmDialog } from '../../ui/ConfirmDialog'
+import { useAuth } from '../../../context/AuthContext'
 
 const FIELD = 'h-11 w-full min-w-0 rounded-xl border border-[#d6dfec] bg-white px-3 text-sm font-semibold text-[#12305f] outline-none focus:border-[#2f7fe8]'
 const currentYear = new Date().getFullYear()
@@ -28,6 +29,8 @@ const STAGES = {
 }
 
 export function BezettingMasterPanel() {
+  const { user } = useAuth()
+  const canManage = user?.role === 'admin'
   const dataset = useMasterDataset(BEZETTING_DATASET, { ownerDivision: HR_DIVISION_ID })
   const deletion = useVersionDeletion({ versions: dataset.versions, deleteVersion: dataset.deleteVersion, clear: dataset.clear, dataLabel: 'data SDM' })
   const [file, setFile] = useState(null)
@@ -111,12 +114,14 @@ export function BezettingMasterPanel() {
               <span className="text-[13px] text-[#3f557d]">
                 {dataset.active ? <>Aktif: <b className="text-[#12305f]">{dataset.active.periodLabel || '-'}</b></> : 'Belum ada data aktif'}
               </span>
-              <Button variant="outline" size="sm" onClick={deletion.askClear} disabled={!dataset.active} className="rounded-full text-[#c0262d]">
-                <IconTrash className="h-4 w-4" /> Kosongkan data
-              </Button>
+              {canManage && (
+                <Button variant="outline" size="sm" onClick={deletion.askClear} disabled={!dataset.active} className="rounded-full text-[#c0262d]">
+                  <IconTrash className="h-4 w-4" /> Kosongkan data
+                </Button>
+              )}
             </div>
             {deletion.notice && <p className={`rounded-xl px-3 py-2 text-[13px] ${deletion.notice.ok ? 'bg-[#dcf5e8] text-[#0b7a4f]' : 'bg-[#fde2e2] text-[#c0262d]'}`}>{deletion.notice.text}</p>}
-            <VersionHistory versions={dataset.versions} activeId={dataset.active?.id} onDelete={deletion.askDelete} />
+            <VersionHistory versions={dataset.versions} activeId={dataset.active?.id} onDelete={canManage ? deletion.askDelete : undefined} />
           </div>
         </div>
       </section>

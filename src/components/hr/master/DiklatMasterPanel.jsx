@@ -9,6 +9,7 @@ import { CARD_CLASS, CARD_TITLE_CLASS } from '../../ui/cardStyles'
 import { DIKLAT_PREFIX, buildDiklatPayload, diklatDatasetName, quarterLabel } from '../diklat/diklatModel'
 import { DiklatMasterPreview } from './DiklatMasterPreview'
 import { DiklatQuarterHistory } from './DiklatQuarterHistory'
+import { useAuth } from '../../../context/AuthContext'
 
 const NOTICE = {
   ok: 'bg-[#dcf5e8] text-[#0b7a4f]',
@@ -45,6 +46,7 @@ async function readKaldik(file, onStage) {
 // (triwulan & tahun dari judul PDF); unggahan yang lolos validasi langsung
 // menjadi data aktif triwulan itu, tanpa approval.
 export function DiklatMasterPanel() {
+  const { user } = useAuth()
   const group = useMasterDatasetGroup(DIKLAT_PREFIX)
   const [file, setFile] = useState(null)
   const [parsed, setParsed] = useState(null)
@@ -114,7 +116,7 @@ export function DiklatMasterPanel() {
 
       <div className="flex min-w-0 flex-col gap-4 fit:gap-2.5">
         <DiklatMasterPreview parsed={parsed} />
-        <DiklatQuarterHistory partitions={group.partitions} selected={selected} onSelect={setSelected} group={group} />
+        <DiklatQuarterHistory partitions={group.partitions} selected={selected} onSelect={setSelected} group={group} canManage={user?.role === 'admin'} />
       </div>
     </section>
   )

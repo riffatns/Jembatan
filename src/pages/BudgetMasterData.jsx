@@ -8,6 +8,7 @@ import { MasterReportPreview } from '../components/budget/master/MasterReportPre
 import { MasterUploadHistory } from '../components/budget/master/MasterUploadHistory'
 import { useMasterDeletion } from '../components/budget/master/useMasterDeletion'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { useAuth } from '../context/AuthContext'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_FILE = /\.(xlsx|xls)$/i
@@ -22,6 +23,8 @@ const STAGES = {
 }
 
 export default function BudgetMasterData() {
+  const { user } = useAuth()
+  const canManage = user?.role === 'admin'
   const { reports, years, uploads, activeUploadIds, refreshUploads, refreshReports, saveReport, deleteReport, deleteUpload } = useBudgetReports()
   const [file, setFile] = useState(null)
   const [parsed, setParsed] = useState(null)
@@ -131,6 +134,7 @@ export default function BudgetMasterData() {
             onDeleteYear={deletion.askYear}
             onDeleteUpload={deletion.askUpload}
             notice={deletion.notice}
+            canManage={canManage}
           />
         </div>
       </section>

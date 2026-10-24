@@ -21,15 +21,17 @@ export function VersionActions({ row, label, hasFile, downloading, onDownload, o
           <IconDownload className={`h-[18px] w-[18px] ${downloading ? 'animate-pulse' : ''}`} />
         </button>
       ) : <span className="h-8 w-8" aria-hidden="true" />}
-      <button
-        type="button"
-        onClick={() => onDelete(row)}
-        title="Hapus"
-        aria-label={`Hapus ${label}`}
-        className={`${ICON_BUTTON} text-[#c0262d] hover:bg-[#fde2e2]`}
-      >
-        <IconTrash className="h-[18px] w-[18px]" />
-      </button>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(row)}
+          title="Hapus"
+          aria-label={`Hapus ${label}`}
+          className={`${ICON_BUTTON} text-[#c0262d] hover:bg-[#fde2e2]`}
+        >
+          <IconTrash className="h-[18px] w-[18px]" />
+        </button>
+      )}
     </div>
   )
 }

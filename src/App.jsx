@@ -65,7 +65,7 @@ export default function App() {
           <Route
             path="/dashboard/master-sdm"
             element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin', 'employee']} divisions={['hr', 'finance']}>
                 <HrMasterData />
               </ProtectedRoute>
             }
@@ -81,7 +81,7 @@ export default function App() {
           <Route
             path="/dashboard/master-anggaran"
             element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin', 'employee']} divisions={['hr', 'finance']}>
                 <BudgetMasterData />
               </ProtectedRoute>
             }

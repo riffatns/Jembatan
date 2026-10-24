@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-export function ProtectedRoute({ children, roles, teknis = false }) {
-  const { user, loading } = useAuth()
+export function ProtectedRoute({ children, roles, divisions, teknis = false }) {
+  const { user, loading, isAdmin, isEmployee } = useAuth()
 
   if (loading) {
     return (
@@ -16,7 +16,15 @@ export function ProtectedRoute({ children, roles, teknis = false }) {
     return <Navigate to="/" replace />
   }
 
-  if (roles && !roles.includes(user.role)) {
+  const roleAllowed = roles?.includes(user.role)
+    || (roles?.includes('employee') && isEmployee)
+    || (roles?.includes('admin') && isAdmin)
+  if (roles && !roleAllowed) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  const profileDivision = user.division || user.division_id
+  if (divisions && !divisions.includes(profileDivision)) {
     return <Navigate to="/dashboard" replace />
   }
 
