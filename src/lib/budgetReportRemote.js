@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 import { toRemoteBudget } from './budgetStorage'
-import { mapRemoteUpload, reportToBudget, toRemoteReport } from './budgetReportStorage'
+import { mapRemoteReport, mapRemoteUpload, reportToBudget, toRemoteReport } from './budgetReportStorage'
 
 // Operasi Supabase untuk Master Data Anggaran yang dipakai BudgetReportContext.
 // RLS yang menolak delete tidak memberi galat, hanya 0 baris; karena itu
@@ -50,4 +50,21 @@ export async function fetchLatestVersion(fiscalYear) {
     .limit(1)
   if (error || !data?.length) return null
   return mapRemoteUpload(data[0])
+}
+
+// Ringkasan anggaran (halaman masuk, Dashboard lama, ruang kerja bidang).
+// Satu-satunya jalan membacanya, sebelum maupun sesudah login: budget_reports
+// TA terbesar, dihitung reportToBudget - sama dengan Dashboard Keuangan.
+// budget_snapshots tidak dipakai di sini karena cermin turunan yang bisa
+// melenceng: sempat ada baris TA 2027 tanpa laporan, dan begitu pengguna
+// login lalu kembali ke halaman masuk, angka baris itu yang tampil.
+// Kolom disebut satu per satu karena anon hanya diberi hak atas ketiganya.
+export async function fetchBudgetSummary() {
+  const { data, error } = await supabase
+    .from('budget_reports')
+    .select('fiscal_year, groups, updated_at')
+    .order('fiscal_year', { ascending: false })
+    .limit(1)
+  if (error || !data?.[0]) return null
+  return reportToBudget(mapRemoteReport(data[0]))
 }
