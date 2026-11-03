@@ -11,7 +11,6 @@ import {
 } from '../lib/assetWorkbook'
 import {
   loadStoredBudget,
-  mapRemoteBudget,
   mergeRemoteBudget,
   parseBudgetWorkbook,
   saveStoredBudget,
@@ -25,7 +24,7 @@ import {
   saveStoredAgenda,
   toRemoteAgendaPayload
 } from '../lib/agendaStorage'
-import { mapRemoteReport, reportToBudget } from '../lib/budgetReportStorage'
+import { fetchBudgetSummary } from '../lib/budgetReportRemote'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
 
@@ -121,14 +120,10 @@ export function DataProvider({ children }) {
     // bawaan tetap dipakai, jadi tidak ada yang rusak sambil menunggu.
     const muatRingkasan = async () => {
       if (isSupabaseConfigured) {
-        const { data, error } = await supabase
-          .from('budget_reports')
-          .select('fiscal_year, groups, updated_at')
-          .order('fiscal_year', { ascending: false })
-          .limit(1)
-        if (!error && data?.[0]) {
+        const summary = await fetchBudgetSummary()
+        if (summary) {
           if (active) {
-            setBudgetData((current) => mergeRemoteBudget(current, reportToBudget(mapRemoteReport(data[0]))))
+            setBudgetData((current) => mergeRemoteBudget(current, summary))
             setBudgetReady(true)
           }
           return
@@ -146,31 +141,27 @@ export function DataProvider({ children }) {
     return () => { active = false }
   }, [])
 
-  // Ambil ulang snapshot anggaran terbaru. Dipanggil oleh Dashboard Anggaran
-  // dan oleh realtime saat admin mengunggah berkas anggaran baru.
+  // Ambil ulang ringkasan anggaran terbaru. Dipanggil oleh Master Data
+  // Anggaran dan oleh realtime saat admin mengunggah berkas anggaran baru.
+  // Sumbernya sama dengan pembacaan awal di atas (fetchBudgetSummary); dulu
+  // budget_snapshots, dan itulah yang membuat halaman masuk berganti angka
+  // setelah pengguna login lalu kembali ke sana.
   const refreshBudget = useCallback(async () => {
     if (!isSupabaseConfigured || !user) return
-    const { data, error } = await supabase
-      .from('budget_snapshots')
-      .select('*')
-      .order('fiscal_year', { ascending: false })
-      .limit(1)
-    if (!error && data?.[0]) {
-      const remote = mapRemoteBudget(data[0])
-      setBudgetData((current) => mergeRemoteBudget(current, remote))
-    }
+    const summary = await fetchBudgetSummary()
+    if (summary) setBudgetData((current) => mergeRemoteBudget(current, summary))
   }, [user])
 
   useEffect(() => {
     if (!isSupabaseConfigured || !user) return undefined
     let active = true
     const loadRemoteData = async () => {
-      const [divisionResult, categoryResult, documentResult, contentResult, budgetResult, agendaResult, assetResult] = await Promise.all([
+      const [divisionResult, categoryResult, documentResult, contentResult, budgetSummary, agendaResult, assetResult] = await Promise.all([
         supabase.from('divisions').select('*').order('name'),
         supabase.from('document_categories').select('*').order('name'),
         supabase.from('documents').select('*').order('created_at', { ascending: false }),
         supabase.from('content').select('*').order('created_at', { ascending: false }),
-        supabase.from('budget_snapshots').select('*').order('fiscal_year', { ascending: false }).limit(1),
+        fetchBudgetSummary().catch(() => null),
         supabase.from('agenda_events').select('*').order('event_date', { ascending: true }),
         supabase.from('assets').select('*').order('nama_barang')
       ])
@@ -211,10 +202,7 @@ export function DataProvider({ children }) {
       }
       if (!documentResult.error) setDocuments((documentResult.data || []).map(mapRemoteDocument))
       if (!contentResult.error) setContent(contentResult.data || [])
-      if (!budgetResult.error && budgetResult.data?.[0]) {
-        const remote = mapRemoteBudget(budgetResult.data[0])
-        setBudgetData((current) => mergeRemoteBudget(current, remote))
-      }
+      if (budgetSummary) setBudgetData((current) => mergeRemoteBudget(current, budgetSummary))
     }
     loadRemoteData().catch(() => {})
     const channel = supabase
