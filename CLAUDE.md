@@ -13,9 +13,12 @@ dibiarkan; aturan berlaku untuk kode yang baru ditulis atau sedang disentuh.
 - Portal internal kesekretariatan BPK Perwakilan Papua Barat Daya.
 - React 18 + Vite 5 (JavaScript, bukan TypeScript), Tailwind 3, React Router 6,
   lucide-react, Recharts, xlsx. Backend Supabase (Postgres + RLS + Storage +
-  Realtime). Deploy Vercel.
+  Realtime). Hosting hanya di Vercel; Hostinger hanya tempat domain dibeli,
+  bukan hosting.
 - **Push ke `main` = langsung rilis ke pengguna.** Selalu kerja di branch
   `feat/...` atau `fix/...`, cek preview Vercel, baru gabung ke `main`.
+  Begitu deploy Vercel dari `main` selesai, rilis selesai - tidak ada langkah
+  unggah manual.
 - Tanpa `.env.local` aplikasi jalan dalam mode contoh (localStorage, akun demo
   `admin`/`admin123`). Mode ini hanya untuk pengembangan lokal.
 
@@ -23,13 +26,11 @@ dibiarkan; aturan berlaku untuk kode yang baru ditulis atau sedang disentuh.
 npm ci            # pasang dependensi persis sesuai lockfile
 npm run dev       # http://localhost:5173
 npm run build     # WAJIB lulus sebelum commit
-npm run kemas     # build + jembatan-hosting.zip untuk diunggah ke Hostinger
 ```
 
-`npm run kemas` menolak membuat paket bila `.env.local` tidak terbaca atau
-`.htaccess` tidak ikut - dua cara gagal yang diam-diam: portal terbuka tetapi
-datanya kosong, atau refresh di `/dashboard` menghasilkan 404. Hostinger
-diunggah manual setiap ada perubahan; Vercel membangun sendiri dari `main`.
+`npm run kemas` (`tools/kemas-hosting.mjs`) dan `public/.htaccess` adalah sisa
+persiapan hosting Apache/LiteSpeed. Keduanya tidak dipakai dalam rilis dan
+tidak perlu dijalankan atau ditawarkan setelah gabung ke `main`.
 
 Belum ada ESLint, Prettier, atau tes otomatis. Sampai ada, `npm run build`
 lulus dan uji manual di browser adalah syarat minimum setiap perubahan.
