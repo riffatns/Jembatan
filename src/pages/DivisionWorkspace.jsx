@@ -83,7 +83,6 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
     return dikenal ? stored : categories[0]?.id || 'all'
   })
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
   const [year, setYear] = useState('all')
   const [selectedDate, setSelectedDate] = useState('')
   const [uploadOpen, setUploadOpen] = useState(false)
@@ -128,7 +127,6 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         [document.title, document.description, document.fileName, document.documentNumber]
           .filter(Boolean)
           .some((value) => value.toLowerCase().includes(search.toLowerCase()))
-      const matchesStatus = status === 'all' || document.status === status
       const matchesYear = year === 'all' || String(document.year) === String(year)
       const matchesCategory = activeCategoryId === 'all' || document.categoryId === activeCategoryId
       const matchesArchive =
@@ -137,9 +135,9 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
         (document.archiveStatus || DEFAULT_ARCHIVE_STATUS) === archiveFilter
       const documentDate = new Date(document.documentDate || document.uploadedAt)
       const matchesMonth = !selectedDate || (documentDate.getFullYear() === selectedDateObject.getFullYear() && documentDate.getMonth() === selectedDateObject.getMonth())
-      return matchesSearch && matchesStatus && matchesYear && matchesCategory && matchesMonth && matchesArchive
+      return matchesSearch && matchesYear && matchesCategory && matchesMonth && matchesArchive
     })
-  }, [divisionDocuments, search, status, year, activeCategoryId, selectedDateObject, archiveFilter])
+  }, [divisionDocuments, search, year, activeCategoryId, selectedDateObject, archiveFilter])
 
   const dateFilteredDocuments = useMemo(
     () => divisionDocuments.filter((document) => {
@@ -253,8 +251,7 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
     await addDocument({
       ...payload,
       uploadedBy: user?.name,
-      uploadedAt: new Date().toISOString(),
-      status: 'pending'
+      uploadedAt: new Date().toISOString()
     })
 
     const spreadsheet = payload.file && /\.(xlsx|xlsm|xls)$/i.test(payload.file.name)
@@ -429,8 +426,6 @@ export default function DivisionWorkspace({ divisionId: propDivisionId }) {
             <DocumentFilters
               search={search}
               onSearchChange={setSearch}
-              status={status}
-              onStatusChange={setStatus}
               year={year}
               onYearChange={setYear}
               categoryId={activeCategoryId}

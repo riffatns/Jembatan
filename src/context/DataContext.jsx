@@ -74,10 +74,9 @@ function mapRemoteDocument(document) {
   }
 }
 
-function getUploadStatus(user, divisionId) {
-  const userDivision = user?.division || user?.division_id
-  return user?.role === 'employee' && userDivision === divisionId ? 'approved' : 'pending'
-}
+// Unggahan langsung masuk, tanpa antrean persetujuan. Siapa yang boleh
+// mengunggah ke bidang mana tetap ditentukan RLS, bukan oleh status ini.
+const UPLOAD_STATUS = 'approved'
 
 export function DataProvider({ children }) {
   const { user } = useAuth()
@@ -305,7 +304,6 @@ export function DataProvider({ children }) {
   const getDocumentCategories = useCallback((divisionId) => activeDocumentStructure.find((item) => item.divisionId === divisionId)?.categories || [], [activeDocumentStructure])
 
   const addDocument = useCallback(async (item) => {
-    const uploadStatus = getUploadStatus(user, item.divisionId)
     if (isSupabaseConfigured && user?.id) {
       let filePath = null
       if (item.file) {
@@ -329,7 +327,7 @@ export function DataProvider({ children }) {
         agreement_type: item.agreementType || null,
         counterparty: item.counterparty || null,
         valid_until: item.validUntil || null,
-        status: uploadStatus,
+        status: UPLOAD_STATUS,
         uploaded_by: user.id
       }).select().single()
       if (error) throw error
@@ -345,7 +343,7 @@ export function DataProvider({ children }) {
       fileDataUrl: null,
       ...item,
       id: item.id || newDocumentId(),
-      status: uploadStatus
+      status: UPLOAD_STATUS
     })
     setDocuments((prev) => [newDocument, ...prev])
     return newDocument

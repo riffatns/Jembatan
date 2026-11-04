@@ -1,7 +1,7 @@
 import { Archive, FolderOpen, Trash2 } from 'lucide-react'
 
 // Siklus hidup arsip. Ini sumbu yang berbeda dari `status` dokumen
-// (pending/approved/rejected) yang mengatur alur persetujuan - sebuah arsip bisa
+// (pending/approved/rejected) - sebuah arsip bisa
 // sudah "approved" tapi statusnya "musnah", dan itu wajar.
 export const ARCHIVE_CATEGORY_ID = 'arsip'
 

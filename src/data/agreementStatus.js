@@ -4,9 +4,8 @@ import { AlertTriangle, CircleCheck, CircleSlash, FileCheck2, Handshake, ScrollT
 // nota kesepahaman, perjanjian yang mengikat, dan telaah hukum. Hanya dua yang
 // pertama punya masa berlaku - telaah tidak berakhir, ia hanya bertanggal.
 //
-// Sumbu ini terpisah dari `status` dokumen (pending/approved/rejected) yang
-// mengatur alur persetujuan unggahan, sama seperti archiveStatus. Sebuah MoU
-// bisa berstatus 'approved' sekaligus sudah 'berakhir'.
+// Sumbu ini terpisah dari `status` dokumen (pending/approved/rejected), sama
+// seperti archiveStatus. Sebuah MoU berstatus 'approved' bisa saja sudah 'berakhir'.
 export const AGREEMENT_CATEGORY_ID = 'legislasi-review-mou'
 
 export function isAgreementCategory(categoryId) {

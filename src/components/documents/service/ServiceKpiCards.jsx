@@ -1,4 +1,4 @@
-import { IconAlert, IconDocument, IconFolderDocuments, IconTrendUp } from '../../icons/DuotoneIcons'
+import { IconCalendar, IconDocument, IconFolderDocuments } from '../../icons/DuotoneIcons'
 import { formatPercent } from '../../../lib/budgetFormat'
 import { CARD_CLASS, LABEL_CLASS } from '../../ui/cardStyles'
 import { useCountUp } from '../../../hooks/useAnimatedProgress'
@@ -8,14 +8,13 @@ import { useCountUp } from '../../../hooks/useAnimatedProgress'
 // label, angka besar di bawahnya, keterangan kecil di bawahnya lagi.
 //
 // Angkanya dihitung dari dokumen yang sedang tampil, jadi ikut menyesuaikan
-// saat penyaring status, tahun, atau pencarian diubah - kartunya menerangkan
-// yang sedang dilihat, bukan yang ada di basis data.
+// saat penyaring tahun atau pencarian diubah - kartunya menerangkan yang sedang
+// dilihat, bukan yang ada di basis data.
 
 const WARNA = {
   biru: '#2a78d6',
   hijau: '#1fae7a',
-  oren: '#eda100',
-  merah: '#dc2626'
+  oren: '#eda100'
 }
 
 function Kartu({ icon: Icon, label, value, note, color }) {
@@ -45,13 +44,14 @@ function Kartu({ icon: Icon, label, value, note, color }) {
 
 export function ServiceKpiCards({ documents }) {
   const total = documents.length
-  const disetujui = documents.filter((document) => document.status === 'approved').length
-  const menunggu = documents.filter((document) => document.status === 'pending').length
-  const ditolak = documents.filter((document) => document.status === 'rejected').length
+  const today = new Date()
+  const tanggalUnggah = (document) => new Date(document.uploadedAt || document.documentDate)
+  const tahunIni = documents.filter((document) => tanggalUnggah(document).getFullYear() === today.getFullYear())
+  const bulanIni = tahunIni.filter((document) => tanggalUnggah(document).getMonth() === today.getMonth())
   const bagian = (jumlah) => (total ? `${formatPercent((jumlah / total) * 100, 0)} dari seluruhnya` : 'Belum ada berkas')
 
   return (
-    <section className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4 fit:gap-2.5 tall:gap-3">
+    <section className="grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-3 fit:gap-2.5 tall:gap-3">
       <Kartu
         icon={IconFolderDocuments}
         label="Seluruh Berkas"
@@ -59,9 +59,8 @@ export function ServiceKpiCards({ documents }) {
         note={total ? 'Sesuai penyaring yang dipilih' : 'Belum ada berkas di layanan ini'}
         color={WARNA.biru}
       />
-      <Kartu icon={IconTrendUp} label="Disetujui" value={disetujui} note={bagian(disetujui)} color={WARNA.hijau} />
-      <Kartu icon={IconDocument} label="Menunggu" value={menunggu} note={bagian(menunggu)} color={WARNA.oren} />
-      <Kartu icon={IconAlert} label="Ditolak" value={ditolak} note={bagian(ditolak)} color={WARNA.merah} />
+      <Kartu icon={IconCalendar} label="Diunggah Tahun Ini" value={tahunIni.length} note={bagian(tahunIni.length)} color={WARNA.hijau} />
+      <Kartu icon={IconDocument} label="Diunggah Bulan Ini" value={bulanIni.length} note={bagian(bulanIni.length)} color={WARNA.oren} />
     </section>
   )
 }

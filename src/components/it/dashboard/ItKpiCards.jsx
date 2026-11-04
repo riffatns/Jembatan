@@ -30,7 +30,7 @@ export function ItKpiCards({ model }) {
         icon={IconFolderDocuments}
         label="Dokumen Layanan"
         value={total.dokumen}
-        note={total.menunggu ? `${total.menunggu} menunggu persetujuan` : 'Tidak ada yang menunggu persetujuan'}
+        note={total.dokumen ? 'Tersimpan di seluruh layanan bidang' : 'Belum ada dokumen layanan'}
         color="#6d4fe0"
         satuan="berkas"
       />

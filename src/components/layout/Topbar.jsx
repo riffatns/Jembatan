@@ -37,26 +37,18 @@ export function Topbar({ onOpenMobile }) {
       .slice(0, 6)
   }, [search, documents])
 
+  // Unggahan langsung masuk, jadi tidak ada lagi yang menunggu review. Yang
+  // masih perlu diberitahukan hanya dokumen lama pengguna yang pernah ditolak.
   const notifications = useMemo(() => {
-    if (isAdmin) {
-      return documents
-        .filter((document) => document.status === 'pending')
-        .slice(0, 6)
-        .map((document) => ({
-          ...document,
-          date: document.uploadedAt || document.documentDate,
-          message: `Dokumen menunggu review: "${document.title}"`
-        }))
-    }
     return documents
-      .filter((document) => document.uploadedBy === user?.name && document.status !== 'pending')
+      .filter((document) => document.uploadedBy === user?.name && document.status === 'rejected')
       .slice(0, 6)
       .map((document) => ({
         ...document,
         date: document.uploadedAt || document.documentDate,
-        message: `Dokumen Anda "${document.title}" berstatus ${document.status}.`
+        message: `Dokumen Anda "${document.title}" pernah ditolak.`
       }))
-  }, [documents, isAdmin, user])
+  }, [documents, user])
 
   const roleInfo = getPositionInfo(user)
 
