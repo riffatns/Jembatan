@@ -173,7 +173,7 @@ export function DocumentUploadModal({
       documentDate: form.documentDate,
       year: Number(form.year),
       uploadedBy: initialDocument?.uploadedBy || user?.name,
-      status: initialDocument?.status || 'pending',
+      status: initialDocument?.status || 'approved',
       rejectionReason: initialDocument?.rejectionReason || ''
     }
 

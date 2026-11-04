@@ -71,15 +71,10 @@ export default function Reports() {
           name: category.name,
           jenis: isAgenda ? 'Agenda' : 'Dokumen',
           total: items.length,
-          selesai: isAgenda
-            ? items.filter((item) => item.status === 'done').length
-            : items.filter((item) => item.status === 'approved').length,
-          menunggu: isAgenda
-            ? items.filter((item) => item.status === 'scheduled').length
-            : items.filter((item) => item.status === 'pending').length,
-          batal: isAgenda
-            ? items.filter((item) => item.status === 'cancelled').length
-            : items.filter((item) => item.status === 'rejected').length
+          // Dokumen tidak lagi punya tahapan; rincian ini hanya berlaku untuk agenda.
+          selesai: isAgenda ? items.filter((item) => item.status === 'done').length : '-',
+          terjadwal: isAgenda ? items.filter((item) => item.status === 'scheduled').length : '-',
+          batal: isAgenda ? items.filter((item) => item.status === 'cancelled').length : '-'
         }
       }),
     [categories, periodDocuments, periodAgenda]
@@ -90,11 +85,11 @@ export default function Reports() {
   const summary = useMemo(
     () => ({
       dokumen: periodDocuments.length,
-      disetujui: periodDocuments.filter((document) => document.status === 'approved').length,
-      menunggu: periodDocuments.filter((document) => document.status === 'pending').length,
-      agenda: periodAgenda.length
+      layananTerisi: rows.filter((row) => row.total > 0).length,
+      agenda: periodAgenda.length,
+      agendaSelesai: periodAgenda.filter((event) => event.status === 'done').length
     }),
-    [periodDocuments, periodAgenda]
+    [periodDocuments, periodAgenda, rows]
   )
 
   // Ekspor memakai pustaka xlsx yang sudah ada di proyek, jadi laporannya bisa
@@ -106,13 +101,13 @@ export default function Reports() {
       [`Periode: ${periodLabel}`],
       [`Diunduh: ${formatDate(new Date().toISOString())}`],
       [],
-      ['Layanan', 'Jenis', 'Total', 'Disetujui / Selesai', 'Menunggu / Terjadwal', 'Ditolak / Batal'],
-      ...rows.map((row) => [row.name, row.jenis, row.total, row.selesai, row.menunggu, row.batal]),
+      ['Layanan', 'Jenis', 'Total', 'Agenda Selesai', 'Agenda Terjadwal', 'Agenda Batal'],
+      ...rows.map((row) => [row.name, row.jenis, row.total, row.selesai, row.terjadwal, row.batal]),
       [],
       ['Total dokumen', summary.dokumen],
-      ['Dokumen disetujui', summary.disetujui],
-      ['Dokumen menunggu review', summary.menunggu],
-      ['Agenda kegiatan', summary.agenda]
+      ['Layanan terisi', summary.layananTerisi],
+      ['Agenda kegiatan', summary.agenda],
+      ['Agenda selesai', summary.agendaSelesai]
     ]
 
     const workbook = XLSX.utils.book_new()
@@ -159,9 +154,9 @@ export default function Reports() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryTile label="Dokumen Masuk" value={summary.dokumen} color="#2a78d6" hint={periodLabel} />
-        <SummaryTile label="Disetujui" value={summary.disetujui} color="#16a34a" />
-        <SummaryTile label="Menunggu Review" value={summary.menunggu} color="#f59e0b" />
+        <SummaryTile label="Layanan Terisi" value={summary.layananTerisi} color="#16a34a" hint={`Dari ${rows.length} layanan`} />
         <SummaryTile label="Agenda Kegiatan" value={summary.agenda} color="#7c3aed" />
+        <SummaryTile label="Agenda Selesai" value={summary.agendaSelesai} color="#f59e0b" />
       </div>
 
       <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
@@ -177,9 +172,9 @@ export default function Reports() {
                 <th className="px-5 py-3">Layanan</th>
                 <th className="px-5 py-3">Jenis</th>
                 <th className="px-5 py-3 text-right">Total</th>
-                <th className="px-5 py-3 text-right">Disetujui / Selesai</th>
-                <th className="px-5 py-3 text-right">Menunggu / Terjadwal</th>
-                <th className="px-5 py-3 text-right">Ditolak / Batal</th>
+                <th className="px-5 py-3 text-right">Agenda Selesai</th>
+                <th className="px-5 py-3 text-right">Agenda Terjadwal</th>
+                <th className="px-5 py-3 text-right">Agenda Batal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -189,7 +184,7 @@ export default function Reports() {
                   <td className="px-5 py-3 text-slate-500">{row.jenis}</td>
                   <td className="px-5 py-3 text-right font-semibold text-slate-700">{row.total}</td>
                   <td className="px-5 py-3 text-right text-slate-600">{row.selesai}</td>
-                  <td className="px-5 py-3 text-right text-slate-600">{row.menunggu}</td>
+                  <td className="px-5 py-3 text-right text-slate-600">{row.terjadwal}</td>
                   <td className="px-5 py-3 text-right text-slate-600">{row.batal}</td>
                 </tr>
               ))}

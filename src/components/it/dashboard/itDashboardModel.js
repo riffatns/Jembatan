@@ -54,8 +54,6 @@ export function buildItModel({ assets = [], documents = [], categories = [] } = 
     value: documents.filter((document) => document.categoryId === category.id).length
   }))
 
-  const menunggu = documents.filter((document) => document.status === 'pending').length
-
   return {
     hasData: assets.length > 0 || documents.length > 0,
     adaAset: assets.length > 0,
@@ -66,8 +64,7 @@ export function buildItModel({ assets = [], documents = [], categories = [] } = 
       penyusutan: ringkasan.penyusutan,
       berPsp,
       belumPsp: ringkasan.belumPsp,
-      dokumen: documents.length,
-      menunggu
+      dokumen: documents.length
     },
     pspShare: ringkasan.total ? (berPsp / ringkasan.total) * 100 : 0,
     nilaiBukuShare: ringkasan.nilaiPerolehan ? (ringkasan.nilaiBuku / ringkasan.nilaiPerolehan) * 100 : 0,

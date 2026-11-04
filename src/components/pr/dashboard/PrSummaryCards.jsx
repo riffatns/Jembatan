@@ -4,9 +4,9 @@ import { DashboardSummaryCard } from '../../dashboard/DashboardSummaryCard'
 import { formatPercent } from '../../../lib/budgetFormat'
 
 // Dua sisi pekerjaan bidang ini: agenda yang sudah terlaksana dan dokumen
-// yang sudah disetujui.
+// yang masuk tahun ini.
 export function PrSummaryCards({ model }) {
-  const { total, terlaksanaShare, disetujuiShare, perLayanan } = model
+  const { total, terlaksanaShare, dokumenTahunIniShare, perLayanan } = model
   const layananTeramai = [...perLayanan].sort((a, b) => b.value - a.value)[0]
   const layananKosong = perLayanan.filter((item) => item.value === 0).length
 
@@ -25,10 +25,10 @@ export function PrSummaryCards({ model }) {
         <DashboardSummaryCard
           tone="blue"
           icon={IconDocument}
-          label="Dokumen Disetujui"
-          value={total.disetujui}
+          label="Dokumen Tahun Ini"
+          value={total.dokumenTahunIni}
           satuan="berkas"
-          keterangan={`${formatPercent(disetujuiShare, 0)} dari seluruh dokumen layanan`}
+          keterangan={`${formatPercent(dokumenTahunIniShare, 0)} dari seluruh dokumen layanan`}
         />
       </div>
 

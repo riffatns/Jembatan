@@ -64,8 +64,7 @@ export function buildPrModel({ events = [], documents = [], categories = [], tod
     value: documents.filter((document) => document.categoryId === category.id).length
   }))
 
-  const disetujui = documents.filter((document) => document.status === 'approved').length
-  const menunggu = documents.filter((document) => document.status === 'pending').length
+  const dokumenTahunIni = documents.filter((document) => Number(document.year) === tahunIni).length
   const ditolak = documents.filter((document) => document.status === 'rejected').length
 
   return {
@@ -78,12 +77,11 @@ export function buildPrModel({ events = [], documents = [], categories = [], tod
       lewat: lewat.length,
       dibatalkan: events.filter((event) => event.status === 'cancelled').length,
       dokumen: documents.length,
-      disetujui,
-      menunggu,
+      dokumenTahunIni,
       ditolak
     },
     terlaksanaShare: lewat.length ? (terlaksana.length / lewat.length) * 100 : 0,
-    disetujuiShare: documents.length ? (disetujui / documents.length) * 100 : 0,
+    dokumenTahunIniShare: documents.length ? (dokumenTahunIni / documents.length) * 100 : 0,
     perBulan,
     jenis,
     terdekat,

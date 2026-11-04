@@ -5,7 +5,7 @@ import { CountCard, KPI_ROW_CLASS, RingCard } from '../../dashboard/DashboardKpi
 // Dashboard Anggaran, SDM, Hukum, dan Umum dan TI.
 
 export function PrKpiCards({ model }) {
-  const { total, terlaksanaShare, disetujuiShare, terdekat, tahunIni } = model
+  const { total, terlaksanaShare, dokumenTahunIniShare, terdekat, tahunIni } = model
   const berikutnya = terdekat[0]
 
   return (
@@ -30,12 +30,12 @@ export function PrKpiCards({ model }) {
         icon={IconFolderDocuments}
         label="Dokumen Layanan"
         value={total.dokumen}
-        note={total.menunggu ? `${total.menunggu} menunggu persetujuan` : 'Tidak ada yang menunggu persetujuan'}
+        note={total.dokumen ? 'Tersimpan di seluruh layanan bidang' : 'Belum ada dokumen layanan'}
         color="#1fae7a"
         satuan="berkas"
       />
       <RingCard label="Agenda Terlaksana" percent={terlaksanaShare} color="#1fae7a" keterangan="dari agenda yang sudah lewat" />
-      <RingCard label="Dokumen Disetujui" percent={disetujuiShare} color="#2a78d6" keterangan="dari seluruh dokumen layanan" />
+      <RingCard label="Dokumen Tahun Ini" percent={dokumenTahunIniShare} color="#2a78d6" keterangan="dari seluruh dokumen layanan" />
     </section>
   )
 }

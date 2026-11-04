@@ -1,17 +1,14 @@
 import { Badge } from '../ui/badge'
 
-const STATUS_META = {
-  pending: { label: 'Pending', variant: 'warning' },
-  approved: { label: 'Approved', variant: 'success' },
-  rejected: { label: 'Rejected', variant: 'destructive' }
-}
-
+// Unggahan kini langsung masuk, jadi "Pending" dan "Approved" tidak lagi
+// membedakan apa pun. Hanya dokumen lama yang pernah ditolak yang masih diberi
+// tanda, karena penolakan itu tetap keterangan yang perlu terbaca.
 export function StatusBadge({ status, className }) {
-  const meta = STATUS_META[status] || STATUS_META.pending
+  if (status !== 'rejected') return null
 
   return (
-    <Badge variant={meta.variant} className={className}>
-      {meta.label}
+    <Badge variant="destructive" className={className}>
+      Ditolak
     </Badge>
   )
 }

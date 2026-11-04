@@ -190,7 +190,7 @@ lewat fungsi `public.current_profile_role()` dan `public.current_profile_divisio
 | Baca data bidang | semua pengguna yang login | RLS `select to authenticated` |
 | Unggah/ubah dokumen, agenda, aset, angka bidang | admin, atau pegawai bidang itu | RLS + `canUploadToDivision` |
 | Ubah angka anggaran (`budget_snapshots`) | admin, atau bidang `finance` | RLS di `anggaran.sql` |
-| Menyetujui/menolak | admin | rute `/approvals` (klien) + RLS |
+| Persetujuan unggahan dokumen | tidak ada: unggahan langsung masuk (`documents.status = 'approved'`) | `DataContext.addDocument`, migrasi `20261104001100` |
 | `viewer` | hanya membaca | RLS (`current_profile_can_write()`) + `canUploadToDivision` |
 | Melihat riwayat masuk (`/dashboard/akses`) | hanya yang ditandai `profiles.is_teknis` | fungsi `daftar_akses()` menolak di database; `ProtectedRoute teknis` hanya menyembunyikan |
 
