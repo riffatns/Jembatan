@@ -17,7 +17,7 @@ import { formatDate } from '../../lib/utils'
 import { getPositionInfo } from '../../data/accessControl'
 
 export function Topbar({ onOpenMobile }) {
-  const { user, logout, isAdmin } = useAuth()
+  const { user, logout } = useAuth()
   const { documents, divisions, getDocumentCategory } = useData()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')

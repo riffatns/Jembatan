@@ -7,7 +7,6 @@ const Landing = lazy(() => import('./pages/Landing'))
 const TransitionToDashboard = lazy(() => import('./pages/TransitionToDashboard'))
 const DashboardHome = lazy(() => import('./pages/DashboardHome'))
 const DivisionWorkspace = lazy(() => import('./pages/DivisionWorkspace'))
-const Approvals = lazy(() => import('./pages/Approvals'))
 const Profile = lazy(() => import('./pages/Profile'))
 const KondisiPegawaiPage = lazy(() => import('./pages/KondisiPegawaiPage'))
 const SharedCalendar = lazy(() => import('./pages/SharedCalendar'))
@@ -98,14 +97,8 @@ export default function App() {
           <Route path="/dashboard/laporan" element={<Reports />} />
           <Route path="/dashboard/panduan" element={<SystemGuide />} />
           <Route path="/profile" element={<Profile />} />
-          <Route
-            path="/approvals"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <Approvals />
-              </ProtectedRoute>
-            }
-          />
+          {/* Tautan lama yang tersimpan tetap sampai ke tempat yang berguna. */}
+          <Route path="/approvals" element={<Navigate to="/dashboard" replace />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
