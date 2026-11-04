@@ -76,7 +76,7 @@ export function BudgetDashboardHeader({
             <h1 className="text-balance text-[26px] font-black leading-[1.05] tracking-[0.01em] text-[#12305f] sm:text-[32px] fit:whitespace-nowrap fit:text-[26px] fitwide:text-[28px] tall:text-[40px]">
               {title}
             </h1>
-            <p className="mt-1 text-[11px] font-medium tracking-[0.14em] text-[#2f5fa8] sm:text-[13px] fit:whitespace-nowrap fit:text-[11px] tall:text-[14px]">
+            <p className="mt-1 text-[11px] font-medium tracking-[0.14em] text-[#2f5fa8] sm:text-[13px] fit:text-[11px] tall:text-[14px]">
               {subtitle}
             </p>
           </div>
