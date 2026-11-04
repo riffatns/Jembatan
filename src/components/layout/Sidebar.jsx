@@ -401,8 +401,8 @@ function DivisionSidebar({ divisionId, onCloseMobile }) {
 }
 
 function LegacySidebar({ mobileOpen, onCloseMobile }) {
-  const { isAdmin, isEmployee, user } = useAuth()
-  const { divisions, stats } = useData()
+  const { isEmployee, user } = useAuth()
+  const { divisions } = useData()
   const navigate = useNavigate()
   const location = useLocation()
   const [divisionsExpanded, setDivisionsExpanded] = useState(true)
@@ -475,7 +475,6 @@ function LegacySidebar({ mobileOpen, onCloseMobile }) {
             <div className="space-y-1">
               {visibleDivisions.map((d) => {
                 const Icon = LEGACY_ICONS[d.icon] || Building2
-                const pendingCount = stats.perDivision.find((p) => p.id === d.id)?.pending || 0
                 return (
                   <button
                     key={d.id}
@@ -489,36 +488,10 @@ function LegacySidebar({ mobileOpen, onCloseMobile }) {
                   >
                     <Icon className="h-[18px] w-[18px] shrink-0" />
                     <span className="flex-1 truncate">{d.name}</span>
-                    {isAdmin && pendingCount > 0 && (
-                      <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-navy-900">
-                        {pendingCount}
-                      </span>
-                    )}
                   </button>
                 )
               })}
             </div>
-          )}
-
-          {isAdmin && (
-            <>
-              <p className="mt-4 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Administration
-              </p>
-              <NavLink
-                to="/approvals"
-                className={({ isActive }) => cn(linkBase, isActive ? linkActive : linkInactive)}
-                onClick={onCloseMobile}
-              >
-                <ShieldCheck className="h-[18px] w-[18px]" />
-                <span className="flex-1">Approvals</span>
-                {stats.pending > 0 && (
-                  <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-navy-900">
-                    {stats.pending}
-                  </span>
-                )}
-              </NavLink>
-            </>
           )}
         </nav>
 

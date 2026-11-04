@@ -390,24 +390,6 @@ export function DataProvider({ children }) {
     }
     setDocuments((prev) => prev.filter((document) => document.id !== id))
   }, [user])
-  const approveDocument = useCallback(async (id) => {
-    if (isSupabaseConfigured && user?.id) {
-      const { data, error } = await supabase.from('documents').update({ status: 'approved', rejection_reason: null, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', id).select().single()
-      if (error) throw error
-      setDocuments((prev) => prev.map((document) => document.id === id ? mapRemoteDocument(data) : document))
-      return
-    }
-    setDocuments((prev) => prev.map((document) => document.id === id ? { ...document, status: 'approved', rejectionReason: '', reviewedAt: new Date().toISOString() } : document))
-  }, [user])
-  const rejectDocument = useCallback(async (id, reason) => {
-    if (isSupabaseConfigured && user?.id) {
-      const { data, error } = await supabase.from('documents').update({ status: 'rejected', rejection_reason: reason, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', id).select().single()
-      if (error) throw error
-      setDocuments((prev) => prev.map((document) => document.id === id ? mapRemoteDocument(data) : document))
-      return
-    }
-    setDocuments((prev) => prev.map((document) => document.id === id ? { ...document, status: 'rejected', rejectionReason: reason, reviewedAt: new Date().toISOString() } : document))
-  }, [user])
   const addAgendaEvent = useCallback(async (input) => {
     const base = normalizeAgendaInput(input)
     if (isSupabaseConfigured && isAgendaRemote && user?.id) {
@@ -528,7 +510,7 @@ export function DataProvider({ children }) {
     return { total, pending, approved, rejected, perDivision, statusDistribution: [{ name: 'Approved', value: approved, color: '#00A99D' }, { name: 'Pending', value: pending, color: '#F5A623' }, { name: 'Rejected', value: rejected, color: '#E15554' }], totalDivisions: activeDivisions.length, budget, documentTotal: total, documentPending: pending, documentApproved: approved, documentRejected: rejected, documentsByDivision, documentsByCategory, latestDocuments, recentActivity }
   }, [activeDivisions, activeDocumentStructure, budgetData, content, documents])
 
-  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, approveDocument, rejectDocument, updateBudgetFromFile, refreshBudget, assets, isAssetRemote, updateAssetsFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats, budgetReady }
+  const value = { divisions: activeDivisions, documentStructure: activeDocumentStructure, content, documents, addContent, updateStatus, deleteContent, getDivision, getDocumentDivision, getDocumentCategory, getDocumentCategories, addDocument, updateDocument, deleteDocument, updateBudgetFromFile, refreshBudget, assets, isAssetRemote, updateAssetsFromFile, agendaEvents, addAgendaEvent, updateAgendaEvent, deleteAgendaEvent, isAgendaRemote, stats, budgetReady }
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 
