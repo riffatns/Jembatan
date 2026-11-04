@@ -171,7 +171,7 @@ export function LegalWorkspace({ documents, onSelect }) {
                         {jenis.label} &middot; {document.counterparty || 'Pihak belum dicatat'}
                       </span>
                     </span>
-                    <span className="shrink-0 text-xs text-slate-500">{document.documentNumber || '-'}</span>
+                    <span className="max-w-[40%] shrink-0 truncate text-xs text-slate-500" title={document.documentNumber || undefined}>{document.documentNumber || '-'}</span>
                   </button>
                 </li>
               )

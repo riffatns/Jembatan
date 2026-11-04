@@ -17,14 +17,16 @@ import {
 
 const PER_HALAMAN = 15
 
+// Lebar tetap (table-fixed) dan isi yang boleh dilipat: tanpa ini satu nomor atau
+// nama pihak yang panjang melebarkan seluruh tabel sampai keluar dari kartunya.
 const KOLOM = [
-  { id: 'title', label: 'Nama Dokumen', lebar: 'min-w-[260px]' },
-  { id: 'agreementType', label: 'Jenis', lebar: 'w-[140px]' },
-  { id: 'counterparty', label: 'Pihak Terkait', lebar: 'min-w-[200px]' },
-  { id: 'documentNumber', label: 'Nomor', lebar: 'min-w-[160px]' },
-  { id: 'documentDate', label: 'Ditandatangani', lebar: 'w-[150px]' },
-  { id: 'validUntil', label: 'Masa Berlaku', lebar: 'w-[190px]' },
-  { id: 'statusKerjaSama', label: 'Status', lebar: 'w-[150px]', tanpaSort: true }
+  { id: 'title', label: 'Nama Dokumen', lebar: '' },
+  { id: 'agreementType', label: 'Jenis', lebar: 'w-[108px]' },
+  { id: 'counterparty', label: 'Pihak Terkait', lebar: 'w-[136px]' },
+  { id: 'documentNumber', label: 'Nomor', lebar: 'w-[172px]' },
+  { id: 'documentDate', label: 'Tanggal TTD', lebar: 'w-[104px]' },
+  { id: 'validUntil', label: 'Masa Berlaku', lebar: 'w-[120px]' },
+  { id: 'statusKerjaSama', label: 'Status', lebar: 'w-[116px]', tanpaSort: true }
 ]
 
 const FILTER_AWAL = { cari: '', jenis: 'all', status: 'all', tahun: 'all' }
@@ -169,14 +171,14 @@ export function LegalTable({ documents, onSelect, filterAwal }) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-left text-sm">
+            <table className="w-full min-w-[920px] table-fixed border-collapse text-left text-sm">
               <thead className="bg-[#f8fbff]">
                 <tr>
                   {KOLOM.map((kolom) => (
                     <th
                       key={kolom.id}
                       className={cn(
-                        'whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400',
+                        'px-3 py-3 align-bottom text-xs font-semibold uppercase tracking-wide text-slate-400',
                         kolom.lebar
                       )}
                     >
@@ -187,7 +189,7 @@ export function LegalTable({ documents, onSelect, filterAwal }) {
                           type="button"
                           onClick={() => ubahUrut(kolom.id)}
                           className={cn(
-                            'inline-flex cursor-pointer items-center gap-1 transition-colors hover:text-[#1f63d3]',
+                            'inline-flex cursor-pointer items-center gap-1 text-left uppercase tracking-wide transition-colors hover:text-[#1f63d3]',
                             urut.kolom === kolom.id && 'text-[#1f63d3]'
                           )}
                         >
@@ -212,15 +214,15 @@ export function LegalTable({ documents, onSelect, filterAwal }) {
                       onClick={() => onSelect(document)}
                       className="cursor-pointer transition-colors hover:bg-[#f8fbff]"
                     >
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-[#233b84]">{document.title}</p>
+                      <td className="px-3 py-3">
+                        <p className="break-words font-medium text-[#233b84]">{document.title}</p>
                         {document.description ? (
-                          <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{document.description}</p>
+                          <p className="mt-0.5 line-clamp-1 break-words text-xs text-slate-500">{document.description}</p>
                         ) : null}
                       </td>
 
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-slate-600">
+                      <td className="px-3 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-slate-600">
                           <span
                             aria-hidden="true"
                             className="h-2.5 w-2.5 shrink-0 rounded-[3px] ring-1 ring-inset ring-black/15"
@@ -230,13 +232,13 @@ export function LegalTable({ documents, onSelect, filterAwal }) {
                         </span>
                       </td>
 
-                      <td className="px-4 py-3 text-slate-600">{document.counterparty || '-'}</td>
-                      <td className="px-4 py-3 text-slate-600">{document.documentNumber || '-'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      <td className="break-words px-3 py-3 text-slate-600">{document.counterparty || '-'}</td>
+                      <td className="break-words px-3 py-3 text-slate-600">{document.documentNumber || '-'}</td>
+                      <td className="px-3 py-3 text-slate-600">
                         {document.documentDate ? formatDate(document.documentDate) : '-'}
                       </td>
 
-                      <td className="whitespace-nowrap px-4 py-3">
+                      <td className="px-3 py-3">
                         {document.validUntil ? (
                           <>
                             <span className="text-slate-600">{formatDate(document.validUntil)}</span>
@@ -247,7 +249,7 @@ export function LegalTable({ documents, onSelect, filterAwal }) {
                         )}
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         {status ? (
                           <Badge variant={status.badge} className="gap-1">
                             <status.icon className="h-3 w-3" /> {status.label}
