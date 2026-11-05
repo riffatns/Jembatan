@@ -180,7 +180,7 @@ export function AgendaWorkspace({ divisionId, focusDate = '', createTick = 0 }) 
         </div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
         <AgendaCalendar
           cursor={cursor}
           events={monthEvents}
