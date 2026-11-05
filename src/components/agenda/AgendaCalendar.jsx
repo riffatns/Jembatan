@@ -50,7 +50,7 @@ export function AgendaCalendar({
   }, [events])
 
   return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-6">
+    <div className="min-w-0 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[#233b84]">{title}</h2>
@@ -110,14 +110,16 @@ export function AgendaCalendar({
         </div>
       )}
 
-      <div className="mt-5 rounded-[20px] border border-slate-200 bg-white p-3">
-        <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-500">
+      {/* Tujuh kolom tidak terbaca di lebar ponsel, dan tanpa batas ini kartunya melebar
+          sampai tombol bulan berikutnya keluar layar. Kisinya bergulir di dalam kartu. */}
+      <div className="mt-5 overflow-x-auto rounded-[20px] border border-slate-200 bg-white p-3">
+        <div className="grid min-w-[560px] grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-500">
           {WEEKDAYS.map((day) => (
             <div key={day} className="py-2">{day}</div>
           ))}
         </div>
 
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 min-w-[560px] space-y-2">
           {weeks.map((week, weekIndex) => (
             <div key={weekIndex} className="grid grid-cols-7 gap-2">
               {week.map((date, dayIndex) => {

@@ -1,5 +1,6 @@
 import { IconCalendar, IconChevronDown, IconDatabase } from '../../icons/DuotoneIcons'
 import { UserAccountMenu } from '../../layout/UserAccountMenu'
+import { cn } from '../../../lib/utils'
 
 // Pemilih tahun anggaran: daftar TA yang punya Master Data. Tidak ada filter
 // bulan; bulan hanya keterangan periode laporan yang sedang tampil.
@@ -82,7 +83,9 @@ export function BudgetDashboardHeader({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-3 fit:flex-nowrap fit:gap-2.5">
+        {/* Tanpa pemilih dan tombol, baris ini hanya berisi menu akun yang tersembunyi di
+            bawah lg; kalau tetap flex, jaraknya menyisakan ruang kosong. */}
+        <div className={cn('max-w-full shrink-0 flex-wrap items-center gap-3 fit:flex-nowrap fit:gap-2.5', showYearPicker || actions ? 'flex' : 'hidden lg:flex')}>
           {showYearPicker && (
             <FiscalYearPicker years={years} fiscalYear={fiscalYear} periodName={periodName} onChange={onFiscalYearChange} />
           )}

@@ -217,7 +217,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(340px,1fr)]">
         <AgendaCalendar
           title={`Kalender Kegiatan ${division?.shortName || 'Divisi'}`}
           cursor={calendarCursor}

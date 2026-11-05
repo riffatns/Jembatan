@@ -83,6 +83,16 @@ export function IconChevronDown(props) {
   )
 }
 
+export function IconMenu(props) {
+  return (
+    <DuotoneSvg {...props}>
+      <rect x="3" y="5" width="18" height="2.6" rx="1.3" />
+      <rect opacity={BACK} x="3" y="10.7" width="18" height="2.6" rx="1.3" />
+      <rect x="3" y="16.4" width="18" height="2.6" rx="1.3" />
+    </DuotoneSvg>
+  )
+}
+
 export function IconCoins(props) {
   return (
     <DuotoneSvg {...props}>

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { UserAccountMenu } from './UserAccountMenu'
+import { cn } from '../../lib/utils'
 
 // Header bersama untuk halaman-halaman Monitoring. Sebelumnya tiap halaman
 // menyusun headernya sendiri, dan itu sumber ketidakseragaman yang sama seperti
@@ -21,7 +22,8 @@ export function SectionHeader({ eyebrow, title, subtitle, children }) {
         {subtitle ? <p className="mt-1 text-sm text-[#61739b]">{subtitle}</p> : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Tanpa children, baris ini kosong di bawah lg karena menu akun pindah ke bilah atas. */}
+      <div className={cn('flex-wrap items-center gap-3', children ? 'flex' : 'hidden lg:flex')}>
         {children}
         <UserAccountMenu />
       </div>
